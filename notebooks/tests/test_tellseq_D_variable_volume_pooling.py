@@ -4,6 +4,7 @@ import papermill as pm
 import json
 import tempfile
 from pathlib import Path
+import os
 
 NOTEBOOK = "../tellseq_D_variable_volume_pooling.ipynb"
 TEST_DICT = 'test_dict'
@@ -65,13 +66,17 @@ class TestTellseqD(unittest.TestCase):
                     'Pooling/' +
                     'Tellseq_iSeqnormpool_set_col19to24.txt'
                 )
+                self.assertTrue(os.path.exists(output_iseqnormed_picklist_fp),
+                                msg="Notebook did not produce desired file.")
                 with open(output_iseqnormed_picklist_fp, 'r') as out:
                     with open(test_iseqnormed_fp, 'r') as test:
                         out_lines = out.readlines()
                         test_lines = test.readlines()
                         for out_line, test_line in zip(out_lines,
                                                        test_lines):
-                            self.assertEqual(out_line, test_line)
+                            self.assertEqual(out_line, test_line,
+                                             msg=("Lines of output" +
+                                                  "and test don't match"))
 
 
 if __name__ == "__main__":
