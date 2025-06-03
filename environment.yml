@@ -21,6 +21,7 @@ dependencies:
   - scikit-learn
   - biom-format
   - flake8
+  - papermill
   - pip:
       - click
       - coverage

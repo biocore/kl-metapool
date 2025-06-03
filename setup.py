@@ -42,7 +42,8 @@ base = ['qiita_client @ https://github.com/qiita-spots/qiita_client/archive/'
         'pandas >= 2.2.3', 'sample-sheet >= 0.13.0', 'scikit-learn >= 1.5.2',
         'seaborn >= 0.13.2']
 
-test = ['nose >= 1.3.7', 'pep8 >= 1.7.1', 'flake8 >= 7.1.1']
+test = ['nose >= 1.3.7', 'pep8 >= 1.7.1', 'flake8 >= 7.1.1',
+        'papermill >= 2.6.0']
 
 coverage = ['coverage >= 7.6.8']
 
