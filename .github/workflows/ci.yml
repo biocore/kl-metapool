@@ -134,7 +134,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate metapool
-          flake8 metapool notebooks setup.py
+          flake8 --exclude versioneer.py .
       - name: Check deploy script syntax
         run: bash -n ./deploy.sh
       - name: Lint bash scripts with ShellCheck
