@@ -28,7 +28,10 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
-                                   make_sections_dict, SS_SAMPLE_ID_KEY)
+                                   make_sections_dict, SS_SAMPLE_ID_KEY,
+                                   _ASSAY_KEY, _SHEET_VERSION_KEY,
+                                   _SHEET_TYPE_KEY, _BIOINFORMATICS_KEY,
+                                   _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 from metapool.plate import ErrorMessage, WarningMessage
 from metapool.metapool import generate_override_cycles_value
 
@@ -78,7 +81,7 @@ class BaseTests(unittest.TestCase):
         self.bad_project_name_ss = join(data_dir,
                                         'bad-project-name-sample-sheet.csv')
 
-        self.good_run_info = "metapool/tests/data/runinfo_files/RunInfo1.xml"
+        self.good_run_info = join(data_dir, "runinfo_files/RunInfo1.xml")
 
         bfx = [
             {
@@ -627,25 +630,6 @@ class KLSampleSheetTests(BaseTests):
                             'library_construction_protocol')]
         obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
         self.assertEqual(str(obs[0]), str(exp[0]))
-
-    def test_alt_sample_sheet(self):
-        # testing with all the sheets we have access to
-        obs = MetagenomicSampleSheetv90(self.alt_ss).all_sample_keys
-
-        exp = ['Lane',
-               'Sample_ID',
-               'Sample_Name',
-               'Sample_Plate',
-               'well_id_384',
-               'I7_Index_ID',
-               'index',
-               'I5_Index_ID',
-               'index2',
-               'Sample_Project',
-               'syndna_pool_number',
-               'Well_description']
-
-        self.assertEqual(set(obs), set(exp))
 
     def test_set_override_cycles(self):
         sheet = load_sample_sheet(self.good_ss)
@@ -1916,13 +1900,13 @@ class ValidateSampleSheetTests(BaseTests):
         # confirm that function returns the [Data] section of the sample-sheet
         # as a DataFrame.
 
-        exp_columms = {'lane', 'sample_name', 'sample_plate', 'well_id_384',
+        exp_columns = {'lane', 'sample_name', 'sample_plate', 'well_id_384',
                        'i7_index_id', 'index', 'i5_index_id', 'index2',
                        'sample_project', 'well_description',
                        'library_construction_protocol',
                        'experiment_design_description'}
 
-        self.assertEqual(set(obs.columns), exp_columms)
+        self.assertEqual(set(obs.columns), exp_columns)
 
         obs = obs['sample_name'].to_list()
 
@@ -1989,7 +1973,8 @@ class DemuxReplicatesTests(BaseTests):
         self.sheet_wo_replicates_path = join(self.data_dir,
                                              'sheet_wo_replicates.csv')
 
-        self.legacy_sheet_path = join(self.data_dir, 'good-sample-sheet.csv')
+        self.legacy_sheet_path = \
+            join(self.data_dir, 'good_standard_metagv90_sheet.csv')
 
         self.replicate_output_paths = [join(self.data_dir,
                                             'replicate_output1.csv'),
@@ -2307,7 +2292,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_metatranscriptomic_sheet_load(self):
-        metat_fp = join(self.data_dir, 'standard_metaT_samplesheet.csv')
+        metat_fp = join(self.data_dir, 'good_standard_metatv10.csv')
 
         # confirm manual loading is w/out error.
         sheet = MetatranscriptomicSampleSheetv10(metat_fp)
@@ -2427,178 +2412,380 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
 
 
-class TellseqSheetCreationTests(BaseTests):
-    expected_cols = (
+class SampleSheetLoadMakeAndLoadTests(BaseTests):
+    sheet_class = KLSampleSheet
+    sample_sheet_name = ""
+
+    _INPUT_COLS = [
+        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'Project Plate', 'i7 name', 'i7 sequence',
+        'i5 name', 'i5 sequence', 'Project Name']
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAT',
+         'iTru5_01_A', 'ACCGACAA', 'MyProject_99999'],
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAC',
+         'iTru5_01_A', 'ACCGACAT', 'MyProject_99999'],
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAG',
+         'iTru5_01_A', 'ACCGACAG', 'MyProject_99999'],
+    ]
+
+    _OUTPUT_COLS = [
         'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-        'barcode_id', 'Sample_Project', 'Well_description')
+        'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+        'Sample_Project', 'Well_description']
 
-    def setUp(self):
-        self.data_dir = join(dirname(__file__), 'data')
-        self.tellseq_metag_10_fp = \
-            join(self.data_dir, 'tellseq_metag_dummy_sample_sheet_2.csv')
-
-        self.input_columns = ['sample sheet Sample_ID',
-                              'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                              'Project Name', 'Compressed Plate Name', 'Well',
-                              'Plate Position', 'Primer Plate #', 'Plating',
-                              'Extraction Kit Lot', 'Extraction Robot',
-                              'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
-                              'Water Lot', 'Processing Robot', 'Sample Plate',
-                              'Project_Name', 'Original Name', 'Plate',
-                              'EMP Primer Plate Well', 'barcode_id',
-                              "Illumina 5' Adapter", 'Golay Barcode',
-                              'Forward Primer Pad', 'Forward Primer Linker',
-                              '515FB Forward Primer (Parada)',
-                              'Primer For PCR', 'syndna_pool_number']
-
-        self.data = [
-            ['sample1', 'sample1', 'A', 1, False, 'THDMI_10317_PUK2',
-             'MyProject_99999', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
-             'SF',
-             '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
-             '978215',
-             'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '',
-             '1',
-             'A1', 'C501', 'AATGATACGGCGACCACCGAGATCTACACGCT',
-             'AGCCTTCGTCGC', 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1']
+    _BIOINFORMATICS = [
+            {
+                'Sample_Project': 'MyProject_99999',
+                'QiitaID': '99999',
+                'BarcodesAreRC': 'False',
+                'ForwardAdapter': 'AACC',
+                'ReverseAdapter': 'GGTT',
+                'HumanFiltering': 'False',
+                'library_construction_protocol': 'some protocol',
+                'experiment_design_description': 'some description',
+                'contains_replicates': 'False'
+            }
         ]
 
-        self.metadata = {
-            'Bioinformatics': [
-                {
-                    'Sample_Project': 'MyProject_99999',
-                    'QiitaID': '101',
-                    'BarcodesAreRC': 'False',
-                    'ForwardAdapter': 'N',
-                    'ReverseAdapter': 'N',
-                    'HumanFiltering': 'False',
-                    'library_construction_protocol': 'tellseq',
-                    'experiment_design_description': 'some description',
-                    'contains_replicates': 'False'
-                }
-            ],
-            'Contact': [
-                {
-                    'Sample_Project': 'MyProject_99999',
-                    'Email': 'foo@bar.org'
-                }
-            ],
-            'SampleContext': [],
-            'Assay': 'Metagenomic',
-            'SheetType': 'tellseq_metag',
-            'SheetVersion': '10'
-        }
+    _CONTACTS = [
+            {
+                'Sample_Project': 'MyProject_99999',
+                'Email': 'foo@bar.org'
+            }
+    ]
 
-    def test_tellseq_metag_load_sample_sheet(self):
-        sheet1 = load_sample_sheet(self.tellseq_metag_10_fp)
-        self.assertEqual(type(sheet1), TellseqMetagSampleSheetv10)
+    _SAMPLE_CONTEXT = None
 
-        obs = sheet1._get_expected_data_columns()
-        self.assertEqual(obs, self.expected_cols)
+    data_dir = join(dirname(__file__), 'data')
 
-        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+    @staticmethod
+    def _make_metadata(a_test_self):
+        metadata = {
+            _BIOINFORMATICS_KEY:
+                [x.copy() for x in a_test_self._BIOINFORMATICS],
+            _CONTACT_KEY: [x.copy() for x in a_test_self._CONTACTS],
+            _ASSAY_KEY: a_test_self.sheet_class._HEADER[_ASSAY_KEY],
+            _SHEET_TYPE_KEY: a_test_self.sheet_class._HEADER[_SHEET_TYPE_KEY],
+            _SHEET_VERSION_KEY:
+                a_test_self.sheet_class._HEADER[_SHEET_VERSION_KEY]}
 
-    def test_tellseq_metag_make_sample_sheet(self):
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
+        if a_test_self._SAMPLE_CONTEXT is not None:
+            metadata[_SAMPLE_CONTEXT_KEY] = \
+                [x.copy() for x in a_test_self._SAMPLE_CONTEXT]
+        # endif _SAMPLE_CONTEXT
+
+        return metadata
+
+    @property
+    def sample_sheet_fp(self):
+        return join(self.data_dir, self.sample_sheet_name)
+
+    def _help_test_instantiate_sample_sheet_from_path(self, sheet_class):
+        sheet = sheet_class(self.sample_sheet_fp)
+
+        obs = sheet._get_expected_data_columns()
+        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
+
+        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+    def _help_test_make_sample_sheet(self, sheet_class):
+        table = pd.DataFrame(columns=self._INPUT_COLS, data=self._INPUT_DATA)
+
+        metadata = self._make_metadata(self)
+        sheet = make_sample_sheet(
+            metadata, table, 'iSeq', [1], strict=False)
 
         self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, TellseqMetagSampleSheetv10)
+        self.assertIsInstance(sheet, sheet_class)
         obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = set(self.expected_cols) | {'Lane'}
+        exp_columns = set(self._OUTPUT_COLS) | {'Lane'}
         self.assertEqual(exp_columns, obs_columns)
 
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
+        with open("good_standard_metagv0.csv", "w") as f:
+            sheet.write(f)
 
-class TellseqAbsquantSheetCreationTests(BaseTests):
-    expected_cols = TellseqSheetCreationTests.expected_cols + (
-            'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
-            'vol_extracted_elution_ul', 'syndna_pool_number')
-
-    def setUp(self):
-        self.data_dir = join(dirname(__file__), 'data')
-        self.tellseq_absquant_10_fp = \
-            join(self.data_dir, 'tellseq_absquant_dummy_sample_sheet_2.csv')
-
-        self.input_columns = ['sample sheet Sample_ID',
-                              'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                              'Project Name', 'Compressed Plate Name', 'Well',
-                              'Plate Position', 'Primer Plate #', 'Plating',
-                              'Extraction Kit Lot', 'Extraction Robot',
-                              'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
-                              'Water Lot', 'Processing Robot', 'Sample Plate',
-                              'Project_Name', 'Original Name', 'Plate',
-                              'EMP Primer Plate Well', 'barcode_id',
-                              "Illumina 5' Adapter", 'Golay Barcode',
-                              'Forward Primer Pad', 'Forward Primer Linker',
-                              '515FB Forward Primer (Parada)',
-                              'Primer For PCR', 'syndna_pool_number']
-
-        self.data = [
-            ['sample1', 'sample1', 'A', 1, False, 'THDMI_10317_PUK2',
-             'MyProject_99999', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
-             'SF',
-             '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
-             '978215',
-             'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '',
-             '1',
-             'A1', 'C501', 'AATGATACGGCGACCACCGAGATCTACACGCT',
-             'AGCCTTCGTCGC', 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1']
-        ]
-
-        self.metadata = {
-            'Bioinformatics': [
-                {
-                    'Sample_Project': 'MyProject_99999',
-                    'QiitaID': '101',
-                    'BarcodesAreRC': 'False',
-                    'ForwardAdapter': 'N',
-                    'ReverseAdapter': 'N',
-                    'HumanFiltering': 'False',
-                    'library_construction_protocol': 'tellseq',
-                    'experiment_design_description': 'some description',
-                    'contains_replicates': 'False'
-                }
-            ],
-            'Contact': [
-                {
-                    'Sample_Project': 'MyProject_99999',
-                    'Email': 'foo@bar.org'
-                }
-            ],
-            'SampleContext': [],
-            'Assay': 'Metagenomic',
-            'SheetType': 'tellseq_absquant',
-            'SheetVersion': '10'
-        }
-
-    def test_tellseq_absquant_load_sample_sheet(self):
-        sheet1 = load_sample_sheet(self.tellseq_absquant_10_fp)
-        self.assertEqual(type(sheet1), TellseqAbsquantMetagSampleSheetv10)
+    def _help_test_load_sample_sheet(self, sheet_class):
+        sheet1 = load_sample_sheet(self.sample_sheet_fp)
+        self.assertEqual(type(sheet1), sheet_class)
 
         obs = sheet1._get_expected_data_columns()
-        self.assertEqual(obs, self.expected_cols)
+        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
 
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-    def test_tellseq_absquant_make_sample_sheet(self):
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
+    def _help_test_roundtrip_sample_sheet(self, sheet_class):
+        sheet1 = load_sample_sheet(self.sample_sheet_fp)
+        self.assertEqual(type(sheet1), sheet_class)
 
-        self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, TellseqAbsquantMetagSampleSheetv10)
-        obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = set(self.expected_cols) | {'Lane'}
-        self.assertEqual(exp_columns, obs_columns)
+        self.maxDiff = None
+        # write the sample-sheet to a temporary file
+        with tempfile.NamedTemporaryFile(mode='w+', delete=False) as tmp:
+            sheet1.write(tmp)
+            tmp.flush()
 
-        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+            # confirm that the written sample-sheet matches the original
+            self._help_test_csv_files_exact_text_match(
+                self.sample_sheet_fp, tmp.name)
+
+
+class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = MetagenomicSampleSheetv90
+    sample_sheet_name = "good_standard_metagv90_sheet.csv"
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+        'Sample_Project', 'Well_description']
+
+    @staticmethod
+    def _make_metadata(a_test_self):
+        metadata = SampleSheetLoadMakeAndLoadTests._make_metadata(a_test_self)
+        # remove "contains_replicates" key from metadata[_BIOINFORMATICS_KEY]
+        for bfx in metadata[_BIOINFORMATICS_KEY]:
+            if CONTAINS_REPLICATES_KEY in bfx:
+                del bfx[CONTAINS_REPLICATES_KEY]
+        return metadata
+
+    def test_MetagenomicSampleSheetv90_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv90_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv90_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = MetagenomicSampleSheetv100
+    sample_sheet_name = "good-sample-sheet.csv"
+
+    def test_MetagenomicSampleSheetv100_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv100_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv100_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = MetagenomicSampleSheetv101
+    sample_sheet_name = "good-sample-sheet_w_sample_context.csv"
+
+    _SAMPLE_CONTEXT = [
+        {'sample_name': 'sample.3',
+         'sample_type': 'control blank',
+         'primary_qiita_study': '99999',
+         'secondary_qiita_studies': ''
+         }
+    ]
+
+    def test_MetagenomicSampleSheetv101_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv101_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv101_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = AbsQuantSampleSheetv10
+    sample_sheet_name = "good_abs_quant_metagv10.csv"
+
+    _INPUT_COLS = [
+        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'Project Plate', 'i7 name', 'i7 sequence',
+        'i5 name', 'i5 sequence', 'Project Name',
+        'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+        'vol_extracted_elution_ul', 'syndna_pool_number'
+    ]
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'sample_plate_1', 'False',
+         'A1', 'iTru7_107_07', 'CCGACTAT',
+         'iTru5_01_A', 'ACCGACAA', 'MyProject_99999',
+         '0.2', '1.0', '1.1', '1'],
+        ['sample_2', 'sample.2', '2', '1', 'sample_plate_1', 'False',
+         'A2', 'iTru7_107_07', 'CCGACTAC',
+         'iTru5_01_A', 'ACCGACAT', 'MyProject_99999',
+         '0.22', '1.0', '1.1', '1'],
+        ['sample_3', 'sample.3', '3', '1', 'sample_plate_1', 'False',
+         'A3', 'iTru7_107_07', 'CCGACTAG',
+         'iTru5_01_A', 'ACCGACAG', 'MyProject_99999',
+         '0.25', '1.0', '1.1', '1'],
+    ]
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+        'Sample_Project', 'Well_description',
+        'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+        'vol_extracted_elution_ul', 'syndna_pool_number'
+    ]
+
+    def test_AbsQuantSampleSheetv10_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_AbsQuantSampleSheetv10_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_AbsQuantSampleSheetv10_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class AbsQuantSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = AbsQuantSampleSheetv11
+    sample_sheet_name = "good_abs_quant_metagv11.csv"
+
+    _INPUT_COLS = AbsQuantSampleSheetv10CreationTests._INPUT_COLS
+
+    _INPUT_DATA = AbsQuantSampleSheetv10CreationTests._INPUT_DATA
+
+    _OUTPUT_COLS = AbsQuantSampleSheetv10CreationTests._OUTPUT_COLS
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    def test_AbsQuantSampleSheetv11_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_AbsQuantSampleSheetv11_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_AbsQuantSampleSheetv11_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class TellseqMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = TellseqMetagSampleSheetv10
+    sample_sheet_name = "tellseq_metag_dummy_sample_sheet_2.csv"
+
+    _INPUT_COLS = [
+        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'Project Plate', 'barcode_id', 'Project Name'
+    ]
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'sample_plate_1', 'False',
+         'A1', 'C501', 'MyProject_99999'],
+        ['sample_2', 'sample.2', '2', '1', 'sample_plate_1', 'False',
+         'A2', 'C509', 'MyProject_99999'],
+        ['sample_3', 'sample.3', '3', '1', 'sample_plate_1', 'False',
+         'A3', 'C520', 'MyProject_99999'],
+    ]
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'barcode_id',
+        'Sample_Project', 'Well_description'
+    ]
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    def test_TellseqMetagSampleSheetv10_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_TellseqMetagSampleSheetv10_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_TellseqMetagSampleSheetv10_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class TellseqAbsquantMetagSampleSheetv10CreationTests(
+        SampleSheetLoadMakeAndLoadTests):
+    sheet_class = TellseqAbsquantMetagSampleSheetv10
+    sample_sheet_name = "tellseq_absquant_dummy_sample_sheet_2.csv"
+
+    _INPUT_COLS = [
+        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'Project Plate', 'barcode_id', 'Project Name',
+        'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+        'vol_extracted_elution_ul', 'syndna_pool_number'
+    ]
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'sample_plate_1', 'False',
+         'A1', 'C501', 'MyProject_99999',
+         '0.2', '1.0', '1.1', '1'],
+        ['sample_2', 'sample.2', '2', '1', 'sample_plate_1', 'False',
+         'A2', 'C509', 'MyProject_99999',
+         '0.22', '1.0', '1.1', '1'],
+        ['sample_3', 'sample.3', '3', '1', 'sample_plate_1', 'False',
+         'A3', 'C520', 'MyProject_99999',
+         '0.25', '1.0', '1.1', '1'],
+    ]
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'barcode_id',
+        'Sample_Project', 'Well_description',
+        'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+        'vol_extracted_elution_ul', 'syndna_pool_number'
+    ]
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    def test_TellseqAbsquantMetagSampleSheetv10_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_TellseqAbsquantMetagSampleSheetv10_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_TellseqAbsquantMetagSampleSheetv10_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+
+class MetatranscriptomicSampleSheetv10CreationTests(
+        SampleSheetLoadMakeAndLoadTests):
+    sheet_class = MetatranscriptomicSampleSheetv10
+    sample_sheet_name = "good_standard_metatv10.csv"
+
+    _INPUT_COLS = [
+        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'Project Plate', 'i7 name', 'i7 sequence',
+        'i5 name', 'i5 sequence', 'Project Name',
+        'total_rna_concentration_ng_ul', 'vol_extracted_elution_ul']
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAT',
+         'iTru5_01_A', 'ACCGACAA', 'MyProject_99999',
+         '94.454', '70'],
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAC',
+         'iTru5_01_A', 'ACCGACAT', 'MyProject_99999',
+         '5.3', '70'],
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAG',
+         'iTru5_01_A', 'ACCGACAG', 'MyProject_99999',
+         '0.5', '70'],
+    ]
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+        'Sample_Project', 'total_rna_concentration_ng_ul',
+        'vol_extracted_elution_ul', 'Well_description']
+
+    def test_MetatranscriptomicSampleSheetv10_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_MetatranscriptomicSampleSheetv10_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
+
+    def test_MetatranscriptomicSampleSheetv10_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
 
 
 class KarathoseqEnabledSheetCreationTests(BaseTests):
@@ -2728,7 +2915,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         obs = sheet2._get_expected_data_columns()
 
         self.assertEqual(obs, exp)
-        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
+        self.assertTrue(sheet2.validate_and_scrub_sample_sheet())
 
         # confirm that class-wide state is not permanently changed by loading
         # a karathoseq-enabled file. Reloading sheet1 should continue to have

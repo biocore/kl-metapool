@@ -311,6 +311,7 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
     # to this function explicitly.
     result["lane"] = lane
 
+    # NB: if modifying this code, see issue #303!
     # handle multiple types of sample-sheets, where columns such
     # as 'syndna_pool_number' may or may not be present.
     additional_columns = ['syndna_pool_number', 'mass_syndna_input_ng',
@@ -369,7 +370,7 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     Returns
     -------
     (dict, dict, dict)
-        A dict keyed by run indentifier, project name and lane. Values are
+        A dict keyed by run identifier, project name and lane. Values are
         preparations represented as DataFrames. A second dict lists all
         samples that could not be mapped to a file. This dict is organized
         by project name. A third dict lists all of the files that could

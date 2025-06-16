@@ -604,6 +604,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         table = self._remap_table(table, strict)
 
         for column in self._get_expected_data_columns():
+            # NB: If modifying this, see issue #305; should be an error?
             if column not in table.columns:
                 warnings.warn('The column %s in the sample sheet is empty' %
                               column)
@@ -1703,58 +1704,41 @@ def _parse_header(fp):
 
     # conversion to dict causes SheetVersion to be wrapped in single ticks.
     # e.g.: "'100'". These should be removed if present.
-    if 'SheetVersion' in results:
-        results['SheetVersion'] = results['SheetVersion'].replace("'", "")
+    if _SHEET_VERSION_KEY in results:
+        results[_SHEET_VERSION_KEY] = \
+            results[_SHEET_VERSION_KEY].replace("'", "")
 
     return results
 
 
 def load_sample_sheet(sample_sheet_path):
-    types = [AmpliconSampleSheet,
-             MetagenomicSampleSheetv102, MetagenomicSampleSheetv101,
-             MetagenomicSampleSheetv100, MetagenomicSampleSheetv90,
-             AbsQuantSampleSheetv10, MetatranscriptomicSampleSheetv0,
-             MetatranscriptomicSampleSheetv10, TellseqMetagSampleSheetv10,
-             TellseqAbsquantMetagSampleSheetv10]
-
+    # identify the sample-sheet type and version from the file header,
+    # and return the corresponding SampleSheet() object loaded from the file.
     header = _parse_header(sample_sheet_path)
+    sheet_class = _id_sample_sheet_class_from_dict(header)
+    sheet = sheet_class(sample_sheet_path)
+    return sheet
 
-    required_attributes = ['Assay', 'SheetType', 'SheetVersion']
+
+def _id_sample_sheet_class_from_dict(dict_w_header_info):
+    required_attributes = [_SHEET_TYPE_KEY, _SHEET_VERSION_KEY, _ASSAY_KEY]
     missing_attributes = []
     for attribute in required_attributes:
-        if attribute not in header:
+        if attribute not in dict_w_header_info:
             missing_attributes.append(f"'{attribute}'")
 
     if len(missing_attributes) != 0:
         raise ValueError("The following fields must be defined in [Header]: "
                          " %s" % ", ".join(missing_attributes))
 
-    sheet = None
-
-    for type in types:
-        m = True
-        for attribute in required_attributes:
-            if type._HEADER[attribute] != header[attribute]:
-                m = False
-                break
-
-        if m:
-            # header matches all the attributes for the type.
-            sheet = type(sample_sheet_path)
-            break
-
-    # return a SampleSheet() object if the metadata in the file was
-    # successfully matched to a sample-sheet type. this allows the user to
-    # call validate_and_scrub() or quiet_validate_and_scrub() on the sample-
-    # sheet to determine its correctness or receive warnings and errors.
-    if sheet is not None:
-        return sheet
-
-    raise ValueError(f"'{sample_sheet_path}' does not appear to be a valid "
-                     "sample-sheet.")
+    sheet_class = _id_sample_sheet_class(
+        dict_w_header_info[_SHEET_TYPE_KEY],
+        dict_w_header_info[_SHEET_VERSION_KEY],
+        dict_w_header_info[_ASSAY_KEY])
+    return sheet_class
 
 
-def _create_sample_sheet(sheet_type, sheet_version, assay_type):
+def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
     def _make_version_err_msg(sheet_type, sheet_version):
         return f"'{sheet_version}' is an unrecognized SheetVersion for " \
                f"'{sheet_type}'"
@@ -1769,27 +1753,27 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
     if sheet_type == STANDARD_METAG_SHEET_TYPE:
         if assay_type == _METAGENOMIC:
             if sheet_version == '102':
-                sheet = MetagenomicSampleSheetv102()
+                sheet_class = MetagenomicSampleSheetv102
             elif sheet_version == '101':
-                sheet = MetagenomicSampleSheetv101()
+                sheet_class = MetagenomicSampleSheetv101
             elif sheet_version == '90':
-                sheet = MetagenomicSampleSheetv90()
+                sheet_class = MetagenomicSampleSheetv90
             elif sheet_version in ['95', '99', '100']:
                 # 95, 99, and v100 are functionally the same type.
-                sheet = MetagenomicSampleSheetv100()
+                sheet_class = MetagenomicSampleSheetv100
             else:
                 raise ValueError(
                     _make_version_err_msg(sheet_type, sheet_version))
         elif assay_type == _METATRANSCRIPTOMIC:
-            sheet = MetatranscriptomicSampleSheetv0()
+            sheet_class = MetatranscriptomicSampleSheetv0
         else:
             raise ValueError(_make_assay_err_msg(assay_type))
     elif sheet_type == STANDARD_METAT_SHEET_TYPE:
         if assay_type == _METATRANSCRIPTOMIC:
             if sheet_version == '0':
-                sheet = MetatranscriptomicSampleSheetv0()
+                sheet_class = MetatranscriptomicSampleSheetv0
             elif sheet_version == '10':
-                sheet = MetatranscriptomicSampleSheetv10()
+                sheet_class = MetatranscriptomicSampleSheetv10
             else:
                 raise ValueError(
                     _make_version_err_msg(sheet_type, sheet_version))
@@ -1799,31 +1783,31 @@ def _create_sample_sheet(sheet_type, sheet_version, assay_type):
         check_metag_assay_type(assay_type)
 
         if sheet_version == '11':
-            sheet = AbsQuantSampleSheetv11()
+            sheet_class = AbsQuantSampleSheetv11
         elif sheet_version == '10':
-            sheet = AbsQuantSampleSheetv10()
+            sheet_class = AbsQuantSampleSheetv10
         else:
             raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
     elif sheet_type == TELLSEQ_METAG_SHEET_TYPE:
         check_metag_assay_type(assay_type)
 
         if sheet_version == '10':
-            sheet = TellseqMetagSampleSheetv10()
+            sheet_class = TellseqMetagSampleSheetv10
         else:
             raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
     elif sheet_type == TELLSEQ_ABSQUANT_SHEET_TYPE:
         check_metag_assay_type(assay_type)
 
         if sheet_version == '10':
-            sheet = TellseqAbsquantMetagSampleSheetv10()
+            sheet_class = TellseqAbsquantMetagSampleSheetv10
         else:
             raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
     elif sheet_type == _DUMMY_SHEET_TYPE:
-        sheet = AmpliconSampleSheet()
+        sheet_class = AmpliconSampleSheet
     else:
         raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
 
-    return sheet
+    return sheet_class
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
@@ -1871,7 +1855,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
         plate (PM_PROJECT_PLATE_KEY), project name (PM_PROJECT_NAME_KEY),
-        and synthetic DNA pool number ('syndna_pool_number').
+        and, if required by the sheet type, synthetic DNA pool number
+        ('syndna_pool_number').
     sequencer: string
         A string representing the sequencer used.
     lanes: list of integers
@@ -1894,17 +1879,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
     ValueError
         If the newly-created sample-sheet fails validation.
     """
-    required_attributes = [_SHEET_TYPE_KEY, _SHEET_VERSION_KEY, _ASSAY_KEY]
-
-    for attribute in required_attributes:
-        if attribute not in metadata:
-            raise ValueError("'%s' is not defined in metadata" % attribute)
-
-    sheet_type = metadata[_SHEET_TYPE_KEY]
-    sheet_version = metadata[_SHEET_VERSION_KEY]
-    assay_type = metadata[_ASSAY_KEY]
-
-    sheet = _create_sample_sheet(sheet_type, sheet_version, assay_type)
+    sheet_class = _id_sample_sheet_class_from_dict(metadata)
+    sheet = sheet_class()
 
     messages = sheet._validate_sample_sheet_metadata(metadata)
 
@@ -2095,9 +2071,10 @@ def demux_sample_sheet(sheet):
     # replicate of plate 1, BLANKS and all), we can split replicates
     # according to their destination quadrant number.
     for df in _demux_sample_sheet(sheet):
-        new_sheet = _create_sample_sheet(sheet.Header[_SHEET_TYPE_KEY],
-                                         sheet.Header[_SHEET_VERSION_KEY],
-                                         sheet.Header[_ASSAY_KEY])
+        new_sheet_class = _id_sample_sheet_class(
+            sheet.Header[_SHEET_TYPE_KEY], sheet.Header[_SHEET_VERSION_KEY],
+            sheet.Header[_ASSAY_KEY])
+        new_sheet = new_sheet_class()
         new_sheet.Header = sheet.Header
         new_sheet.Reads = sheet.Reads
         new_sheet.Settings = sheet.Settings
