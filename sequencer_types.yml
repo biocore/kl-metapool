@@ -1,0 +1,68 @@
+# NB: any sampler without a revcomp_samplesheet_i5_index key will not be
+# available to users when making sample sheets, because we don't know what that
+# value should be, and it's better to error than to silently do the wrong thing
+HiSeq1500:
+    model_name: 'Illumina HiSeq 1500'
+    revcomp_samplesheet_i5_index: false
+HiSeq2500:
+    model_name: 'Illumina HiSeq 2500'
+    revcomp_samplesheet_i5_index: false
+    machine_prefix: 'D'
+HiSeq3000:
+    model_name: 'Illumina HiSeq 3000'
+    revcomp_samplesheet_i5_index: true
+HiSeq4000:
+    model_name: 'Illumina HiSeq 4000'
+    revcomp_samplesheet_i5_index: true
+    machine_prefix: 'K'
+iSeq:
+    model_name: 'Illumina iSeq'
+    revcomp_samplesheet_i5_index: true
+    machine_prefix: 'FS'
+    delete_settings:
+        - "MaskShortReads"
+        - "OverrideCycles"
+MiniSeq:
+    model_name: 'Illumina MiniSeq'
+    # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
+    # i5 sequences for demultiplexing”,
+    # https://knowledge.illumina.com/software/general/software-general-reference_material-list/000001800
+    # MiniSeq Rapid Kit always use forward orientation, so if we were to use
+    # those, we would need to modify this value.
+    revcomp_samplesheet_i5_index: true
+    machine_prefix: 'MN'
+MiSeq:
+    model_name: 'Illumina MiSeq'
+    revcomp_samplesheet_i5_index: false
+    machine_prefix: 'M'
+MiSeqi100:
+    model_name: 'Illumina MiSeq i100'
+    machine_prefix: 'SH'
+    # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
+    # i5 sequences for demultiplexing”,
+    # https://knowledge.illumina.com/software/general/software-general-reference_material-list/000001800
+    # no revcomping of i5 index sequences is required for MiSeq i100 *IF* we
+    # are using standalone BCL convert.  If we ever change how we are doing
+    # FASTQ generation, we may need to change this.
+NextSeq:
+    model_name: 'Illumina NextSeq 500/550'
+    revcomp_samplesheet_i5_index: true
+NovaSeq6000:
+    model_name: 'Illumina NovaSeq 6000'
+    revcomp_samplesheet_i5_index: true
+    machine_prefix: 'A'
+NovaSeqX:
+    model_name: 'Illumina NovaSeq X'
+    # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
+    # i5 sequences for demultiplexing",
+    # https://knowledge.illumina.com/software/general/software-general-reference_material-list/000001800
+    # NovaSeqX/XPlus do not require reverse complementing of i5 index sequences
+    # *for standalone BCL convert*.  They *do* require it for standalone
+    # bcl2fastq or BSSH FASTQ generation, so if we ever change how we are doing
+    # FASTQ generation, we may need to change this.
+    revcomp_samplesheet_i5_index: false
+    machine_prefix: 'LH'
+NovaSeqXPlus:
+    model_name: 'Illumina NovaSeq X Plus'
+    # See above comment for NovaSeqX re: revcomp_samplesheet_i5_index
+    revcomp_samplesheet_i5_index: false

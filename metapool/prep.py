@@ -3,6 +3,7 @@ from datetime import datetime
 from glob import glob
 from metapool.mp_strings import get_short_name_and_id
 from metapool.plate import PlateReplication
+from metapool.sequencers import get_model_and_center
 from os import sep, listdir
 from os.path import (basename, isdir, join, split, abspath, exists,
                      normpath)
@@ -58,27 +59,6 @@ AMPLICON_PREP_COLUMN_RENAMER = {
     'Processing Robot': 'processing_robot',
     'sample sheet Sample_ID': 'well_description'
 }
-
-# put together by Gail, based on the instruments we know of
-INSTRUMENT_LOOKUP = pd.DataFrame({
-    'FS10001773': {'machine prefix': 'FS', 'Vocab': 'Illumina iSeq',
-                   'Machine type': 'iSeq', 'run_center': 'KLM'},
-    'A00953': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
-               'Machine type': 'NovaSeq', 'run_center': 'IGM'},
-    'A00169': {'machine prefix': 'A', 'Vocab': 'Illumina NovaSeq 6000',
-               'Machine type': 'NovaSeq', 'run_center': 'LJI'},
-    'M05314': {'machine prefix': 'M', 'Vocab': 'Illumina MiSeq',
-               'Machine type': 'MiSeq', 'run_center': 'KLM'},
-    'K00180': {'machine prefix': 'K', 'Vocab': 'Illumina HiSeq 4000',
-               'Machine type': 'HiSeq', 'run_center': 'IGM'},
-    'D00611': {'machine prefix': 'D', 'Vocab': 'Illumina HiSeq 2500',
-               'Machine type': 'HiSeq/RR', 'run_center': 'IGM'},
-    'LH00444': {'machine prefix': 'LH', 'Vocab': 'Illumina NovaSeq X',
-                'Machine type': 'NovaSeq', 'run_center': 'IGM'},
-    'SH00252': {'machine prefix': 'SH', 'Vocab': 'Illumina MiSeq i100',
-                'Machine type': 'MiSeq i100', 'run_center': 'IGM'},
-    'MN01225': {'machine prefix': 'MN', 'Vocab': 'Illumina MiniSeq',
-                'Machine type': 'MiniSeq', 'run_center': 'CMI'}}).T
 
 
 def parse_illumina_run_id(run_id):
@@ -184,60 +164,60 @@ def _exists_and_has_files(path):
     return exists(path) and len(_file_list(path))
 
 
-def get_machine_code(instrument_model):
-    """Get the machine code for an instrument's code
-
-    Parameters
-    ----------
-    instrument_model: str
-        An instrument's model of the form A999999 or AA999999
-
-    Returns
-    -------
-    """
-    # the machine code represents the first 1 to 2 letters of the
-    # instrument model
-    machine_code = re.compile(r'^([a-zA-Z]{1,2})')
-    matches = re.search(machine_code, instrument_model)
-    if matches is None:
-        raise ValueError('Cannot find a machine code. This instrument '
-                         'model is malformed %s. The machine code is a '
-                         'one or two character prefix.' % instrument_model)
-    return matches[0]
-
-
-def get_model_and_center(instrument_code):
-    """Determine instrument model and center based on a lookup
-
-    Parameters
-    ----------
-    instrument_code: str
-        Instrument code from a run identifier.
-
-    Returns
-    -------
-    str
-        Instrument model.
-    str
-        Run center based on the machine's id.
-    """
-    run_center = "UCSDMI"
-    instrument_model = instrument_code.split('_')[0]
-
-    if instrument_model in INSTRUMENT_LOOKUP.index:
-        run_center = INSTRUMENT_LOOKUP.loc[instrument_model, 'run_center']
-        instrument_model = INSTRUMENT_LOOKUP.loc[instrument_model, 'Vocab']
-    else:
-        instrument_prefix = get_machine_code(instrument_model)
-
-        if instrument_prefix not in INSTRUMENT_LOOKUP['machine prefix']:
-            ValueError('Unrecognized machine prefix %s' % instrument_prefix)
-
-        instrument_model = INSTRUMENT_LOOKUP[
-            INSTRUMENT_LOOKUP['machine prefix'] == instrument_prefix
-            ]['Vocab'].unique()[0]
-
-    return instrument_model, run_center
+# def get_machine_code(instrument_model):
+#     """Get the machine code for an instrument's code
+#
+#     Parameters
+#     ----------
+#     instrument_model: str
+#         An instrument's model of the form A999999 or AA999999
+#
+#     Returns
+#     -------
+#     """
+#     # the machine code represents the first 1 to 2 letters of the
+#     # instrument model
+#     machine_code = re.compile(r'^([a-zA-Z]{1,2})')
+#     matches = re.search(machine_code, instrument_model)
+#     if matches is None:
+#         raise ValueError('Cannot find a machine code. This instrument '
+#                          'model is malformed %s. The machine code is a '
+#                          'one or two character prefix.' % instrument_model)
+#     return matches[0]
+#
+#
+# def get_model_and_center(instrument_code):
+#     """Determine instrument model and center based on a lookup
+#
+#     Parameters
+#     ----------
+#     instrument_code: str
+#         Instrument code from a run identifier.
+#
+#     Returns
+#     -------
+#     str
+#         Instrument model.
+#     str
+#         Run center based on the machine's id.
+#     """
+#     run_center = "UCSDMI"
+#     instrument_model = instrument_code.split('_')[0]
+#
+#     if instrument_model in INSTRUMENT_LOOKUP.index:
+#         run_center = INSTRUMENT_LOOKUP.loc[instrument_model, 'run_center']
+#         instrument_model = INSTRUMENT_LOOKUP.loc[instrument_model, 'Vocab']
+#     else:
+#         instrument_prefix = get_machine_code(instrument_model)
+#
+#         if instrument_prefix not in INSTRUMENT_LOOKUP['machine prefix']:
+#             ValueError('Unrecognized machine prefix %s' % instrument_prefix)
+#
+#         instrument_model = INSTRUMENT_LOOKUP[
+#             INSTRUMENT_LOOKUP['machine prefix'] == instrument_prefix
+#             ]['Vocab'].unique()[0]
+#
+#     return instrument_model, run_center
 
 
 def agp_transform(frame, study_id):

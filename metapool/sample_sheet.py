@@ -14,8 +14,9 @@ from metapool.mp_strings import parse_project_name, \
     PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY
-from metapool.metapool import (bcl_scrub_name, sequencer_i5_index,
-                               REVCOMP_SEQUENCERS)
+from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
+from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
+    DELETE_SETTINGS_KEY
 from metapool.plate import ErrorMessage, WarningMessage, PlateReplication
 from metapool.controls import SAMPLE_CONTEXT_COLS, \
     get_all_projects_in_context, is_blank, get_controls_details_from_context, \
@@ -616,7 +617,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     sequencer_i5_index(sequencer, table['index2'])
 
             self.Bioinformatics['BarcodesAreRC'] = str(
-                sequencer in REVCOMP_SEQUENCERS)
+                is_i5_revcomp_sequencer(sequencer))
 
         for lane in lanes:
             for sample in table.to_dict(orient='records'):
@@ -683,27 +684,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         # 'MaskShortReads' and 'OverrideCycles' are not relevant for iSeq runs,
         # and can cause issues downstream.
-
-        # Note: 'iseq' should remain at the tail of this list, since it
-        # is a substring of the others.
-        # NB: If modifying this list, see issue ##234!
-        sequencer_types = ['novaseq', 'hiseq', 'miseq', 'miniseq', 'iseq']
-        type_found = None
-        for sequencer_type in sequencer_types:
-            if sequencer_type in sequencer.lower():
-                type_found = sequencer_type
-                break
-
-        if type_found is None:
-            # if even the 'iSeq' substring could not be found, this is an
-            # unlikely and unexpected value for sequencer.
-            raise ValueError(f"{sequencer} isn't a known sequencer")
-        elif type_found == 'iseq':
-            #   Verify the settings exist before deleting them.
-            if 'MaskShortReads' in self.Settings:
-                del self.Settings['MaskShortReads']
-            if 'OverrideCycles' in self.Settings:
-                del self.Settings['OverrideCycles']
+        sequencer_info = get_sequencer_type(sequencer)
+        settings_to_delete = sequencer_info.get(DELETE_SETTINGS_KEY, [])
+        for curr_setting_to_delete in settings_to_delete:
+            if curr_setting_to_delete in self.Settings:
+                del self.Settings[curr_setting_to_delete]
+            # end if setting to delete actually exists here
+        # next setting to delete
 
         return self
 

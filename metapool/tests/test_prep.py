@@ -1,5 +1,5 @@
 from os.path import join, dirname, exists
-from os import makedirs
+from os import makedirs, path
 from shutil import rmtree
 import pandas as pd
 from random import choice, randint, shuffle
@@ -10,7 +10,6 @@ from metapool.sample_sheet import (MetagenomicSampleSheetv90,
                                    sample_sheet_to_dataframe)
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix,
-                           get_machine_code, get_model_and_center,
                            parse_illumina_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
                            generate_qiita_prep_file, qiita_scrub_name,
@@ -357,48 +356,6 @@ class TestPrep(TestCase):
         for bad in bad_entries:
             with self.assertRaises(ValueError):
                 parse_illumina_run_id(bad)
-
-    def test_machine_code(self):
-        obs = get_machine_code('K00180')
-        self.assertEqual(obs, 'K')
-
-        obs = get_machine_code('D00611')
-        self.assertEqual(obs, 'D')
-
-        obs = get_machine_code('MN01225')
-        self.assertEqual(obs, 'MN')
-
-        with self.assertRaisesRegex(ValueError,
-                                    'Cannot find a machine code. This '
-                                    'instrument model is malformed 8675309. '
-                                    'The machine code is a one or two '
-                                    'character prefix.'):
-            get_machine_code('8675309')
-
-    def test_get_model_and_center(self):
-        obs = get_model_and_center('D32611_0365_G00DHB5YXX')
-        self.assertEqual(obs, ('Illumina HiSeq 2500', 'UCSDMI'))
-
-        obs = get_model_and_center('A86753_0365_G00DHB5YXX')
-        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'UCSDMI'))
-
-        obs = get_model_and_center('A00953_0032_AHWMGJDDXX')
-        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'IGM'))
-
-        obs = get_model_and_center('A00169_8131_AHKXYNDHXX')
-        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'LJI'))
-
-        obs = get_model_and_center('M05314_0255_000000000-J46T9')
-        self.assertEqual(obs, ('Illumina MiSeq', 'KLM'))
-
-        obs = get_model_and_center('K00180_0957_AHCYKKBBXY')
-        self.assertEqual(obs, ('Illumina HiSeq 4000', 'IGM'))
-
-        obs = get_model_and_center('D00611_0712_BH37W2BCX3_RKL0040')
-        self.assertEqual(obs, ('Illumina HiSeq 2500', 'IGM'))
-
-        obs = get_model_and_center('MN01225_0002_A000H2W3FY')
-        self.assertEqual(obs, ('Illumina MiniSeq', 'CMI'))
 
     def test_agp_transform(self):
         columns = ['sample_name', 'experiment_design_description',
@@ -1934,7 +1891,7 @@ class TestPrep(TestCase):
 
 class TestPrePrepReplicates(TestCase):
     def setUp(self):
-        self.data_dir = join('metapool', 'tests', 'data')
+        self.data_dir = path.join(path.dirname(__file__), 'data')
         self.prep_w_replicates_path = join(self.data_dir,
                                            'pre_prep_w_replicates.csv')
         self.prep_wo_replicates_path = join(self.data_dir,

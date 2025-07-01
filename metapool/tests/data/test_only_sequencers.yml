@@ -1,0 +1,8 @@
+NovaSeqX:
+    model_name: 'Illumina NovaSeq X'
+    revcomp_samplesheet_i5_index: false
+    machine_prefix: 'LH'
+NovaSeqXPlus:
+    model_name: 'Illumina NovaSeq X Plus'
+    revcomp_samplesheet_i5_index: false
+    machine_prefix: 'LH'

@@ -18,19 +18,13 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
     merge_plate_dfs
+from .sequencers import is_i5_revcomp_sequencer
 
 from string import ascii_letters, digits
 import glob
 import xml.etree.ElementTree as ET
 from operator import itemgetter
 from .controls import get_blank_root
-
-# NB: If modifying these lists, see issue ##234!
-REVCOMP_SEQUENCERS = ['HiSeq4000', 'MiniSeq', 'NextSeq', 'HiSeq3000',
-                      'iSeq', 'NovaSeq6000']
-OTHER_SEQUENCERS = ['HiSeq2500', 'HiSeq1500', 'MiSeq', 'NovaSeqX',
-                    'NovaSeqXPlus']
-
 
 INPUT_DNA_KEY = "Input DNA"
 SYNDNA_VOL_KEY = "synDNA volume"
@@ -1514,20 +1508,13 @@ def rc(seq):
 
 
 def sequencer_i5_index(sequencer, indices):
-    if sequencer in REVCOMP_SEQUENCERS:
+    revcomp_i5 = is_i5_revcomp_sequencer(sequencer)
+    if revcomp_i5:
         print("%s: i5 barcodes are output as reverse complements" % sequencer)
         return [rc(x) for x in indices]
-    elif sequencer in OTHER_SEQUENCERS:
+    else:
         print("%s: i5 barcodes are output in standard direction" % sequencer)
         return indices
-    else:
-        raise ValueError(
-            (
-                "Your indicated sequencer [%s] is not recognized.\n"
-                "Recognized sequencers are: \n %s"
-            )
-            % (sequencer, ", ".join(REVCOMP_SEQUENCERS + OTHER_SEQUENCERS))
-        )
 
 
 def reformat_interleaved_to_columns(wells):
