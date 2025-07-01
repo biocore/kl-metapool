@@ -164,62 +164,6 @@ def _exists_and_has_files(path):
     return exists(path) and len(_file_list(path))
 
 
-# def get_machine_code(instrument_model):
-#     """Get the machine code for an instrument's code
-#
-#     Parameters
-#     ----------
-#     instrument_model: str
-#         An instrument's model of the form A999999 or AA999999
-#
-#     Returns
-#     -------
-#     """
-#     # the machine code represents the first 1 to 2 letters of the
-#     # instrument model
-#     machine_code = re.compile(r'^([a-zA-Z]{1,2})')
-#     matches = re.search(machine_code, instrument_model)
-#     if matches is None:
-#         raise ValueError('Cannot find a machine code. This instrument '
-#                          'model is malformed %s. The machine code is a '
-#                          'one or two character prefix.' % instrument_model)
-#     return matches[0]
-#
-#
-# def get_model_and_center(instrument_code):
-#     """Determine instrument model and center based on a lookup
-#
-#     Parameters
-#     ----------
-#     instrument_code: str
-#         Instrument code from a run identifier.
-#
-#     Returns
-#     -------
-#     str
-#         Instrument model.
-#     str
-#         Run center based on the machine's id.
-#     """
-#     run_center = "UCSDMI"
-#     instrument_model = instrument_code.split('_')[0]
-#
-#     if instrument_model in INSTRUMENT_LOOKUP.index:
-#         run_center = INSTRUMENT_LOOKUP.loc[instrument_model, 'run_center']
-#         instrument_model = INSTRUMENT_LOOKUP.loc[instrument_model, 'Vocab']
-#     else:
-#         instrument_prefix = get_machine_code(instrument_model)
-#
-#         if instrument_prefix not in INSTRUMENT_LOOKUP['machine prefix']:
-#             ValueError('Unrecognized machine prefix %s' % instrument_prefix)
-#
-#         instrument_model = INSTRUMENT_LOOKUP[
-#             INSTRUMENT_LOOKUP['machine prefix'] == instrument_prefix
-#             ]['Vocab'].unique()[0]
-#
-#     return instrument_model, run_center
-
-
 def agp_transform(frame, study_id):
     """If the prep belongs to the American Gut Project fill in some blanks
 

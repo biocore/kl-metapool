@@ -1,6 +1,6 @@
-from metapool.sequencers import _get_machine_code, get_model_and_center, \
-    get_sequencers_w_key_value, get_i5_index_sequencers, get_sequencer_type, \
-    is_i5_revcomp_sequencer
+from metapool.sequencers import _deep_freeze, _get_machine_code, \
+    get_model_and_center, get_sequencers_w_key_value, get_sequencer_type, \
+    get_i5_index_sequencers, is_i5_revcomp_sequencer
 from types import MappingProxyType
 from unittest import TestCase, main
 
@@ -69,8 +69,8 @@ class TestSequencers(TestCase):
         self.assertEqual(len(obs), 0)
 
     def test_get_sequencers_w_key_value_w_external_mapping(self):
-        """Test get sequencers with given key-value pair in external dict."""
-        external_mapping = MappingProxyType({
+        """Test get sequencers with given key-value pair in external map."""
+        external_mapping = _deep_freeze({
             "MiniSeq": {
                 'machine_prefix': 'MN',
                 'model_name': 'Illumina MiniSeq',
@@ -95,35 +95,35 @@ class TestSequencers(TestCase):
         self.assertIn('MiniSeq', obs)
 
     def test_get_sequencers_w_key_value_err_malformed_mapping(self):
-        """Test error getting sequencers w key-value pair in bad dict."""
+        """Test error getting sequencers w key-value pair in bad mapping."""
         external_mapping = MappingProxyType({
-            "MiniSeq": {
+            "MiniSeq": _deep_freeze({
                 'machine_prefix': 'MN',
                 'model_name': 'Illumina MiniSeq',
                 'revcomp_samplesheet_i5_index': False
-            },
-            "NovaSeq6000": {
+            }),
+            "NovaSeq6000": _deep_freeze({
                 'machine_prefix': 'A',
                 'model_name': 'Illumina NovaSeq 6000',
                 'revcomp_samplesheet_i5_index': True
-            },
+            }),
             "HiSeq2500": "red"
         })
 
-        err = "Info for sequencer type 'HiSeq2500' is not a dictionary."
+        err = "Info for sequencer type 'HiSeq2500' is not a MappingProxyType."
         with self.assertRaisesRegex(ValueError, err):
             get_sequencers_w_key_value(
                 'machine_prefix', 'A', existing_types=external_mapping)
 
     def test_get_sequencers_w_key_value_not_a_mapping(self):
-        """Test error getting sequencers w key-value pair in bad dict."""
+        """Test error getting sequencers w key-value pair from bad input."""
         err = "existing_types must be a MappingProxyType or None."
         with self.assertRaisesRegex(ValueError, err):
             get_sequencers_w_key_value(
                 'machine_prefix', 'A', existing_types='red')
 
     def test_get_i5_index_sequencers(self):
-        external_mapping = MappingProxyType({
+        external_mapping = _deep_freeze({
             "MiniSeq": {
                 'machine_prefix': 'MN',
                 'model_name': 'Illumina MiniSeq',
@@ -172,19 +172,23 @@ class TestSequencers(TestCase):
         self.assertEqual(obs['revcomp_samplesheet_i5_index'], True)
 
     def test_get_sequencer_type_err_not_found(self):
+        """Test error when sequencer type not found."""
         err = "Sequencer type 'YourSeq' not found."
         with self.assertRaisesRegex(ValueError, err):
             get_sequencer_type('YourSeq')
 
     def test_is_i5_revcomp_sequencer_true(self):
+        """Test result for sequencer that does revcomp i5."""
         obs = is_i5_revcomp_sequencer('HiSeq3000')
         self.assertTrue(obs)
 
     def test_is_i5_revcomp_sequencer_false(self):
+        """Test result for sequencer that does not revcomp i5."""
         obs = is_i5_revcomp_sequencer('HiSeq1500')
         self.assertFalse(obs)
 
     def test_is_i5_revcomp_sequencer_err_not_found(self):
+        """Test error when sequencer doesn't have i5 revcomp info."""
         external_mapping = MappingProxyType({
             "MiniSeq": {
                 'machine_prefix': 'MN',

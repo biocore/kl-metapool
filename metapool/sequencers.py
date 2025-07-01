@@ -32,13 +32,66 @@ _INSTRUMENT_LOOKUP = pandas.DataFrame({
     'MN01225': {_MODEL_TYPE_KEY: 'MiniSeq', _RUN_CENTER_KEY: 'CMI'}}).T
 
 
+def _deep_freeze(obj):
+    """Recursively freeze a Python object to make it immutable.
+    This function converts mutable objects (dicts, lists, sets) into their
+    immutable counterparts (MappingProxyType, tuples, frozensets) while
+    leaving immutable objects (strings, numbers, etc.) unchanged.
+
+    Parameters
+    ----------
+    obj: Any
+        The object to freeze. It can be a dict, list, set, tuple, or any
+        immutable type (like str, int, float, etc.).
+
+    Returns
+    -------
+    Any
+        An immutable version of the input object. If the input is a dict,
+        it returns a MappingProxyType; if it's a list, it returns a tuple;
+        if it's a set, it returns a frozenset; otherwise, it returns the
+        original object unchanged.
+    """
+    if isinstance(obj, dict):
+        # Recursively freeze values and return a read-only MappingProxyType
+        return MappingProxyType({k: _deep_freeze(v) for k, v in obj.items()})
+    elif isinstance(obj, list):
+        # Convert list to tuple after freezing elements
+        return tuple(_deep_freeze(v) for v in obj)
+    elif isinstance(obj, set):
+        # Convert set to frozenset after freezing elements
+        return frozenset(_deep_freeze(v) for v in obj)
+    elif isinstance(obj, tuple):
+        # Freeze all elements in the tuple
+        return tuple(_deep_freeze(v) for v in obj)
+    else:
+        # Assume everything else is immutable
+        return obj
+
+
 def _load_sequencer_types(existing_types=None, test_only_fp=None):
-    """Load sequencer types from yaml file.
+    """Load sequencer types from sequencer types yaml file.
+
+    Parameters
+    ----------
+    existing_types: MappingProxyType, optional
+        A mapping of sequencer types to use instead of loading from file.
+        If None, the sequencer types will be loaded from the YAML file; if
+        provided, will short-circuit the loading process and return input.
+    test_only_fp: str, optional
+        For testing purposes ONLY, a test file path to load the sequencer
+        types from. If None, the default sequencer types YAML file will be
+        used; should always be None in production code.
 
     Returns
     -------
     MappingProxyType
         Immutable dictionary of sequencer types.
+
+    Raises
+    ------
+    ValueError
+        If existing_types is not a MappingProxyType or None.
     """
 
     if existing_types is not None:
@@ -46,26 +99,29 @@ def _load_sequencer_types(existing_types=None, test_only_fp=None):
         if not isinstance(existing_types, MappingProxyType):
             raise ValueError(
                 "existing_types must be a MappingProxyType or None.")
-        return existing_types
+        # end if existing_types is not a MappingProxyType
 
-    if test_only_fp is None:
-        # get the path to the directory above the one this file is in
-        grandmom_dir = \
-            os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        sequencers_fp = os.path.join(grandmom_dir, _SEQUENCER_TYPES_YML_FNAME)
+        sequencer_types = existing_types
     else:
-        # for testing, use the provided file path
-        sequencers_fp = test_only_fp
+        if test_only_fp is None:
+            # get the path to the directory above the one this file is in
+            grandmom_dir = \
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            sequencers_fp = os.path.join(grandmom_dir, _SEQUENCER_TYPES_YML_FNAME)
+        else:
+            # for testing, use the provided file path
+            sequencers_fp = test_only_fp
 
-    with open(sequencers_fp, 'r') as file:
-        sequencer_types = yaml.safe_load(file)
+        with open(sequencers_fp, 'r') as file:
+            sequencer_types = yaml.safe_load(file)
+    # end if existing_types is None or not
 
-    immutable_sequencer_types = MappingProxyType(sequencer_types)
+    immutable_sequencer_types = _deep_freeze(sequencer_types)
     return immutable_sequencer_types
 
 
 def _get_machine_code(instrument_model):
-    """Get the machine code for an instrument's code
+    """Get the machine code for an instrument's model string
 
     Parameters
     ----------
@@ -74,6 +130,15 @@ def _get_machine_code(instrument_model):
 
     Returns
     -------
+    str
+        The machine code, which is the first 1 or 2 letters of the instrument
+        model.
+
+    Raises
+    ------
+    ValueError
+        If the instrument model is malformed and does not contain a valid
+        machine code.
     """
     # the machine code represents the first 1 to 2 letters of the
     # instrument model
@@ -87,7 +152,7 @@ def _get_machine_code(instrument_model):
 
 
 def get_model_and_center(instrument_code):
-    """Determine instrument model and center based on a lookup
+    """Determine instrument model and center using instrument code.
 
     Parameters
     ----------
@@ -99,7 +164,13 @@ def get_model_and_center(instrument_code):
     str
         Instrument model.
     str
-        Run center based on the machine's id.
+        Run center associated with the instrument.
+
+    Raises
+    ------
+    ValueError
+        If zero or more than one machine prefixes are associated with
+        the instrument code.
     """
 
     run_center = _LAB_RUN_CENTER  # Default run center for lab data
@@ -132,7 +203,7 @@ def get_model_and_center(instrument_code):
 
 
 def get_sequencers_w_key_value(key, value, default=None, existing_types=None):
-    """Get sequencers with a specific key-value pair.
+    """Get all sequencers with a specific key-value pair.
 
     Parameters
     ----------
@@ -151,26 +222,44 @@ def get_sequencers_w_key_value(key, value, default=None, existing_types=None):
     -------
     MappingProxyType
         Immutable dictionary of sequencer types that match the key-value pair.
+
+    Raises
+    ------
+    ValueError
+        If the info for a sequencer type is not a dictionary.
     """
 
     found_sequencers = {}
     sequencer_types = _load_sequencer_types(existing_types)
     for name, details in sequencer_types.items():
-        if not isinstance(details, dict):
+        if not isinstance(details, MappingProxyType):
             raise ValueError(
-                f"Info for sequencer type '{name}' is not a dictionary.")
+                f"Info for sequencer type '{name}' is not a MappingProxyType.")
         found_value = details.get(key, default)
         if found_value == value:
             found_sequencers[name] = details
         # if this sequencer has the desired key-value pair
     # next sequencer type
 
-    immutable_found_sequencers = MappingProxyType(found_sequencers)
+    immutable_found_sequencers = _deep_freeze(found_sequencers)
     return immutable_found_sequencers
 
 
 def get_i5_index_sequencers(existing_types=None):
-    """Get sequencer types that use an i5 index, revcomped or not."""
+    """Get sequencer types that use an i5 index, revcomped or not.
+
+    Parameters
+    ----------
+    existing_types: MappingProxyType, optional
+        A mapping of available sequencer types. If None, the
+        sequencer types will be loaded from the YAML file.
+
+    Returns
+    -------
+    MappingProxyType
+        Immutable dictionary of sequencer types that use an i5 index, with or
+        without revcomping.
+    """
     result = MappingProxyType({})
     available_sequencer_types = _load_sequencer_types(existing_types)
     for curr_bool_val in [True, False]:
@@ -197,10 +286,15 @@ def get_sequencer_type(sequencer_type, existing_types=None):
     -------
     MappingProxyType
         Immutable dictionary of the sequencer type details.
+
+    Raises
+    ------
+    ValueError
+        If the sequencer type is not found in the available sequencer types.
     """
     sequencer_types = _load_sequencer_types(existing_types)
     if sequencer_type in sequencer_types:
-        return MappingProxyType(sequencer_types[sequencer_type])
+        return _deep_freeze(sequencer_types[sequencer_type])
     # end if sequencer type is in the available sequencers
 
     # if we get here, the sequencer type is not found
@@ -208,7 +302,27 @@ def get_sequencer_type(sequencer_type, existing_types=None):
 
 
 def is_i5_revcomp_sequencer(sequencer_type, existing_types=None):
-    """Check if a sequencer type uses a revcomp i5 index in sample sheet."""
+    """Check if sequencer type uses a revcomped i5 index in sample sheets.
+
+    Parameters
+    ----------
+    sequencer_type: str
+        The name of the sequencer type to check.
+    existing_types: MappingProxyType, optional
+        A mapping of available sequencer types. If None, the
+        sequencer types will be loaded from the YAML file.
+
+    Returns
+    -------
+    bool
+        True if the sequencer type uses a revcomped i5 index, False otherwise.
+
+    Raises
+    ------
+    ValueError
+        If the sequencer type does not have a revcomp i5 key in the sequencer
+        types.
+    """
     sequencer_info = get_sequencer_type(
         sequencer_type, existing_types=existing_types)
     if _REVCOMP_I5_KEY in sequencer_info:
