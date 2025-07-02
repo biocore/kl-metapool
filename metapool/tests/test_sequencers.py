@@ -74,7 +74,10 @@ class TestSequencers(TestCase):
             "MiniSeq": {
                 'machine_prefix': 'MN',
                 'model_name': 'Illumina MiniSeq',
-                'revcomp_samplesheet_i5_index': False
+                'revcomp_samplesheet_i5_index': False,
+                # extra key here that is present only for this sequencer
+                # and not for others
+                'delete_settings': ["MaskShortReads", "OverrideCycles"]
             },
             "NovaSeq6000": {
                 'machine_prefix': 'A',
@@ -85,6 +88,12 @@ class TestSequencers(TestCase):
                 'machine_prefix': 'D',
                 'model_name': 'Illumina HiSeq 2500',
                 'revcomp_samplesheet_i5_index': False
+            },
+            "HiSeq3000": {
+                'machine_prefix': 'H',
+                'model_name': 'Illumina HiSeq 3000',
+                # No revcomp_samplesheet_i5_index key here, showing keys can
+                # be omitted when not relevant
             }
         })
 
@@ -93,7 +102,9 @@ class TestSequencers(TestCase):
             existing_types=external_mapping)
         self.assertEqual(len(obs), 2)
         self.assertIn('HiSeq2500', obs)
+        self.assertEqual(len(obs['HiSeq2500']), 3)
         self.assertIn('MiniSeq', obs)
+        self.assertEqual(len(obs['MiniSeq']), 4)
 
     def test_get_sequencers_w_key_value_err_malformed_mapping(self):
         """Test error getting sequencers w key-value pair in bad mapping."""
