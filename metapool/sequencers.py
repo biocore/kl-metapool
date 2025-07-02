@@ -19,7 +19,7 @@ _SEQUENCER_TYPES_YML_FNAME = 'sequencer_types.yml'
 # instrument id, since that requires a change for every new physical machine.
 # This is kept for backwards compatibility with existing data, but for anything
 # new, we should use the instrument type instead.
-# _MODEL_TYPE_KEY values must match up to a key in the sequencer_types.yml file.
+# _MODEL_TYPE_KEY values must match to a key in the sequencer_types.yml file.
 _INSTRUMENT_LOOKUP = pandas.DataFrame({
     'FS10001773': {_MODEL_TYPE_KEY: 'iSeq', _RUN_CENTER_KEY: 'KLM'},
     'A00953': {_MODEL_TYPE_KEY: 'NovaSeq6000', _RUN_CENTER_KEY: 'IGM'},
@@ -107,7 +107,8 @@ def _load_sequencer_types(existing_types=None, test_only_fp=None):
             # get the path to the directory above the one this file is in
             grandmom_dir = \
                 os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            sequencers_fp = os.path.join(grandmom_dir, _SEQUENCER_TYPES_YML_FNAME)
+            sequencers_fp = os.path.join(
+                grandmom_dir, _SEQUENCER_TYPES_YML_FNAME)
         else:
             # for testing, use the provided file path
             sequencers_fp = test_only_fp
@@ -179,7 +180,8 @@ def get_model_and_center(instrument_code):
     instrument_id = instrument_code.split('_')[0]
     if instrument_id in _INSTRUMENT_LOOKUP.index:
         run_center = _INSTRUMENT_LOOKUP.loc[instrument_id, _RUN_CENTER_KEY]
-        inst_model_type = _INSTRUMENT_LOOKUP.loc[instrument_id, _MODEL_TYPE_KEY]
+        inst_model_type = _INSTRUMENT_LOOKUP.loc[
+            instrument_id, _MODEL_TYPE_KEY]
     else:
         instrument_prefix = _get_machine_code(instrument_id)
         models_w_prefix = get_sequencers_w_key_value(

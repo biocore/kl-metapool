@@ -89,7 +89,8 @@ class TestSequencers(TestCase):
         })
 
         obs = get_sequencers_w_key_value(
-            'revcomp_samplesheet_i5_index', False, existing_types=external_mapping)
+            'revcomp_samplesheet_i5_index', False,
+            existing_types=external_mapping)
         self.assertEqual(len(obs), 2)
         self.assertIn('HiSeq2500', obs)
         self.assertIn('MiniSeq', obs)
@@ -165,7 +166,8 @@ class TestSequencers(TestCase):
             }
         })
 
-        obs = get_sequencer_type('NovaSeq6000', existing_types=external_mapping)
+        obs = get_sequencer_type(
+            'NovaSeq6000', existing_types=external_mapping)
         self.assertEqual(len(obs), 3)
         self.assertEqual(obs['machine_prefix'], 'A')
         self.assertEqual(obs['model_name'], 'Illumina NovaSeq 6000')
