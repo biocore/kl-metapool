@@ -141,15 +141,77 @@ def _get_machine_code(instrument_model):
         If the instrument model is malformed and does not contain a valid
         machine code.
     """
-    # the machine code represents the first 1 to 2 letters of the
-    # instrument model
-    machine_code = re.compile(r'^([a-zA-Z]{1,2})')
-    matches = re.search(machine_code, instrument_model)
-    if matches is None:
-        raise ValueError('Cannot find a machine code. This instrument '
-                         'model is malformed %s. The machine code is a '
-                         'one or two character prefix.' % instrument_model)
-    return matches[0]
+    # the machine code is everything before the first number
+    # (we expect these to be letters, so pattern could be improved ...)
+    matches = re.match(r"^(.*?)\d.*", instrument_model)
+
+    if matches is not None:
+        machine_code = matches.group(1)
+        if machine_code != "":
+            return machine_code
+
+    raise ValueError(f"Cannot find a machine code; the instrument "
+                     f"model '{instrument_model}' is malformed.")
+
+
+def _get_model_by_machine_prefix(instrument_prefix, sequencer_types=None):
+    """Get the instrument model by its machine prefix.
+
+    Parameters
+    ----------
+    instrument_prefix: str
+        The machine prefix of the instrument, e.g., 'MN' for MN01225.
+    sequencer_types: MappingProxyType, optional
+        A mapping of available sequencer types. If None, the
+        sequencer types will be loaded from the YAML file.
+
+    Returns
+    -------
+    MappingProxyType
+        Immutable dictionary of the instrument model details.
+
+    Raises
+    ------
+    ValueError
+        If the instrument prefix is not recognized or if multiple
+        sequencer types match the given prefix.
+    """
+    models_w_prefix = get_sequencers_w_key_value(
+        _MACHINE_PREFIX_KEY, instrument_prefix,
+        existing_types=sequencer_types)
+    if len(models_w_prefix) == 0:
+        raise ValueError(
+            f"Unrecognized {_MACHINE_PREFIX_KEY} '{instrument_prefix}'.")
+    elif len(models_w_prefix) > 1:
+        raise ValueError(
+            f"Found {len(models_w_prefix)} sequencer types with "
+            f"{_MACHINE_PREFIX_KEY} '{instrument_prefix}': "
+            f"{', '.join(models_w_prefix)}.")
+    # end if got an unexpected number of sequencer types w given prefix
+
+    inst_model_type = next(iter(models_w_prefix))
+    instrument_model = _get_model_by_sequencer_type_name(
+        inst_model_type, sequencer_types=models_w_prefix)
+    return instrument_model
+
+
+def get_model_by_instrument_id(instrument_id, sequencer_types=None):
+    """
+
+    Parameters
+    ----------
+    instrument_id
+    sequencer_types
+
+    Returns
+    -------
+
+    """
+    sequencer_types = _load_sequencer_types(existing_types=sequencer_types)
+    instrument_prefix = _get_machine_code(instrument_id)
+    instrument_model = _get_model_by_machine_prefix(
+        instrument_prefix, sequencer_types=sequencer_types)
+    return instrument_model
 
 
 def get_model_and_center(instrument_code):
@@ -182,26 +244,40 @@ def get_model_and_center(instrument_code):
         run_center = _INSTRUMENT_LOOKUP.loc[instrument_id, _RUN_CENTER_KEY]
         inst_model_type = _INSTRUMENT_LOOKUP.loc[
             instrument_id, _MODEL_TYPE_KEY]
+        instrument_model = _get_model_by_sequencer_type_name(
+            inst_model_type, sequencer_types=available_sequencer_types)
     else:
-        instrument_prefix = _get_machine_code(instrument_id)
-        models_w_prefix = get_sequencers_w_key_value(
-            _MACHINE_PREFIX_KEY, instrument_prefix,
-            existing_types=available_sequencer_types)
-        if len(models_w_prefix) == 0:
-            raise ValueError(
-                f"Unrecognized {_MACHINE_PREFIX_KEY} {instrument_prefix}")
-        elif len(models_w_prefix) > 1:
-            raise ValueError(
-                f"Found {len(models_w_prefix)} sequencers found with "
-                f"{_MACHINE_PREFIX_KEY} = '{instrument_prefix}'.")
-        # end if got an unexpected number of sequencer types w given prefix
-        inst_model_type = next(iter(models_w_prefix))
+        instrument_model = get_model_by_instrument_id(
+            instrument_id, sequencer_types=available_sequencer_types)
     # end if instrument_id is in the lookup or if must look up by prefix
 
-    inst_sequencer_type = available_sequencer_types[inst_model_type]
-    instrument_model = inst_sequencer_type[_MODEL_NAME_KEY]
-
     return instrument_model, run_center
+
+
+def _get_model_by_sequencer_type_name(inst_model_type, sequencer_types):
+    """Get the instrument model by its sequencer type name.
+
+    Parameters
+    ----------
+    inst_model_type: str
+        The sequencer type name, e.g., 'iSeq', 'NovaSeq6000', etc.
+    sequencer_types: MappingProxyType
+        A mapping of available sequencer types.
+
+    Returns
+    -------
+    MappingProxyType
+        Immutable dictionary of the instrument model details.
+
+    Raises
+    ------
+    ValueError
+        If the sequencer type name is not recognized or if it does not
+        contain a model name.
+    """
+    inst_sequencer_type = sequencer_types[inst_model_type]
+    instrument_model = inst_sequencer_type[_MODEL_NAME_KEY]
+    return instrument_model
 
 
 def get_sequencers_w_key_value(key, value, default=None, existing_types=None):
