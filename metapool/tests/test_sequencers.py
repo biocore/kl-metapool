@@ -1,7 +1,7 @@
 from metapool.sequencers import _deep_freeze, _get_machine_code, \
     get_model_and_center, get_sequencers_w_key_value, get_sequencer_type, \
     get_i5_index_sequencers, is_i5_revcomp_sequencer, \
-    get_model_by_machine_prefix
+    get_model_by_instrument_id
 from types import MappingProxyType
 from unittest import TestCase, main
 
@@ -18,25 +18,23 @@ class TestSequencers(TestCase):
         self.assertEqual(obs, 'MN')
 
     def test__get_machine_code_err(self):
-        with self.assertRaisesRegex(ValueError,
-                                    'Cannot find a machine code. This '
-                                    'instrument model is malformed 8675309. '
-                                    'The machine code is a one or two '
-                                    'character prefix.'):
+        err = ("Cannot find a machine code; the instrument model "
+               "'8675309' is malformed.")
+        with self.assertRaisesRegex(ValueError, err):
             _get_machine_code('8675309')
 
-    def test_get_model_by_machine_prefix(self):
+    def test_get_model_by_instrument_id(self):
         """Test getting model by machine prefix."""
-        obs = get_model_by_machine_prefix('MN')
+        obs = get_model_by_instrument_id('MN00178')
         self.assertEqual(obs, 'Illumina MiniSeq')
 
-    def test_get_model_by_machine_prefix_err_none(self):
+    def test_get_model_by_instrument_id_err_none(self):
         """Test error when no model found for machine prefix."""
-        err = "Unrecognized machine_prefix 'MQ'."
+        err = "Cannot find a machine code"
         with self.assertRaisesRegex(ValueError, err):
-            get_model_by_machine_prefix('MQ')
+            get_model_by_instrument_id('MQ')
 
-    def test_get_model_by_machine_prefix_err_multiple(self):
+    def test_get_model_by_instrument_id_err_multiple(self):
         external_mapping = _deep_freeze({
             "MiniSeq": {
                 'machine_prefix': 'MN',
@@ -55,8 +53,8 @@ class TestSequencers(TestCase):
         err = ("Found 2 sequencer types with machine_prefix 'LH': "
                "NovaSeqX, NovaSeqXPlus.")
         with self.assertRaisesRegex(ValueError, err):
-            get_model_by_machine_prefix(
-                'LH', sequencer_types=external_mapping)
+            get_model_by_instrument_id(
+                'LH1118920', sequencer_types=external_mapping)
 
     def test_get_model_and_center_by_model_prefix(self):
         obs = get_model_and_center('D32611_0365_G00DHB5YXX')

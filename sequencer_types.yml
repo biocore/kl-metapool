@@ -66,3 +66,8 @@ NovaSeqXPlus:
     model_name: 'Illumina NovaSeq X Plus'
     # See above comment for NovaSeqX re: revcomp_samplesheet_i5_index
     revcomp_samplesheet_i5_index: false
+# NB: InstrumentUtils class in qp-klp used to define
+# an 'SN': 'RapidRun' machine prefix, but as of 20250703,
+# we don't seem to have any data with that prefix.  The
+# qp-klp comments say RapidRun was HiSeq 2500 (?) which is
+# confusing, so not adding it here until/unless we need it.

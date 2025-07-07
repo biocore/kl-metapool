@@ -141,59 +141,20 @@ def _get_machine_code(instrument_model):
         If the instrument model is malformed and does not contain a valid
         machine code.
     """
-    # the machine code represents the first 1 to 2 letters of the
-    # instrument model
-    machine_code = re.compile(r'^([a-zA-Z]{1,2})')
-    matches = re.search(machine_code, instrument_model)
-    if matches is None:
-        raise ValueError('Cannot find a machine code. This instrument '
-                         'model is malformed %s. The machine code is a '
-                         'one or two character prefix.' % instrument_model)
-    return matches[0]
+    # the machine code is everything before the first number
+    # (we expect these to be letters, so pattern could be improved ...)
+    matches = re.match(r"^(.*?)\d.*", instrument_model)
+
+    if matches is not None:
+        machine_code = matches.group(1)
+        if machine_code != "":
+            return machine_code
+
+    raise ValueError(f"Cannot find a machine code; the instrument "
+                     f"model '{instrument_model}' is malformed.")
 
 
-def get_model_and_center(instrument_code):
-    """Determine instrument model and center using instrument code.
-
-    Parameters
-    ----------
-    instrument_code: str
-        Instrument code from a run identifier.
-
-    Returns
-    -------
-    str
-        Instrument model.
-    str
-        Run center associated with the instrument.
-
-    Raises
-    ------
-    ValueError
-        If zero or more than one machine prefixes are associated with
-        the instrument code.
-    """
-
-    run_center = _LAB_RUN_CENTER  # Default run center for lab data
-    available_sequencer_types = _load_sequencer_types()
-
-    instrument_id = instrument_code.split('_')[0]
-    if instrument_id in _INSTRUMENT_LOOKUP.index:
-        run_center = _INSTRUMENT_LOOKUP.loc[instrument_id, _RUN_CENTER_KEY]
-        inst_model_type = _INSTRUMENT_LOOKUP.loc[
-            instrument_id, _MODEL_TYPE_KEY]
-        instrument_model = _get_model_by_sequencer_type_name(
-            inst_model_type, sequencer_types=available_sequencer_types)
-    else:
-        instrument_prefix = _get_machine_code(instrument_id)
-        instrument_model = get_model_by_machine_prefix(
-            instrument_prefix, sequencer_types=available_sequencer_types)
-    # end if instrument_id is in the lookup or if must look up by prefix
-
-    return instrument_model, run_center
-
-
-def get_model_by_machine_prefix(instrument_prefix, sequencer_types=None):
+def _get_model_by_machine_prefix(instrument_prefix, sequencer_types=None):
     """Get the instrument model by its machine prefix.
 
     Parameters
@@ -232,6 +193,65 @@ def get_model_by_machine_prefix(instrument_prefix, sequencer_types=None):
     instrument_model = _get_model_by_sequencer_type_name(
         inst_model_type, sequencer_types=models_w_prefix)
     return instrument_model
+
+
+def get_model_by_instrument_id(instrument_id, sequencer_types=None):
+    """
+
+    Parameters
+    ----------
+    instrument_id
+    sequencer_types
+
+    Returns
+    -------
+
+    """
+    sequencer_types = _load_sequencer_types(existing_types=sequencer_types)
+    instrument_prefix = _get_machine_code(instrument_id)
+    instrument_model = _get_model_by_machine_prefix(
+        instrument_prefix, sequencer_types=sequencer_types)
+    return instrument_model
+
+
+def get_model_and_center(instrument_code):
+    """Determine instrument model and center using instrument code.
+
+    Parameters
+    ----------
+    instrument_code: str
+        Instrument code from a run identifier.
+
+    Returns
+    -------
+    str
+        Instrument model.
+    str
+        Run center associated with the instrument.
+
+    Raises
+    ------
+    ValueError
+        If zero or more than one machine prefixes are associated with
+        the instrument code.
+    """
+
+    run_center = _LAB_RUN_CENTER  # Default run center for lab data
+    available_sequencer_types = _load_sequencer_types()
+
+    instrument_id = instrument_code.split('_')[0]
+    if instrument_id in _INSTRUMENT_LOOKUP.index:
+        run_center = _INSTRUMENT_LOOKUP.loc[instrument_id, _RUN_CENTER_KEY]
+        inst_model_type = _INSTRUMENT_LOOKUP.loc[
+            instrument_id, _MODEL_TYPE_KEY]
+        instrument_model = _get_model_by_sequencer_type_name(
+            inst_model_type, sequencer_types=available_sequencer_types)
+    else:
+        instrument_model = get_model_by_instrument_id(
+            instrument_id, sequencer_types=available_sequencer_types)
+    # end if instrument_id is in the lookup or if must look up by prefix
+
+    return instrument_model, run_center
 
 
 def _get_model_by_sequencer_type_name(inst_model_type, sequencer_types):
