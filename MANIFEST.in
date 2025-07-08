@@ -1,3 +1,6 @@
 include versioneer.py
 include metapool/_version.py
-graft notebooks
+include deploy.sh
+include environment.yml
+include sequencer_types.yml
+# graft notebooks

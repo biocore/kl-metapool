@@ -70,6 +70,7 @@ setup(name='metapool',
       packages=find_packages(),
       package_data={
           'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
+      include_package_data=True,
       # adding all the notebooks fps
       data_files=notebooks_fp,
       install_requires=base,
