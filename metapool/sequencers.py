@@ -1,4 +1,4 @@
-import os
+from importlib.resources import files
 import pandas
 import re
 from types import MappingProxyType
@@ -13,6 +13,7 @@ _RUN_CENTER_KEY = 'run_center'
 _REVCOMP_I5_KEY = "revcomp_samplesheet_i5_index"
 
 _LAB_RUN_CENTER = "UCSDMI"
+_SEQUENCER_TYPES_DIR = "config"
 _SEQUENCER_TYPES_YML_FNAME = 'sequencer_types.yml'
 
 # DEPRECATED: We no longer want to identify sequencer types by the
@@ -105,10 +106,9 @@ def _load_sequencer_types(existing_types=None, test_only_fp=None):
     else:
         if test_only_fp is None:
             # get the path to the directory above the one this file is in
-            grandmom_dir = \
-                os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            sequencers_fp = os.path.join(
-                grandmom_dir, _SEQUENCER_TYPES_YML_FNAME)
+            files_dir = files('metapool')
+            sequencers_fp = files_dir.joinpath(
+                f"{_SEQUENCER_TYPES_DIR}/{_SEQUENCER_TYPES_YML_FNAME}")
         else:
             # for testing, use the provided file path
             sequencers_fp = test_only_fp
