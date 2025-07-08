@@ -1,7 +1,7 @@
 from metapool.sequencers import _deep_freeze, _get_machine_code, \
     get_model_and_center, get_sequencers_w_key_value, get_sequencer_type, \
     get_i5_index_sequencers, is_i5_revcomp_sequencer, \
-    get_model_by_instrument_id
+    get_model_by_instrument_id, PROFILE_NAME_KEY
 from types import MappingProxyType
 from unittest import TestCase, main
 
@@ -27,6 +27,12 @@ class TestSequencers(TestCase):
         """Test getting model by machine prefix."""
         obs = get_model_by_instrument_id('MN00178')
         self.assertEqual(obs, 'Illumina MiniSeq')
+
+    def test_get_model_by_instrument_id_w_alternate_key(self):
+        """Test getting alternate model name by machine prefix."""
+        obs = get_model_by_instrument_id(
+            'MN00178', model_key=PROFILE_NAME_KEY)
+        self.assertEqual(obs, 'MiniSeq')
 
     def test_get_model_by_instrument_id_err_none(self):
         """Test error when no model found for machine prefix."""

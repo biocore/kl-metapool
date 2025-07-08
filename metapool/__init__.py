@@ -29,7 +29,7 @@ from .controls import is_blank
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
                        add_controls, generate_override_cycles_value,
                        strip_tubecode_leading_zeroes)
-from .sequencers import get_model_by_instrument_id
+from .sequencers import get_model_by_instrument_id, PROFILE_NAME_KEY
 
 
 __credits__ = ("https://github.com/biocore/kl-metapool/"
@@ -59,7 +59,8 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'SYNDNA_POOL_NUM_KEY', 'SAMPLE_DNA_CONC_KEY',
            'NORMALIZED_DNA_VOL_KEY',
            'SYNDNA_POOL_MASS_NG_KEY', 'ELUTION_VOL_KEY',
-           'EXTRACTED_GDNA_CONC_KEY', 'get_model_by_instrument_id']
+           'EXTRACTED_GDNA_CONC_KEY', 'get_model_by_instrument_id',
+           'PROFILE_NAME_KEY']
 
 from . import _version
 

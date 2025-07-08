@@ -8,6 +8,7 @@ HiSeq2500:
     model_name: 'Illumina HiSeq 2500'
     revcomp_samplesheet_i5_index: false
     machine_prefix: 'D'
+    profile_name: 'HiSeq 2500'
 HiSeq3000:
     model_name: 'Illumina HiSeq 3000'
     revcomp_samplesheet_i5_index: true
@@ -15,6 +16,7 @@ HiSeq4000:
     model_name: 'Illumina HiSeq 4000'
     revcomp_samplesheet_i5_index: true
     machine_prefix: 'K'
+    profile_name: 'HiSeq 4000'
 iSeq:
     model_name: 'Illumina iSeq'
     revcomp_samplesheet_i5_index: true
@@ -22,6 +24,7 @@ iSeq:
     delete_settings:
         - "MaskShortReads"
         - "OverrideCycles"
+    profile_name: 'iSeq'
 MiniSeq:
     model_name: 'Illumina MiniSeq'
     # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
@@ -31,10 +34,12 @@ MiniSeq:
     # those, we would need to modify this value.
     revcomp_samplesheet_i5_index: true
     machine_prefix: 'MN'
+    profile_name: 'MiniSeq'
 MiSeq:
     model_name: 'Illumina MiSeq'
     revcomp_samplesheet_i5_index: false
     machine_prefix: 'M'
+    profile_name: 'MiSeq'
 MiSeqi100:
     model_name: 'Illumina MiSeq i100'
     machine_prefix: 'SH'
@@ -51,6 +56,7 @@ NovaSeq6000:
     model_name: 'Illumina NovaSeq 6000'
     revcomp_samplesheet_i5_index: true
     machine_prefix: 'A'
+    profile_name: 'NovaSeq 6000'
 NovaSeqX:
     model_name: 'Illumina NovaSeq X'
     # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
@@ -62,6 +68,7 @@ NovaSeqX:
     # FASTQ generation, we may need to change this.
     revcomp_samplesheet_i5_index: false
     machine_prefix: 'LH'
+    profile_name: 'NovaSeq X'
 NovaSeqXPlus:
     model_name: 'Illumina NovaSeq X Plus'
     # See above comment for NovaSeqX re: revcomp_samplesheet_i5_index
