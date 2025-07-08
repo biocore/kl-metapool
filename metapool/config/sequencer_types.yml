@@ -49,6 +49,7 @@ MiSeqi100:
     # no revcomping of i5 index sequences is required for MiSeq i100 *IF* we
     # are using standalone BCL convert.  If we ever change how we are doing
     # FASTQ generation, we may need to change this.
+    profile_name: 'MiSeq i100'
 NextSeq:
     model_name: 'Illumina NextSeq 500/550'
     revcomp_samplesheet_i5_index: true

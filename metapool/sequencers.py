@@ -172,8 +172,9 @@ def _get_model_by_machine_prefix(
 
     Returns
     -------
-    MappingProxyType
-        Immutable dictionary of the instrument model details.
+    object
+        The value of the model key in the sequencer type that matches
+        the given instrument prefix. Will be an immutable type.
 
     Raises
     ------
@@ -218,8 +219,9 @@ def get_model_by_instrument_id(
 
     Returns
     -------
-    MappingProxyType
-        Immutable dictionary of the instrument model details.
+    object
+        The value of the model key in the sequencer type appropriate for
+        the given instrument id. Will be an immutable type.
 
     Raises
     ------
@@ -292,8 +294,9 @@ def _get_model_by_sequencer_type_name(
 
     Returns
     -------
-    MappingProxyType
-        Immutable dictionary of the instrument model details.
+    object
+        The value of the model key in the sequencer type that matches
+        the given sequencer type. Will be an immutable type.
 
     Raises
     ------
