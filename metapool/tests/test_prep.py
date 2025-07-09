@@ -16,6 +16,7 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            preparations_for_run_mapping_file, demux_pre_prep,
                            pre_prep_needs_demuxing,
                            _map_files_to_sample_ids, _find_filtered_files)
+from metapool.mp_strings import CONTROLS_DESCRIPTION_KEY
 
 
 class TestPrep(TestCase):
@@ -480,7 +481,7 @@ class TestPrep(TestCase):
             "TubeCode",
             "Kathseq_RackID",
             "number_of_cells",
-            "description",
+            CONTROLS_DESCRIPTION_KEY,
             ]
 
         data = [
