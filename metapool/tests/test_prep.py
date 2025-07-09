@@ -669,7 +669,8 @@ class TestPrep(TestCase):
             "Forward Primer Linker",
             "515FB Forward Primer (Parada)",
             "Primer For PCR",
-            "sample sheet Sample_ID",]
+            "sample sheet Sample_ID",
+            "description",]
         columns2 = [
             "Sample",
             "Row",
@@ -767,7 +768,8 @@ class TestPrep(TestCase):
                     "AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCT"
                     "ATGGTAATTGTGTGYCAGCMGCCGCGGTAA"
                 ),
-                "X00180471",],
+                "X00180471",
+                ""],
             [
                 "X00180199",
                 "C",
@@ -801,7 +803,8 @@ class TestPrep(TestCase):
                     "AATGATACGGCGACCACCGAGATCTACACGCTCGTATAAATGCG"
                     "TATGGTAATTGTGTGYCAGCMGCCGCGGTAA"
                 ),
-                "X00180199",],
+                "X00180199",
+                "positive control",],
             ]
 
         data2 = [
