@@ -20,6 +20,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
     merge_plate_dfs
 from .sequencers import is_i5_revcomp_sequencer
+from .util import drop_unnamed_nan_columns
 
 from string import ascii_letters, digits
 import glob
@@ -2004,6 +2005,7 @@ def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True,
     """
     dtype_dict = dict(zip(cast_as_str, np.repeat("str", len(cast_as_str))))
     vm_file = pd.read_csv(file_path_, dtype=dtype_dict, sep=sep)
+    vm_file = drop_unnamed_nan_columns(vm_file)
 
     if validate is True:
         expected_columns = {
