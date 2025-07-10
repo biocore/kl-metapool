@@ -217,7 +217,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     def GENERATED_PREP_COLUMNS(self):
         return list(self._GENERATED_PREP_COLUMNS)
 
-    def __new__(cls, path=None, *args, **kwargs):
+    def __new__(cls, path=None, defer_validate=False, *args, **kwargs):
         """
             Override so that base class cannot be instantiated.
         """
@@ -228,7 +228,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         instance = super(KLSampleSheet, cls).__new__(cls, *args, **kwargs)
         return instance
 
-    def __init__(self, path=None, *args, **kwargs):
+    def __init__(self, path=None, defer_validate=False, *args, **kwargs):
         """Knight Lab's SampleSheet subclass
 
         Includes a number of parsing and writing changes to allow for the
@@ -273,6 +273,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # Ignore any messages returned because we are not validating,
             # just converting datatypes.
             self._normalize_df_sections_booleans()
+
+        self._validate_on_load(path, defer_validate)
 
     def _parse(self, path):
         section_name = ''
@@ -756,6 +758,209 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         """
         msgs = []
 
+        # # we print an error return None and exit when this happens otherwise
+        # # we won't be able to run other checks
+        # for column in self._get_expected_data_columns():
+        #     if column not in self.all_sample_keys:
+        #         msgs.append(ErrorMessage(f'The {column} column in the '
+        #                                  f'{_DATA_KEY} section is missing'))
+        #
+        # # All children of sample_sheet.SampleSheet will have the following four
+        # # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
+        # # children of KLSampleSheet will have their columns defined in
+        # # child.sections. We will test only for the difference between these
+        # # two sets.
+        # for section in set(type(self).sections).difference({_HEADER_KEY,
+        #                                                     _READS_KEY,
+        #                                                     _SETTINGS_KEY,
+        #                                                     _DATA_KEY}):
+        #     if getattr(self, section) is None:
+        #         msgs.append(ErrorMessage(f'The {section} section cannot be '
+        #                                  'empty'))
+        #
+        # # For cases where a child of KLSampleSheet() is instantiated w/out a
+        # # filepath, the four base sections will be defined but will be empty
+        # # unless they are manually populated.
+        # for attribute in type(self)._HEADER:
+        #     if attribute not in self.Header:
+        #         msgs.append(ErrorMessage(f"'{attribute}' is not declared in "
+        #                                  f"{_HEADER_KEY} section"))
+        #
+        # # Manually populated entries can be arbitrary. Ensure a minimal degree
+        # # of type consistency.
+        # expected_assay_type = type(self)._HEADER[_ASSAY_KEY]
+        # if _ASSAY_KEY in self.Header:
+        #     if self.Header[_ASSAY_KEY] != expected_assay_type:
+        #         msgs.append(ErrorMessage(f"'{_ASSAY_KEY}' value is not "
+        #                                  f"'{expected_assay_type}'"))
+        #
+        # # For sheets that were created by loading in a sample-sheet file,
+        # # confirm that the SheetType in the file is what is expected from
+        # # the child class. This helps w/trial-and-error loads that use
+        # # validation to load a random sample-sheet into the correct class.
+        # expected_sheet_type = type(self)._HEADER[_SHEET_TYPE_KEY]
+        # if self.Header[_SHEET_TYPE_KEY] != expected_sheet_type:
+        #     msgs.append(ErrorMessage(f"'{_SHEET_TYPE_KEY}' value is not "
+        #                              f"'{expected_sheet_type}'"))
+        #
+        # expected_sheet_version = int(type(self)._HEADER[_SHEET_VERSION_KEY])
+        #
+        # # sanitize sample-sheet SheetVersion before attempting to convert to
+        # # int() type. Remove any additional enclosing quotes.
+        # sheet_version = list(self.Header[_SHEET_VERSION_KEY])
+        # sheet_version = [c for c in sheet_version if c not in ['"', "'"]]
+        # try:
+        #     sheet_version = int(''.join(sheet_version))
+        # except ValueError:
+        #     msgs.append(ErrorMessage(f"'{self.Header[_SHEET_VERSION_KEY]}' "
+        #                              f"does not look like a valid value"))
+        #
+        # if sheet_version != expected_sheet_version:
+        #     msgs.append(ErrorMessage(f"'{_SHEET_VERSION_KEY}' value is not "
+        #                              f"'{expected_sheet_version}'"))
+
+        msgs += self._check_sheet()
+        # if any errors are found up to this point then we can't continue with
+        # the validation process.
+        if msgs:
+            return msgs
+
+        # we track the updated projects as a dictionary so we can propagate
+        # these changes to the Bioinformatics and Contact sections.
+        # I think it's not necessary to update the _SAMPLE_CONTEXT_KEY section
+        # because it uses qiita study ids, not project names, and qiita
+        # study ids are not scrubbed.
+        updated_samples, updated_projects = [], {}
+        for sample in self.samples:
+            new_sample = bcl_scrub_name(sample.Sample_ID)
+            new_project = bcl_scrub_name(sample.Sample_Project)
+
+            if new_sample != sample.Sample_ID:
+                updated_samples.append(sample.Sample_ID)
+                sample.Sample_ID = new_sample
+            if new_project != sample.Sample_Project:
+                updated_projects[sample.Sample_Project] = new_project
+                sample[_SS_SAMPLE_PROJECT_KEY] = new_project
+
+        if updated_samples:
+            msgs.append(WarningMessage('The following sample names were '
+                                       'scrubbed for bcl2fastq compatibility'
+                                       ':\n%s' % ', '.join(updated_samples)))
+        if updated_projects:
+            msgs.append(WarningMessage(
+                f"The following project names were scrubbed for bcl2fastq "
+                f"compatibility. If the same invalid characters are "
+                f"also found in the {_BIOINFORMATICS_KEY} and {_CONTACT_KEY} "
+                f"sections, those will be automatically scrubbed too:\n"
+                f"{', '.join(sorted(updated_projects))}"))
+
+            # make the changes to prevent useless errors where the scrubbed
+            # names fail to match between sections.
+            # new pandas won't let you set value inplace on a slice
+            project_remapper = {'Sample_Project': updated_projects}
+            self.Contact.replace(project_remapper, inplace=True)
+            self.Bioinformatics.replace(project_remapper, inplace=True)
+
+        msgs += self._check_projects()
+        # pairs = collections.Counter([(s.Lane, s.Sample_Project)
+        #                              for s in self.samples])
+        # # warn users when there's missing lane values
+        # empty_projects = [project for lane, project in pairs
+        #                   if str(lane).strip() == '']
+        # if empty_projects:
+        #     msgs.append(
+        #         ErrorMessage(
+        #             'The following projects are missing a Lane value: '
+        #             '%s' % ', '.join(sorted(empty_projects))))
+        #
+        # data_project_names = {s.Sample_Project for s in self.samples}
+        #
+        # # project identifiers are digit groups at the end of the project name
+        # # preceded by an underscore, as in: CaporasoIllumina_550
+        # bad_projects = []
+        # for project_name in data_project_names:
+        #     try:
+        #         # don't actually need the return value here :)
+        #         parse_project_name(project_name)
+        #     except ValueError:
+        #         bad_projects.append(project_name)
+        #
+        # if bad_projects:
+        #     msgs.append(
+        #         ErrorMessage(
+        #             f"The following project names in the "
+        #             f"{_SS_SAMPLE_PROJECT_KEY} column are missing a Qiita "
+        #             f"study identifier: "
+        #             f"{', '.join(sorted(bad_projects))}"))
+        #
+        # # check that the bioinformatics and data sections have the exact
+        # # same list of projects in them
+        # bfx_project_names = set(self.Bioinformatics[_SS_SAMPLE_PROJECT_KEY])
+        # not_shared = data_project_names ^ bfx_project_names
+        # if not_shared:
+        #     msgs.append(
+        #         ErrorMessage(
+        #             f"The following projects need to be in the {_DATA_KEY} "
+        #             f"and {_BIOINFORMATICS_KEY} sections: "
+        #             f"{', '.join(sorted(not_shared))}"))
+        #
+        # # contact and sample context don't have to have every project in the
+        # # bioinformatics section, but they can't have any project that ISN'T
+        # # in the bioinformatics section!
+        # # NB:below logic works even if there ISN'T a sample context section
+        # contact_project_names = set(self.Contact[_SS_SAMPLE_PROJECT_KEY])
+        # sample_context_project_ids = get_all_projects_in_context(
+        #     getattr(self, _SAMPLE_CONTEXT_KEY, None))
+        #
+        # # for each section, the below lists the expected superset and the
+        # # expected subset.  Note that contacts compares project names, while
+        # # sample context compares qiita study ids.
+        # subset_sections = {
+        #     _CONTACT_KEY: (bfx_project_names, contact_project_names),
+        #     _SAMPLE_CONTEXT_KEY: (set(self.Bioinformatics[_SS_QIITA_ID_KEY]),
+        #                           set(sample_context_project_ids))}
+        # for curr_section, curr_sets in subset_sections.items():
+        #     curr_missing_projects = curr_sets[1] - curr_sets[0]
+        #     if len(curr_missing_projects) > 0:
+        #         msgs.append(ErrorMessage((
+        #             f"The following projects were only found in the "
+        #             f"{curr_section} section: "
+        #             f"{', '.join(sorted(curr_missing_projects))}. "
+        #             f"Projects need to be listed in the {_DATA_KEY} and "
+        #             f"{_BIOINFORMATICS_KEY} section in order to be included "
+        #             f"in the {curr_section} section.")))
+        #     # end if there are missing projects for this section
+        # # next section to check
+
+        # silently convert boolean values to either True or False and generate
+        # messages for all unrecognizable values.
+        msgs += self._normalize_df_sections_booleans()
+
+        # return all collected Messages, even if it's an empty list.
+        return msgs
+
+    def _validate_on_load(self, path, defer_validate):
+        # if defer_validate is True, and/or if there is no path,
+        # then don't validate the sample sheet now
+        if defer_validate or not path:
+            return
+
+        msgs = self._check_sheet()
+        if msgs:
+            err_str = '\n'.join([x.message for x in msgs])
+            raise ValueError(
+                f'Sample sheet instantiation failed: {err_str}')
+
+    def _check_sheet(self):
+        """Validate sample sheet before scrubbing and return list of messages
+
+        Returns
+        -------
+        list
+            List of error or warning messages.
+        """
+        msgs = []
+
         # we print an error return None and exit when this happens otherwise
         # we won't be able to run other checks
         for column in self._get_expected_data_columns():
@@ -817,47 +1022,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(ErrorMessage(f"'{_SHEET_VERSION_KEY}' value is not "
                                      f"'{expected_sheet_version}'"))
 
-        # if any errors are found up to this point then we can't continue with
-        # the validation process.
-        if msgs:
-            return msgs
+        return msgs
 
-        # we track the updated projects as a dictionary so we can propagate
-        # these changes to the Bioinformatics and Contact sections.
-        # I think it's not necessary to update the _SAMPLE_CONTEXT_KEY section
-        # because it uses qiita study ids, not project names, and qiita
-        # study ids are not scrubbed.
-        updated_samples, updated_projects = [], {}
-        for sample in self.samples:
-            new_sample = bcl_scrub_name(sample.Sample_ID)
-            new_project = bcl_scrub_name(sample.Sample_Project)
-
-            if new_sample != sample.Sample_ID:
-                updated_samples.append(sample.Sample_ID)
-                sample.Sample_ID = new_sample
-            if new_project != sample.Sample_Project:
-                updated_projects[sample.Sample_Project] = new_project
-                sample[_SS_SAMPLE_PROJECT_KEY] = new_project
-
-        if updated_samples:
-            msgs.append(WarningMessage('The following sample names were '
-                                       'scrubbed for bcl2fastq compatibility'
-                                       ':\n%s' % ', '.join(updated_samples)))
-        if updated_projects:
-            msgs.append(WarningMessage(
-                f"The following project names were scrubbed for bcl2fastq "
-                f"compatibility. If the same invalid characters are "
-                f"also found in the {_BIOINFORMATICS_KEY} and {_CONTACT_KEY} "
-                f"sections, those will be automatically scrubbed too:\n"
-                f"{', '.join(sorted(updated_projects))}"))
-
-            # make the changes to prevent useless errors where the scrubbed
-            # names fail to match between sections.
-            # new pandas won't let you set value inplace on a slice
-            project_remapper = {'Sample_Project': updated_projects}
-            self.Contact.replace(project_remapper, inplace=True)
-            self.Bioinformatics.replace(project_remapper, inplace=True)
-
+    def _check_projects(self):
+        msgs = []
         pairs = collections.Counter([(s.Lane, s.Sample_Project)
                                      for s in self.samples])
         # warn users when there's missing lane values
@@ -927,10 +1095,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     f"in the {curr_section} section.")))
             # end if there are missing projects for this section
         # next section to check
-
-        # silently convert boolean values to either True or False and generate
-        # messages for all unrecognizable values.
-        msgs += self._normalize_df_sections_booleans()
 
         # return all collected Messages, even if it's an empty list.
         return msgs
@@ -1202,7 +1366,7 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
             cls, *args, **kwargs)
         return instance
 
-    def __init__(self, path=None):
+    def __init__(self, path=None, defer_validate=False):
         """Knight Lab's SampleSheet subclass that includes SampleContext
 
         Expands Knight Lab SampleSheet to include a new (required) section
@@ -1220,10 +1384,11 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
         # SampleContext section if it is present in the file--but only if
         # it is defined here first.
         self.SampleContext = None
-        super().__init__(path=path)
+        super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
         self._data_columns = _BASE_DATA_COLUMNS
         self._CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
+        self._validate_on_load(path, defer_validate)
 
 
 class AbsQuantMixin(object):
@@ -1238,14 +1403,15 @@ class AbsQuantMixin(object):
             ELUTION_VOL_KEY: ELUTION_VOL_KEY
         })
 
-    def __init__(self, path=None):
-        super().__init__(path=path)
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
         self._remapper = self._extend_remapper(self._ABSQUANT_REMAPPER)
         self._data_columns = \
             self._data_columns + self._ABSQUANT_SPECIFIC_COLUMNS
         if self._CARRIED_PREP_COLUMNS is not None:
             self._CARRIED_PREP_COLUMNS = \
                 self._CARRIED_PREP_COLUMNS + self._ABSQUANT_SPECIFIC_COLUMNS
+        self._validate_on_load(path, defer_validate)
 
 
 # NB: Must be mixed in to something that inherits from KLSampleSheetWithContext
@@ -1268,10 +1434,11 @@ class KatharoseqMixin(object):
     def _is_katharo_name(sample_name):
         return sample_name.lower().startswith(KatharoseqMixin._KATHARO_PREFIX)
 
-    def __init__(self, path=None):
-        super().__init__(path=path)
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
         self._remapper = self._extend_remapper(
             {self._KATH_RACK_ID_KEY: self._KATH_RACK_ID_KEY})
+        self._validate_on_load(path, defer_validate)
 
     def contains_katharoseq_samples(self):
         # when creating samples manually, as opposed to loading a sample-sheet
@@ -1331,7 +1498,7 @@ class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
             cls, *args, **kwargs)
         return instance
 
-    def __init__(self, path=None):
+    def __init__(self, path=None, defer_validate=False):
         """Knight Lab's SampleSheet subclass that includes SampleContext
 
         Expands Knight Lab SampleSheet to include a new (required) section
@@ -1349,7 +1516,7 @@ class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
         # SampleContext section if it is present in the file--but only if
         # it is defined here first.
         self.SampleContext = None
-        super().__init__(path=path)
+        super().__init__(path=path, defer_validate=True)
         self._remapper = MappingProxyType(
             _BASE_PLATE_REMAPPER | {self.BARCODE_ID_KEY: self.BARCODE_ID_KEY})
 
@@ -1359,6 +1526,7 @@ class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
         self._data_columns = \
             _PREFIX_PLATE_COLUMNS + (self.BARCODE_ID_KEY, ) + \
             _SUFFIX_PLATE_COLUMNS
+        self._validate_on_load(path, defer_validate)
 
 
 class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
@@ -1480,9 +1648,10 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
                              'sample_plate', 'sample_project',
                              'well_description', 'well_id_384')
 
-    def __init__(self, path=None):
-        super().__init__(path=path)
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
+        self._validate_on_load(path, defer_validate)
 
 
 class MetagenomicSampleSheetv90(KLSampleSheet):
@@ -1515,8 +1684,8 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
                              'sample_plate', 'sample_project',
                              'well_description', 'Sample_Well')
 
-    def __init__(self, path=None):
-        super().__init__(path=path)
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
         self._remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
             'Sample': _SS_SAMPLE_NAME_KEY,
@@ -1528,6 +1697,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
             'i5 sequence': 'index2',
             PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY
         }
+        self._validate_on_load(path, defer_validate)
 
 
 class AbsQuantSampleSheetv10(KLSampleSheet):
@@ -1556,10 +1726,11 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
     _CARRIED_PREP_COLUMNS = \
         _BASE_CARRIED_PREP_COLUMNS + AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS
 
-    def __init__(self, path=None):
-        super().__init__(path=path)
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
         self._remapper = MappingProxyType(
             _BASE_METAG_REMAPPER | AbsQuantMixin._ABSQUANT_REMAPPER)
+        self._validate_on_load(path, defer_validate)
 
 
 class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):

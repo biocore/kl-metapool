@@ -73,9 +73,6 @@ class BaseTests(unittest.TestCase):
 
         self.no_project_ss = join(data_dir, 'no-project-name-sample-sheet.csv')
 
-        # "valid" upfront but will have repeated values after scrubbing
-        self.ok_ss = join(data_dir, 'ok-sample-sheet.csv')
-
         self.scrubbable_ss = join(data_dir, 'scrubbable-sample-sheet.csv')
 
         self.bad_project_name_ss = join(data_dir,
@@ -135,6 +132,13 @@ class BaseTests(unittest.TestCase):
             'SheetVersion': '100'
         }
 
+    def _help_test_csv_files_exact_text_match(self, file_1, file_2):
+        with open(file_1, 'r', encoding='utf-8') as f1, \
+             open(file_2, 'r', encoding='utf-8') as f2:
+            text1 = f1.read()
+            text2 = f2.read()
+        self.assertMultiLineEqual(text1, text2)
+
 
 class KLSampleSheetTests(BaseTests):
     def test_instantiation(self):
@@ -150,13 +154,14 @@ class KLSampleSheetTests(BaseTests):
 
     def test_sample_sheet_roundtripping(self):
         # testing with all the sheets we have access to
-        sheets = [self.good_ss, self.no_project_ss, self.ok_ss,
+        sheets = [self.good_ss,
                   self.scrubbable_ss, self.bad_project_name_ss,
                   self.with_comments, self.with_comments_and_new_lines,
                   self.with_new_lines]
-        sheets = {sheet: MetagenomicSampleSheetv100(sheet) for sheet in sheets}
 
-        for filename, sheet in sheets.items():
+        for filename in sheets:
+            sheet = MetagenomicSampleSheetv100(filename)
+
             # write each KLSampleSheet object out to disk and compare the text
             # against the original.
             with tempfile.NamedTemporaryFile('w+') as tmp:
@@ -245,7 +250,7 @@ class KLSampleSheetTests(BaseTests):
             for line in empty:
                 tmp.write(line + '\n')
 
-            sheet = MetagenomicSampleSheetv100(tmp.name)
+            sheet = MetagenomicSampleSheetv100(tmp.name, defer_validate=True)
 
             self.assertEqual(sheet.samples, [])
             self.assertEqual(sheet.Settings, {})
@@ -1701,14 +1706,16 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertEqual(msgs, [])
 
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
-        sheet = MetagenomicSampleSheetv100(self.no_project_ss)
+        sheet = MetagenomicSampleSheetv100(
+            self.no_project_ss, defer_validate=True)
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
 
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
-        sheet = MetagenomicSampleSheetv100(self.no_project_ss)
+        sheet = MetagenomicSampleSheetv100(
+            self.no_project_ss, defer_validate=True)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
@@ -1983,6 +1990,31 @@ class DemuxReplicatesTests(BaseTests):
                                        join(self.data_dir,
                                             'replicate_output3.csv')]
 
+    def _help_test_demux_sample_sheet(
+            self, sheet_class, input_path, output_paths):
+
+        # read in a sample sheet containing replicates
+        sheet = sheet_class(input_path)
+
+        # demux and write out the demuxed sample-sheets
+        results = demux_sample_sheet(sheet)
+
+        # assert that the proper number of demuxed sample sheets were returned
+        num_expected = len(output_paths)
+        self.assertEqual(len(results), num_expected)
+
+        # compare the completed sample-sheets against an expected results.
+        # among other things confirm that 'orig_name' is not in the
+        # output replicate csvs, indicating it has become the 'Sample_Name'
+        # column for that replicate sample-sheet.
+        self.maxDiff = None
+        for curr_path_num in range(num_expected):
+            with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+                results[curr_path_num].write(tmp)
+                tmp.flush()
+                self._help_test_csv_files_exact_text_match(
+                    output_paths[curr_path_num], tmp.name)
+
     def test_sheet_needs_demuxing(self):
         # confirm legacy sample-sheets w/out contains_replicates column will
         # return False, instead of raising an Error. For processing purposes,
@@ -2007,120 +2039,53 @@ class DemuxReplicatesTests(BaseTests):
         sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
-    def test_demux_sample_sheet(self):
+    def test_demux_sample_sheet_err_no_contains_replicates(self):
         # we don't want to demux legacy sample-sheets. sheet_needs_demuxing()
         # should be used to determine if demux_sample_sheet() should be
         # called.
-        with self.assertRaisesRegex(ValueError, "sample-sheet does not contain"
-                                                " replicates"):
-            sheet = MetagenomicSampleSheetv90(self.legacy_sheet_path)
+        sheet = MetagenomicSampleSheetv90(self.legacy_sheet_path)
+        err = "sample-sheet does not contain replicates"
+        with self.assertRaisesRegex(ValueError, err):
             demux_sample_sheet(sheet)
 
+    def test_demux_sample_sheet_err_contains_replicates_inconsistent(self):
         # by convention, all replication is done at the plate level, and all
         # projects in a sample-sheet will either contain replicates, or all of
         # them will not. Hence, a sample-sheet with both True and False in
         # the contains_replicates column in the [Bioinformatics] section should
         # raise an error.
-        with self.assertRaisesRegex(ValueError, "All projects in Bioinfor"
-                                                "matics section must either "
-                                                "contain replicates or not."):
-            sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
+        sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
+        err = ("All projects in Bioinformatics section must either contain"
+               " replicates or not.")
+        with self.assertRaisesRegex(ValueError, err):
             demux_sample_sheet(sheet)
 
+    def test_demux_sample_sheet_err_contains_replicates_false(self):
         # as mentioned above, sheet_needs_demuxing() should be used to
         # determine if demux_sample_sheet() should be called. If a sample
         # sheet is passed to demux_sample_sheet() and all projects are False,
         # an Error should be raised to alert the user of an unexpected
         # condition, rather than silently allow as a degenerative case.
-        with self.assertRaisesRegex(ValueError, "No projects in Bioinfor"
-                                                "matics section contain"
-                                                " replicates"):
-            sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
+        sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
+        err = "No projects in Bioinformatics section contain replicates"
+        with self.assertRaisesRegex(ValueError, err):
             demux_sample_sheet(sheet)
 
-        # this test will need to compare the four completed sample-sheets
-        # made using self.sheet_w_replicates_path against an expected result.
-
-        # test sample-sheet w/both projects w/replicates and not.
-        sheet = MetagenomicSampleSheetv100(self.sheet_w_replicates_path)
-        results = demux_sample_sheet(sheet)
-
-        # assert that the proper number of KLSampleSheets were returned.
-        self.assertEqual(len(results), len(self.replicate_output_paths))
-
-        # assert that each sample-sheet appears in the correct order and
-        # matches known results.
-        for replicate_output_path in self.replicate_output_paths:
-            exp = MetagenomicSampleSheetv100(replicate_output_path)
-            obs = results.pop(0)
-            self.assertEqual(obs.Header, exp.Header)
-            self.assertEqual(obs.Reads, exp.Reads)
-            self.assertEqual(obs.Settings, exp.Settings)
-            self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
-            self.assertTrue(obs.Contact.equals(exp.Contact))
-
-            # since samples are stored an internal data-structure of the
-            # third-party sample_sheet library, convert the sample metadata
-            # to JSON before comparing them.
-            j_obs = loads(obs.to_json())['Data']
-            j_exp = loads(exp.to_json())['Data']
-
-            # confirm that 'orig_name' is not in the output replicate csvs,
-            # indicating it has become the 'sample_name' column for that
-            # replicate sample-sheet.
-            self.assertFalse('orig_name' in j_obs)
-
-            # confirm that the set of sample-names in each replicate
-            # sample-sheet is all of and only the samples assigned to each
-            # replicate.
-
-            self.assertEqual(set([x['Sample_Name'] for x in j_obs]),
-                             set([x['sample_name'] for x in j_exp]))
+    def test_demux_sample_sheet(self):
+        self._help_test_demux_sample_sheet(
+            MetagenomicSampleSheetv100, self.sheet_w_replicates_path,
+            self.replicate_output_paths)
 
     def test_demux_sample_sheet_w_context(self):
         # this test will need to compare the four completed sample-sheets
         # made using self.sheet_w_replicates_path against an expected result.
-
-        # test sample-sheet w/both projects w/replicates and not.
         demux_sheet_w_context_path = join(
             self.data_dir, "good_sheet_w_replicates_and_context.csv")
-        sheet = MetagenomicSampleSheetv101(demux_sheet_w_context_path)
-        results = demux_sample_sheet(sheet)
-
-        # assert that the proper number of KLSampleSheets were returned.
-        self.assertEqual(len(results), len(self.replicate_output_paths))
-
-        # assert that each sample-sheet appears in the correct order and
-        # matches known results.
-        for replicate_output_path in self.replicate_output_paths:
-            rep_context_path = replicate_output_path.replace(
-                '.csv', '_w_context.csv')
-            exp = MetagenomicSampleSheetv101(rep_context_path)
-            obs = results.pop(0)
-            self.assertEqual(obs.Header, exp.Header)
-            self.assertEqual(obs.Reads, exp.Reads)
-            self.assertEqual(obs.Settings, exp.Settings)
-            self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
-            self.assertTrue(obs.Contact.equals(exp.Contact))
-            self.assertTrue(obs.SampleContext.equals(exp.SampleContext))
-
-            # since samples are stored an internal data-structure of the
-            # third-party sample_sheet library, convert the sample metadata
-            # to JSON before comparing them.
-            j_obs = loads(obs.to_json())['Data']
-            j_exp = loads(exp.to_json())['Data']
-
-            # confirm that 'orig_name' is not in the output replicate csvs,
-            # indicating it has become the 'sample_name' column for that
-            # replicate sample-sheet.
-            self.assertFalse('orig_name' in j_obs)
-
-            # confirm that the set of sample-names in each replicate
-            # sample-sheet is all of and only the samples assigned to each
-            # replicate.
-
-            self.assertEqual(set([x['Sample_Name'] for x in j_obs]),
-                             set([x['sample_name'] for x in j_exp]))
+        context_output_paths = [x.replace('.csv', '_w_context.csv') for
+                                x in self.replicate_output_paths]
+        self._help_test_demux_sample_sheet(
+            MetagenomicSampleSheetv101, demux_sheet_w_context_path,
+            context_output_paths)
 
 
 class AdditionalSampleSheetCreationTests(BaseTests):
@@ -2885,7 +2850,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         self.test_sheet.SampleContext = pd.DataFrame()
 
-    def test_katharoseq_enabled_sheet_load(self):
+    def test_katharoseq_enabled_sheet_load_wo_kath_samples(self):
         # load metagenomic sample-sheet w/out katharoseq samples in the [Data]
         # section, and get a list of the columns.
         sheet1 = load_sample_sheet(self.katharoseq_1)
@@ -2902,6 +2867,7 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertEqual(obs, exp)
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
+    def test_katharoseq_enabled_sheet_load_w_kath_samples(self):
         # load metagenomic sample-sheet w/katharoseq samples in the [Data]
         # section, and perform similar tests.
         sheet2 = load_sample_sheet(self.katharoseq_2)
@@ -2930,16 +2896,19 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertEqual(obs, exp)
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-        sheet = load_sample_sheet(self.katharoseq_3)
-        obs = sheet.quiet_validate_and_scrub_sample_sheet()
-        self.assertEqual(str(obs[0]), "ErrorMessage: The number_of_cells "
-                                      "column in the Data section is missing")
+    def test_katharoseq_enabled_sheet_err_load_missing_col(self):
+        err = ("Sample sheet instantiation failed: The number_of_cells column"
+               " in the Data section is missing")
+        with self.assertRaisesRegex(ValueError, err):
+            _ = MetagenomicSampleSheetv102(self.katharoseq_3)
 
+    def test_katharoseq_enabled_sheet_err_validate_missing_col(self):
         # self.katharoseq_3 is a duplicate of self.katharoseq_2, except
         # number_of_cells has been replaced w/number_of_sells. This is
         # enough to fail load_sample_sheet(). Confirm specific error by
         # manually loading the sample-sheet into an SampleSheet object.
-        sheet = MetagenomicSampleSheetv102(self.katharoseq_3)
+        sheet = MetagenomicSampleSheetv102(
+            self.katharoseq_3, defer_validate=True)
 
         # self.katharoseq_3 should load properly into an object, although it
         # will later fail validation.
