@@ -945,6 +945,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if defer_validate or not path:
             return
 
+        # TODO: need to also integrate the checks that are being done in
+        #  _validate_sample_sheet_metadata, which check that the columns in the
+        #  NON-data sections include all the expected ones ... but that takes
+        #  in a dictionary not a sample sheet, so some refactoring will be
+        #  required.
+
         msgs = self._check_sheet()
         if msgs:
             err_str = '\n'.join([x.message for x in msgs])
