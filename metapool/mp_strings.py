@@ -31,6 +31,7 @@ PROJECT_FULL_NAME_KEY = "full_project_name"
 # NB: don't use this as the name for a column of sample identifiers.  It is
 # the key for a list of sample details *objects* (e.g., dictionaries)
 SAMPLES_DETAILS_KEY = "samples"
+CONTROLS_DESCRIPTION_KEY = "description"
 
 # Plate map (PM) column names
 PM_SAMPLE_KEY = "Sample"

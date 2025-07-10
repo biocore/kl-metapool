@@ -735,13 +735,14 @@ def generate_qiita_prep_file(platedf, seqtype):
     # although some columns should be allowed to pass through, there are some
     # columns currently passed into metapool through the pre-prep file that
     # should definitely _not_ appear in the output. These include the
-    # following:
+    # following; note that 'description' is a reserved column name for Qiita
+    # sample info, which is why it cannot be used in the prep file.
     remove_these = {'Blank', 'Col', 'Compressed Plate Name', 'Plate Position',
                     'EMP Primer Plate Well', 'Forward Primer Pad', 'Name',
                     'Illumina 5prime Adapter', 'Original Name', 'Plate', 'Row',
                     'Primer For PCR', 'Project Plate', 'index',
                     'Plate elution volume', 'Plate map file', 'Time',
-                    'RackID'}
+                    'RackID', 'description'}
 
     # only remove the columns from the above set that are actually present in
     # the prep dataframe to avoid possible errors.
