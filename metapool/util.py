@@ -172,3 +172,15 @@ def get_set_fp(set_fbase, set_id, extension="txt"):
 def warn_if_fp_exists(fp):
     if os.path.isfile(fp):
         warnings.warn(f"Warning! This file exists already: {fp}.")
+
+
+def drop_unnamed_nan_columns(df):
+    """
+    Drops columns whose names start with 'Unnamed:' and contain only NaN values
+    """
+    return df.drop(
+        columns=[
+            col for col in df.columns
+            if col.startswith('Unnamed:') and df[col].isna().all()
+        ]
+    )

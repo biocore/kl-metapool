@@ -5,7 +5,7 @@ import os
 from unittest import TestCase
 from metapool.util import join_dfs_from_files, \
     extend_sample_accession_df, extend_compression_layout_info, \
-    _check_for_missing_df_ids
+    _check_for_missing_df_ids, drop_unnamed_nan_columns
 
 
 class NotebookSupportTests(TestCase):
@@ -359,3 +359,25 @@ class NotebookSupportTests(TestCase):
                             "compression layout is not in the studies info"):
             extend_compression_layout_info(self.compress_layout,
                                            incomplete_studies_info)
+
+    def test_drop_unnamed_nan_columns(self):
+        """Test dropping columns iff named 'Unnamed:' and values all NaN."""
+        df = pandas.DataFrame({
+            'Unnamed: A': [None, None, None],
+            'Unnamed: B': [None, None, None],
+            'Unnamed: 0': [1, 2, 3],
+            'Unnamed: 1': [None, None, None],
+            'col1': [4, 5, 6],
+            'Unnamed: 2': [None, None, None],
+            'col2': [None, None, None],
+            'Unnamed: 3': [None, None, None]
+        })
+
+        expected_df = pandas.DataFrame({
+            'Unnamed: 0': [1, 2, 3],
+            'col1': [4, 5, 6],
+            'col2': [None, None, None]
+        })
+
+        result_df = drop_unnamed_nan_columns(df)
+        assert_frame_equal(result_df, expected_df)

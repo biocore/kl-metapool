@@ -14,11 +14,13 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
     EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, PM_WELL_ID_96_KEY, \
-    NORMALIZED_WATER_VOL_KEY, get_qiita_id_from_project_name, \
-    get_plate_num_from_plate_name, get_main_project_from_plate_name
+    NORMALIZED_WATER_VOL_KEY, CONTROLS_DESCRIPTION_KEY, \
+    get_qiita_id_from_project_name, get_plate_num_from_plate_name, \
+    get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
     merge_plate_dfs
 from .sequencers import is_i5_revcomp_sequencer
+from .util import drop_unnamed_nan_columns
 
 from string import ascii_letters, digits
 import glob
@@ -2003,6 +2005,7 @@ def read_visionmate_file(file_path_, cast_as_str, sep="\t", validate=True,
     """
     dtype_dict = dict(zip(cast_as_str, np.repeat("str", len(cast_as_str))))
     vm_file = pd.read_csv(file_path_, dtype=dtype_dict, sep=sep)
+    vm_file = drop_unnamed_nan_columns(vm_file)
 
     if validate is True:
         expected_columns = {
@@ -2293,7 +2296,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
     blanks = _load_blanks_accession_df(
         blanks_dir, preserve_leading_zeroes=preserve_leading_zeroes)
     blanks.drop(["Time", "Date", "RackID"], axis=1, inplace=True)
-    blanks["description"] = "negative_control"
+    blanks[CONTROLS_DESCRIPTION_KEY] = "negative_control"
 
     if katharoseq_dir is not None:
         # Build a master table with katharoseq tube ids and
@@ -2301,7 +2304,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         katharoseq = _load_katharoseq_accession_df(
             katharoseq_dir, preserve_leading_zeroes=preserve_leading_zeroes)
         katharoseq.drop(["Time", "Date"], axis=1, inplace=True)
-        katharoseq["description"] = "positive_control"
+        katharoseq[CONTROLS_DESCRIPTION_KEY] = "positive_control"
 
         # Find katharoseq rackid and merge cell counts
         # Add katharoseq_cell_counts and assign to each tube based on
@@ -2497,13 +2500,13 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     are encountered. Echos warnings to stdout.
     """
 
-    # This checks that all the samples names recored in the plate_df have
+    # This checks that all the samples names recorded in the plate_df have
     # metadata associated with them
     pat = "positive_control|negative_control"
     control_samples = set(
         plate_df.loc[
-            (plate_df["description"].str.contains(pat))
-            | (plate_df["description"].isna()),
+            (plate_df[CONTROLS_DESCRIPTION_KEY].str.contains(pat))
+            | (plate_df[CONTROLS_DESCRIPTION_KEY].isna()),
             "Sample",
         ]
     )
