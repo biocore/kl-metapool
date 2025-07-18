@@ -269,6 +269,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         self.Bioinformatics = None
         self.Contact = None
+        self._optional_col_sets = None
+
         self.path = path
 
         if self.path:
@@ -397,9 +399,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section[key] = value
                     continue
 
-    def _extend_remapper(self, addtl_remapper):
-        curr_remapper = getattr(self, '_remapper', {})
-        return MappingProxyType(curr_remapper | addtl_remapper)
+    def _extend_mapping_type(self, addtl_mapping_obj,
+                             mapping_obj_name="_remapper"):
+        curr_mapping_obj = getattr(self, mapping_obj_name)
+        if curr_mapping_obj is None:
+            curr_mapping_obj = {}
+        return MappingProxyType(curr_mapping_obj | addtl_mapping_obj)
 
     def set_override_cycles(self, value):
         # assume that any value including None is valid.
@@ -754,10 +759,16 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         return int(lanes[0])
 
     def _get_expected_data_columns(self, table=None):
-        # this base (general) implementation of this method does nothing w/
-        # the table parameter. It is present only for compatibility with child
-        # methods.
-        return self._data_columns
+        expected_cols = self._data_columns
+        if self._optional_col_sets:
+            for curr_optional_set_name in self._optional_col_sets:
+                curr_col_names, curr_set_check_func = \
+                    self._optional_col_sets[curr_optional_set_name]
+                curr_set_included = curr_set_check_func(table)
+                if curr_set_included:
+                    expected_cols += curr_col_names
+
+        return expected_cols
 
     def validate_and_scrub_sample_sheet(self, echo_msgs=True):
         """Validate the sample sheet and scrub invalid characters
@@ -1383,7 +1394,84 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         return msgs
 
 
-class KLSampleSheetWithSampleContext(KLSampleSheet):
+class KLSampleSheetWithReplicates(KLSampleSheet):
+    _REPLICATES_SET_KEY = 'replicates'
+
+    _KL_ADDTL_DF_SECTIONS = MappingProxyType({
+        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _CONTACT_KEY: _CONTACT_COLS,
+    })
+
+    _optional_replicate_columns = (ORIG_NAME_KEY, DESTINATION_WELL_384_KEY)
+
+    _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
+                             'i7_index_id', 'index', 'index2',
+                             LIB_CONSTRUCT_PROTOCOL_KEY,
+                             SAMPLE_NAME_KEY,
+                             'sample_plate', 'sample_project',
+                             'well_description', PM_WELL_ID_384_KEY)
+
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override so that base class cannot be instantiated.
+        """
+        if cls is KLSampleSheetWithReplicates:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(KLSampleSheetWithReplicates, cls).__new__(
+            cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path=None, defer_validate=False):
+        """Knight Lab's SampleSheet subclass that can include replicate info
+
+        Expands Knight Lab SampleSheet to include new optional columns in the
+        Data section used to store information about replicates.
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+        """
+
+        super().__init__(path=path, defer_validate=True)
+        self._remapper = _BASE_METAG_REMAPPER
+        self._data_columns = _BASE_DATA_COLUMNS
+        self._optional_col_sets = self._extend_mapping_type(
+            {self._REPLICATES_SET_KEY: (
+                self._optional_replicate_columns,
+                self.contains_replicates)
+            }, "_optional_col_sets")
+        self._validate_on_load(path, defer_validate)
+
+    def contains_replicates(self, table=None):
+        if self.Bioinformatics is None:
+            return False
+
+        contains_replicates = self.Bioinformatics[
+            CONTAINS_REPLICATES_KEY].unique().tolist()
+
+        # by convention, all projects in the sample-sheet are either going
+        # to be True or False. If some projects are True while others are
+        # False, we should raise an Error.
+        if len(contains_replicates) > 1:
+            raise ValueError(f"All projects in {_BIOINFORMATICS_KEY} section "
+                             f"must either contain replicates or not.")
+
+        # return either True or False, depending on the values found in
+        # Bioinformatics section.
+        found_val = list(contains_replicates)[0]
+        found_bool = _convert_to_bool(found_val)
+        if found_bool is None:
+            raise ValueError(f"'{found_val}' is not a valid value for "
+                             f"'{CONTAINS_REPLICATES_KEY}' in "
+                             f"'{_BIOINFORMATICS_KEY}' section. "
+                             f"Must be 'True' or 'False'.")
+        return found_bool
+
+
+class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
         _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
         _CONTACT_KEY: _CONTACT_COLS,
@@ -1449,7 +1537,7 @@ class AbsQuantMixin(object):
 
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
-        self._remapper = self._extend_remapper(self._ABSQUANT_REMAPPER)
+        self._remapper = self._extend_mapping_type(self._ABSQUANT_REMAPPER)
         self._data_columns = \
             self._data_columns + self._ABSQUANT_SPECIFIC_COLUMNS
         if self._CARRIED_PREP_COLUMNS is not None:
@@ -1480,51 +1568,34 @@ class KatharoseqMixin(object):
 
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
-        self._remapper = self._extend_remapper(
+        self._remapper = self._extend_mapping_type(
             {self._KATH_RACK_ID_KEY: self._KATH_RACK_ID_KEY})
+        self._optional_col_sets = self._extend_mapping_type(
+            {self._KATHARO_PREFIX: (
+                self._optional_katharoseq_columns,
+                self.contains_katharoseq_samples)
+            }, "_optional_col_sets")
         self._validate_on_load(path, defer_validate)
 
-    def contains_katharoseq_samples(self):
+    def contains_katharoseq_samples(self, table=None):
         # when creating samples manually, as opposed to loading a sample-sheet
         # from file, whether or not a sample-sheet contains katharoseq
         # controls can change from add_sample() to add_sample() and won't be
         # determined when MetagenomicSampleSheetv101() is created w/out a
         # file. Hence, perform this check on demand() as opposed to once at
         # init().
-        for sample in self.samples:
+        if table is not None:
+            sample_names = table[_SS_SAMPLE_NAME_KEY].tolist()
+        else:
+            sample_names = [s.Sample_Name for s in self.samples]
+
+        for curr_sample_name in sample_names:
             # assume any sample-name beginning with 'katharo' in any form of
             # case is a katharoseq sample.
-            if self._is_katharo_name(sample.Sample_Name):
+            if self._is_katharo_name(curr_sample_name):
                 return True
 
         return False
-
-    def _table_contains_katharoseq_samples(self, table):
-        # for instances when a MetagenomicSampleSheetv101() object contains
-        # no samples, and the samples will be added in a single method call.
-        # this helper method will return True only if a katharo-control
-        # sample is found. Note criteria for this method should be kept
-        # consistent w/the above method (contains_katharoseq_samples).
-        is_katharos = table[_SS_SAMPLE_NAME_KEY].apply(self._is_katharo_name)
-        return is_katharos.any()
-
-    def _get_expected_data_columns(self, table=None):
-        if table is None:
-            # if [Data] section contains katharoseq samples, add the expected
-            # additional katharoseq columns to the official list of expected
-            # columns before validation or other processing begins.
-            if self.contains_katharoseq_samples():
-                return self._data_columns + self._optional_katharoseq_columns
-
-        else:
-            # assume that there are no samples added to this object yet. This
-            # means that self.contains_katharoseq_samples() will always return
-            # False. Assume table contains a list of samples that may or may
-            # not contain katharoseq controls.
-            if self._table_contains_katharoseq_samples(table):
-                return self._data_columns + self._optional_katharoseq_columns
-
-        return self._data_columns
 
 
 class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
@@ -1660,7 +1731,7 @@ class MetagenomicSampleSheetv101(KLSampleSheetWithSampleContext):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
-class MetagenomicSampleSheetv100(KLSampleSheet):
+class MetagenomicSampleSheetv100(KLSampleSheetWithReplicates):
     _HEADER = {
         'IEMFileVersion': '4',
         _SHEET_TYPE_KEY: STANDARD_METAG_SHEET_TYPE,
@@ -1674,28 +1745,6 @@ class MetagenomicSampleSheetv100(KLSampleSheet):
         'Description': '',
         'Chemistry': 'Default',
     }
-
-    # Note that there doesn't appear to be a difference between 95, 99, and 100
-    # beyond the value observed in 'Well_description' column. The real
-    # difference is between standard_metag and abs_quant_metag.
-    _data_columns = _BASE_DATA_COLUMNS
-
-    _KL_ADDTL_DF_SECTIONS = MappingProxyType({
-        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
-        _CONTACT_KEY: _CONTACT_COLS,
-    })
-
-    _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
-                             'i7_index_id', 'index', 'index2',
-                             'library_construction_protocol',
-                             SAMPLE_NAME_KEY,
-                             'sample_plate', 'sample_project',
-                             'well_description', 'well_id_384')
-
-    def __init__(self, path=None, defer_validate=False):
-        super().__init__(path=path, defer_validate=True)
-        self._remapper = _BASE_METAG_REMAPPER
-        self._validate_on_load(path, defer_validate)
 
 
 class MetagenomicSampleSheetv90(KLSampleSheet):
@@ -2200,27 +2249,11 @@ def sheet_needs_demuxing(sheet):
         True if sample-sheet needs to be demultiplexed.
     """
     if CONTAINS_REPLICATES_KEY in sheet.Bioinformatics.columns:
-        return _get_contains_replicates_value(sheet)
+        return sheet.contains_replicates()
 
     # legacy sample-sheet does not handle replicates or no replicates were
     # found.
     return False
-
-
-def _get_contains_replicates_value(sheet):
-    contains_replicates = sheet.Bioinformatics[
-        CONTAINS_REPLICATES_KEY].unique().tolist()
-
-    # by convention, all projects in the sample-sheet are either going
-    # to be True or False. If some projects are True while others are
-    # False, we should raise an Error.
-    if len(contains_replicates) > 1:
-        raise ValueError(f"All projects in {_BIOINFORMATICS_KEY} section "
-                         f"must either contain replicates or not.")
-
-    # return either True or False, depending on the values found in
-    # Bioinformatics section.
-    return list(contains_replicates)[0]
 
 
 def _demux_sample_sheet(sheet):
@@ -2270,7 +2303,7 @@ def demux_sample_sheet(sheet):
     if CONTAINS_REPLICATES_KEY not in sheet.Bioinformatics:
         raise ValueError("sample-sheet does not contain replicates")
 
-    contains_repl_value = _get_contains_replicates_value(sheet)
+    contains_repl_value = sheet.contains_replicates()
 
     # contains_repl_value is of type 'np.bool_' rather than 'bool'. Hence,
     # the syntax below reflects what appears to be common practice for such
