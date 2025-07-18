@@ -13,7 +13,8 @@ from metapool.mp_strings import parse_project_name, \
     CONTAINS_REPLICATES_KEY, ORIG_NAME_KEY, EXPT_DESIGN_DESC_KEY, \
     PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
-    SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY
+    SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
+    LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
     DELETE_SETTINGS_KEY
@@ -28,12 +29,15 @@ _CONTACT_KEY = 'Contact'
 _SAMPLE_CONTEXT_KEY = 'SampleContext'
 _HEADER_KEY = 'Header'
 _READS_KEY = 'Reads'
+_READ_1_KEY = 'Read1'
+_READ_2_KEY = 'Read2'
 _SETTINGS_KEY = 'Settings'
 _DATA_KEY = 'Data'
 _ASSAY_KEY = 'Assay'
 _SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
 _SS_QIITA_ID_KEY = 'QiitaID'
 _SS_SAMPLE_NAME_KEY = 'Sample_Name'
+_SS_SAMPLE_WELL_KEY = 'Sample_Well'
 _EXPERIMENT_NAME_KEY = 'Experiment Name'
 _EMAIL_KEY = 'Email'
 _HUMAN_FILTERING_KEY = 'HumanFiltering'
@@ -97,7 +101,7 @@ _CONTACT_COLS = MappingProxyType({
     _EMAIL_KEY: str})
 
 _PREFIX_PLATE_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                         'well_id_384')
+                         PM_WELL_ID_384_KEY)
 _SUFFIX_PLATE_COLUMNS = (_SS_SAMPLE_PROJECT_KEY, 'Well_description')
 
 # Note that there doesn't appear to be a difference between 95, 99, and 100
@@ -112,7 +116,7 @@ _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                               'library_construction_protocol',
                               SAMPLE_NAME_KEY, 'sample_plate',
                               'sample_project', 'well_description',
-                              'well_id_384')
+                              PM_WELL_ID_384_KEY)
 
 _BASE_GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
                                 'instrument_model', 'lane', 'platform',
@@ -123,7 +127,7 @@ _BASE_PLATE_REMAPPER = MappingProxyType({
     'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
     'Sample': _SS_SAMPLE_NAME_KEY,
     PM_PROJECT_PLATE_KEY: 'Sample_Plate',
-    'Well': 'well_id_384',
+    'Well': PM_WELL_ID_384_KEY,
     PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
     'Well_description': 'Well_description'
 })
@@ -164,8 +168,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     })
 
     _READS = MappingProxyType({
-        'Read1': 151,
-        'Read2': 151
+        _READ_1_KEY: 151,
+        _READ_2_KEY: 151
     })
 
     _SETTINGS = MappingProxyType({
@@ -177,8 +181,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _ALL_METADATA = MappingProxyType({
         **_HEADER, **_SETTINGS, **_READS, **_BIOINFORMATICS_AND_CONTACT})
 
+    _ILLUMINA_METADATA_KEYS = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY)
     # If modifying, see issue #233
-    sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
+    sections = (*_ILLUMINA_METADATA_KEYS, _DATA_KEY,
                 _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = False
@@ -189,7 +194,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     # sheet, but it is not required in the sense that it has to be provided
     # by a user when they create a sample sheet through this module.
     _data_columns = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                     'Sample_Well', 'I7_Index_ID', 'index', 'I5_Index_ID',
+                     _SS_SAMPLE_WELL_KEY, 'I7_Index_ID', 'index', 'I5_Index_ID',
                      'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description')
 
     _column_alts = MappingProxyType({'well_description': 'Well_description',
@@ -200,9 +205,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                              'i7_index_id', 'index', 'index2',
                              'library_construction_protocol',
-                             SAMPLE_NAME_KEY,
-                             'sample_plate', 'sample_project',
-                             'well_description', 'Sample_Well', _LANE_KEY)
+                             SAMPLE_NAME_KEY, 'sample_plate', 
+                             'sample_project', 'well_description', 
+                             _SS_SAMPLE_WELL_KEY, _LANE_KEY)
 
     _GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
                                'instrument_model', 'lane', 'platform',
@@ -518,7 +523,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             merged sheets.
         """
         for number, sheet in enumerate(sheets):
-            for section in [_HEADER_KEY, _SETTINGS_KEY, _READS_KEY]:
+            for section in self._ILLUMINA_METADATA_KEYS:
                 this, that = getattr(self, section), getattr(sheet, section)
 
                 # For the Header section we'll ignore the Date field since that
@@ -629,14 +634,53 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         return table
 
     def _add_metadata_to_sheet(self, metadata, sequencer):
+        """Add metadata to the sample sheet
+
+        Parameters
+        ----------
+    metadata: dict
+        Metadata describing the sample sheet with the following fields.
+        If a value is omitted from this dictionary the values in square
+        brackets are used as defaults.
+
+        - Bioinformatics: List of dictionaries, one per project, describing
+          each project's attributes, containing at least: Sample_Project,
+          QiitaID, BarcodesAreRC, ForwardAdapter, ReverseAdapter,
+          HumanFiltering, library_construction_protocol,
+          experiment_design_description - Note that the requirements will
+          depend on the SheetType and many sheets require additional
+          field(s) such as contains_replicates.
+        - Contact: List of dictionaries describing the e-mails to send to
+          external stakeholders: Sample_Project, Email
+        - SheetType: str, sample sheet type
+        - SheetVersion: str, the version of the sheet
+        - Assay: assay type for the sequencing run. No default value will be
+          set, this is required.
+        - SampleContext: List of dictionaries, one per blank, containing
+          Sample_Name, PrimaryQiitaStudy, SecondaryQiitaStudies, and
+          Sample_Type. If empty, blanks are inferred from data by
+          sample name.
+        - IEMFileVersion: Illumina's Experiment Manager version [4]
+        - Investigator Name: [Knight]
+        - Experiment Name: [RKL_experiment]
+        - Date: Date when the sheet is prepared [Today's date]
+        - Workflow: how the sample sheet should be used [GenerateFASTQ]
+        - Application: sample sheet's application [FASTQ Only]
+        - Description: additional information []
+        - Chemistry: chemistry's description [Default]
+        - Read1: Length of forward read [151]
+        - Read2: Length of forward read [151]
+        - ReverseComplement: If the reads in the FASTQ files should be reverse
+          complemented by bcl2fastq [0]
+            """
         # set the default to avoid index errors if only one of the two is
         # provided.
-        self.Reads = [self._READS['Read1'],
-                      self._READS['Read2']]
+        self.Reads = [self._READS[_READ_1_KEY],
+                      self._READS[_READ_2_KEY]]
 
         for metadata_key in self._ALL_METADATA:
             if metadata_key in self._READS:
-                if metadata_key == 'Read1':
+                if metadata_key == _READ_1_KEY:
                     self.Reads[0] = metadata.get(metadata_key, self.Reads[0])
                 else:
                     self.Reads[1] = metadata.get(metadata_key, self.Reads[1])
@@ -1264,17 +1308,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         msgs = []
 
         def func(x):
-            if type(x) is bool:
-                # column type is already correct.
-                return x
-            elif type(x) is str:
-                # strings should be converted to bool if possible.
-                if x.strip().lower() == 'true':
-                    return True
-                elif x.strip().lower() == 'false':
-                    return False
+            result = _convert_to_bool(x)
+            if result is not None:
+                return result
 
-            # if value isn't recognizably True or False, leave it
+            # if value isn't changed to a bool, leave it
             # unchanged and leave a message for the user.
             msgs.append(f"'{x}' is not 'True' or 'False'")
             return x
@@ -1355,7 +1393,7 @@ class KLSampleSheetWithSampleContext(KLSampleSheet):
     _ALL_METADATA = MappingProxyType(
         KLSampleSheet._ALL_METADATA | {_SAMPLE_CONTEXT_KEY: None})
 
-    sections = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY,
+    sections = (*KLSampleSheet._ILLUMINA_METADATA_KEYS, _DATA_KEY,
                 _BIOINFORMATICS_KEY, _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = True
@@ -1584,10 +1622,10 @@ class AmpliconSampleSheet(KLSampleSheet):
 
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                              'i7_index_id', 'index', 'index2',
-                             'library_construction_protocol',
+                             LIB_CONSTRUCT_PROTOCOL_KEY,
                              SAMPLE_NAME_KEY,
                              'sample_plate', 'sample_project',
-                             'well_description', 'Sample_Well')
+                             'well_description', _SS_SAMPLE_WELL_KEY)
 
     def __init__(self, path=None):
         super().__init__(path)
@@ -1595,7 +1633,7 @@ class AmpliconSampleSheet(KLSampleSheet):
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
             'Sample': _SS_SAMPLE_NAME_KEY,
             PM_PROJECT_PLATE_KEY: 'Sample_Plate',
-            'Well': 'Sample_Well',
+            'Well': _SS_SAMPLE_WELL_KEY,
             'Name': 'I7_Index_ID',
             'Golay Barcode': 'index',
             PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
@@ -1685,7 +1723,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
     # overridden here. _BIOINFORMATICS_COLUMNS as well.
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                              'i7_index_id', 'index', 'index2',
-                             'library_construction_protocol',
+                             LIB_CONSTRUCT_PROTOCOL_KEY,
                              SAMPLE_NAME_KEY,
                              'sample_plate', 'sample_project',
                              'well_description', 'Sample_Well')
@@ -1696,7 +1734,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
             'Sample': _SS_SAMPLE_NAME_KEY,
             PM_PROJECT_PLATE_KEY: 'Sample_Plate',
-            'Well': 'Sample_Well',
+            'Well': _SS_SAMPLE_WELL_KEY,
             'i7 name': 'I7_Index_ID',
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
@@ -1795,7 +1833,7 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
     # in previous iterations.
 
     _data_columns = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                     'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
+                     PM_WELL_ID_384_KEY, 'I7_Index_ID', 'index', 'I5_Index_ID',
                      'index2', _SS_SAMPLE_PROJECT_KEY,
                      'total_rna_concentration_ng_ul',
                      ELUTION_VOL_KEY, 'Well_description')
@@ -2009,8 +2047,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
         - Application: sample sheet's application [FASTQ Only]
         - Description: additional information []
         - Chemistry: chemistry's description [Default]
-        - read1: Length of forward read [151]
-        - read2: Length of forward read [151]
+        - Read1: Length of forward read [151]
+        - Read2: Length of forward read [151]
         - ReverseComplement: If the reads in the FASTQ files should be reverse
           complemented by bcl2fastq [0]
     table: pd.DataFrame
@@ -2188,7 +2226,7 @@ def _demux_sample_sheet(sheet):
     plate = PlateReplication(None)
 
     df['quad'] = df.apply(lambda row: plate.get_96_well_location_and_quadrant(
-        row.destination_well_384)[0], axis=1)
+        row[DESTINATION_WELL_384_KEY])[0], axis=1)
 
     res = []
 
@@ -2252,7 +2290,7 @@ def demux_sample_sheet(sheet):
         else:
             ctx_projects = set()
 
-        projects = set(df.sample_project) | ctx_projects
+        projects = set(df[_SS_SAMPLE_PROJECT_KEY]) | ctx_projects
 
         # Generate a list of projects associated with each set of samples.
         # Construct bioinformatics and contact sections for each set so that
@@ -2388,3 +2426,24 @@ def make_sections_dict(plate_df, studies_info, expt_name, expt_type,
             plate_df, blanks_mask=plate_df[PM_BLANK_KEY])
 
     return sections_dict
+
+
+def _convert_to_bool(x):
+    if type(x) is bool:
+        # column type is already correct.
+        return x
+    elif type(x) is str:
+        # strings should be converted to bool if possible.
+        if x.strip().lower() == 'true':
+            return True
+        elif x.strip().lower() == 'false':
+            return False
+
+    return None
+
+
+def _strip_quotes(input_str):
+    # Remove any quotes (sometimes added when an object is converted to a dict)
+    char_list = list(input_str)
+    filtered_char_list = [c for c in char_list if c not in ['"', "'"]]
+    return ''.join(filtered_char_list)
