@@ -598,14 +598,14 @@ class KLSampleSheetTests(BaseTests):
 
     def test_validate(self):
         sheet = AmpliconSampleSheet()
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
         self.assertEqual(obs, [])
 
     def test_more_attributes(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Ride'] = 'the lightning'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
         exp = [ErrorMessage('These metadata keys are not supported: Ride')]
         self.assertEqual(obs, exp)
 
@@ -613,15 +613,15 @@ class KLSampleSheetTests(BaseTests):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Assay'] = 'NewAssayType'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        exp = [ErrorMessage('NewAssayType is not a supported Assay')]
+        obs = sheet._validate_metadata_dict(self.md_ampl)
+        exp = [ErrorMessage("'NewAssayType' is not a supported Assay")]
         self.assertEqual(obs, exp)
 
     def test_validate_missing_bioinformatics_data(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics']
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
         exp = [ErrorMessage('Bioinformatics is a required attribute')]
         self.assertEqual(obs, exp)
 
@@ -634,7 +634,7 @@ class KLSampleSheetTests(BaseTests):
                             'ReverseAdapter, Sample_Project, '
                             'experiment_design_description, '
                             'library_construction_protocol')]
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
         self.assertEqual(str(obs[0]), str(exp[0]))
 
     def test_set_override_cycles(self):
@@ -958,7 +958,7 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata({})
+        messages = sheet._validate_metadata_dict({})
 
         exp = [
             ErrorMessage('Assay is a required attribute'),
@@ -971,7 +971,7 @@ class SampleSheetWorkflow(BaseTests):
     def test_validate_sample_sheet_metadata_not_supported(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Rush'] = 'XYZ'
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        messages = sheet._validate_metadata_dict(self.md_ampl)
 
         exp = [
                 ErrorMessage('These metadata keys are not supported: Rush'),
@@ -982,16 +982,16 @@ class SampleSheetWorkflow(BaseTests):
     def test_validate_sample_sheet_metadata_good(self):
         # self.md_ampl is patterned after legacy amplicon sample-sheet.
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        messages = sheet._validate_metadata_dict(self.md_ampl)
         self.assertEqual(messages, [])
 
-        # test _validate_sample_sheet_metadata() against a
+        # test _validate_metadata_dict() against a
         # MetagenomicSampleSheetv100 object which defines an extra column
         # (contains_replicates) in the Bioinformatics section. Since
         # self.metadata does not contain this extra column, ErrorMessage()s
         # should be returned saying as much.
         sheet = MetagenomicSampleSheetv100()
-        messages = sheet._validate_sample_sheet_metadata(self.md_metag)
+        messages = sheet._validate_metadata_dict(self.md_metag)
 
         exp_msgs = ['In the Bioinformatics section Project #1 does not have '
                     'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
@@ -1014,8 +1014,8 @@ class SampleSheetWorkflow(BaseTests):
 
         for invalid_type in invalid_types:
             self.md_ampl['Assay'] = invalid_type
-            messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
-            exp = f'ErrorMessage: {invalid_type} is not a supported Assay'
+            messages = sheet._validate_metadata_dict(self.md_ampl)
+            exp = f"ErrorMessage: '{invalid_type}' is not a supported Assay"
             self.assertEqual(str(messages[0]), exp)
 
     def test_make_sample_sheet(self):
@@ -1720,8 +1720,9 @@ class ValidateSampleSheetTests(BaseTests):
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
-        self.assertEqual(msgs, [ErrorMessage('The Sample_Project column in '
-                                             'the Data section is missing')])
+        msg_strs = [str(msg) for msg in msgs]
+        self.assertEqual(msg_strs, ['ErrorMessage: The Sample_Project column'
+                                    ' in the Data section is missing'])
 
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
@@ -1737,8 +1738,10 @@ class ValidateSampleSheetTests(BaseTests):
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
-        self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
-                                             'cannot be empty')])
+        msg_strs = [str(msg) for msg in msgs]
+        self.assertEqual(
+            msg_strs,
+            ['ErrorMessage: The Bioinformatics section cannot be empty'])
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
@@ -1862,7 +1865,8 @@ class ValidateSampleSheetTests(BaseTests):
             self.assertTrue(project in scrubbed)
 
     def test_validate_and_scrub_sample_sheet_bad_project_names(self):
-        sheet = MetagenomicSampleSheetv100(self.bad_project_name_ss)
+        sheet = MetagenomicSampleSheetv100(
+            self.bad_project_name_ss, defer_validate=True)
 
         message = ('ErrorMessage: The following project names in the '
                    'Sample_Project column are missing a Qiita study '
@@ -1885,7 +1889,8 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual(message)
 
     def test_validate_and_scrub_sample_sheet_missing_project_names(self):
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=True)
         # pick a random entry in the sample context section and set its
         # qiita study id to something that doesn't exist in the other metadata
         a_blank_mask = sheet.SampleContext[SAMPLE_NAME_KEY] == "BLANK1_1A"
@@ -2097,8 +2102,10 @@ class DemuxReplicatesTests(BaseTests):
         # projects in a sample-sheet will either contain replicates, or all of
         # them will not. Hence, a sample-sheet with both True and False in
         # the contains_replicates column in the [Bioinformatics] section should
-        # raise an error.
-        sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
+        # raise an error. Note that this error would be caught at the
+        # point the sheet was created if the defer_validate flag was False!
+        sheet = MetagenomicSampleSheetv100(
+            self.bad_sht_w_replicates_path, defer_validate=True)
         err = ("All projects in Bioinformatics section must either contain"
                " replicates or not.")
         with self.assertRaisesRegex(ValueError, err):

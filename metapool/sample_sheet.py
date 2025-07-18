@@ -7,6 +7,7 @@ from json import loads as json_loads
 import sample_sheet
 import pandas as pd
 from types import MappingProxyType
+import traceback
 from metapool.mp_strings import parse_project_name, \
     get_qiita_id_from_project_name, \
     SAMPLES_DETAILS_KEY, SAMPLE_NAME_KEY, SAMPLE_PROJECT_KEY, \
@@ -800,6 +801,81 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         else:
             return False
 
+    def _validate_metadata(self):
+        # make a metadata dictionary out of the sample sheet contents and
+        # validate it; yes, this is round-about, but I judge it better than
+        # having the section validation implemented in two places
+        metadata_df = {}
+        for curr_section_key in self.sections:
+            if not curr_section_key == _DATA_KEY:
+                section = getattr(self, curr_section_key)
+                if section is not None:
+                    if curr_section_key in self._ILLUMINA_METADATA_KEYS:
+                        # Ugh, I hate the reads, they are represented in three
+                        # different ways depending on the part of the code we
+                        # are in.  The self._READS is a dict with the keys
+                        # _READ_1_KEY and _READ_2_KEY and the values of their
+                        # lengths, while the self.Reads is a list two items
+                        # long, the first one being the length of read 1 and
+                        # the second one being the length of read 2.  Finally,
+                        # the reads in the metadata_df are represented two
+                        # keys, _READ_1_KEY and _READ_2_KEY, alongside the
+                        # other top-level keys (not nested under another key
+                        # as a separate dictionary). Anyway, here we need to
+                        # work backwards from the self.Reads list to two
+                        # free-floating keys in the metadata_df, *using* the
+                        # self._READS dict to get the correct keys.  Remember
+                        # that dictionaries are ordered in Python 3.7+ so it
+                        # is legit to depend on the first key being Read1 since
+                        # it was defined that way.
+                        if curr_section_key == _READS_KEY:
+                            for i, (k, v) in enumerate(self._READS.items()):
+                                metadata_df[k] = section[i]
+                        else:
+                            # for the other sections, we just copy the values
+                            # from the section to the top-level metadata_df
+                            for k, v in section.items():
+                                metadata_df[k] = v
+                    else:
+                        if isinstance(section, pd.DataFrame):
+                            to_add = section.to_dict(orient='records')
+                        else:
+                            to_add = section.copy()
+                        metadata_df[curr_section_key] = to_add
+
+        return self._validate_metadata_dict(metadata_df)
+
+    def _validate_loaded_sheet(self, report_errors=True):
+        msgs = []
+        msgs += self._validate_header_info()
+        try:
+            # It is possible that earlier validation steps will detect flaws
+            # that will prevent later validation from running.
+            msgs += self._validate_metadata()
+            msgs += self._validate_data_columns()
+            msgs += self._validate_projects()
+        except Exception as e:
+            err_msg = "Validation failed due to errors"
+            if report_errors:
+                err_msg = f"{err_msg}: {traceback.format_exc()}"
+            msgs.append(ErrorMessage(err_msg))
+            return msgs
+        return msgs
+
+    def _validate_extra_sections_not_none(self):
+        msgs = []
+        # All children of sample_sheet.SampleSheet will have the following four
+        # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
+        # children of KLSampleSheet will have their expected sections defined
+        # in `sections`. Test only the difference between these two sets.
+        default_sections = {_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY}
+        extra_sections = set(type(self).sections).difference(default_sections)
+        for section in extra_sections:
+            if getattr(self, section) is None:
+                msgs.append(ErrorMessage(f'The {section} section cannot be '
+                                         'empty'))
+        return msgs
+
     def quiet_validate_and_scrub_sample_sheet(self):
         """Quietly validate the sample sheet and scrub invalid characters
 
@@ -813,74 +889,27 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         """
         msgs = []
 
-        # # we print an error return None and exit when this happens otherwise
-        # # we won't be able to run other checks
-        # for column in self._get_expected_data_columns():
-        #     if column not in self.all_sample_keys:
-        #         msgs.append(ErrorMessage(f'The {column} column in the '
-        #                                  f'{_DATA_KEY} section is missing'))
-        #
-        # # All children of sample_sheet.SampleSheet will have the following four
-        # # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
-        # # children of KLSampleSheet will have their columns defined in
-        # # child.sections. We will test only for the difference between these
-        # # two sets.
-        # for section in set(type(self).sections).difference({_HEADER_KEY,
-        #                                                     _READS_KEY,
-        #                                                     _SETTINGS_KEY,
-        #                                                     _DATA_KEY}):
-        #     if getattr(self, section) is None:
-        #         msgs.append(ErrorMessage(f'The {section} section cannot be '
-        #                                  'empty'))
-        #
-        # # For cases where a child of KLSampleSheet() is instantiated w/out a
-        # # filepath, the four base sections will be defined but will be empty
-        # # unless they are manually populated.
-        # for attribute in type(self)._HEADER:
-        #     if attribute not in self.Header:
-        #         msgs.append(ErrorMessage(f"'{attribute}' is not declared in "
-        #                                  f"{_HEADER_KEY} section"))
-        #
-        # # Manually populated entries can be arbitrary. Ensure a minimal degree
-        # # of type consistency.
-        # expected_assay_type = type(self)._HEADER[_ASSAY_KEY]
-        # if _ASSAY_KEY in self.Header:
-        #     if self.Header[_ASSAY_KEY] != expected_assay_type:
-        #         msgs.append(ErrorMessage(f"'{_ASSAY_KEY}' value is not "
-        #                                  f"'{expected_assay_type}'"))
-        #
-        # # For sheets that were created by loading in a sample-sheet file,
-        # # confirm that the SheetType in the file is what is expected from
-        # # the child class. This helps w/trial-and-error loads that use
-        # # validation to load a random sample-sheet into the correct class.
-        # expected_sheet_type = type(self)._HEADER[_SHEET_TYPE_KEY]
-        # if self.Header[_SHEET_TYPE_KEY] != expected_sheet_type:
-        #     msgs.append(ErrorMessage(f"'{_SHEET_TYPE_KEY}' value is not "
-        #                              f"'{expected_sheet_type}'"))
-        #
-        # expected_sheet_version = int(type(self)._HEADER[_SHEET_VERSION_KEY])
-        #
-        # # sanitize sample-sheet SheetVersion before attempting to convert to
-        # # int() type. Remove any additional enclosing quotes.
-        # sheet_version = list(self.Header[_SHEET_VERSION_KEY])
-        # sheet_version = [c for c in sheet_version if c not in ['"', "'"]]
-        # try:
-        #     sheet_version = int(''.join(sheet_version))
-        # except ValueError:
-        #     msgs.append(ErrorMessage(f"'{self.Header[_SHEET_VERSION_KEY]}' "
-        #                              f"does not look like a valid value"))
-        #
-        # if sheet_version != expected_sheet_version:
-        #     msgs.append(ErrorMessage(f"'{_SHEET_VERSION_KEY}' value is not "
-        #                              f"'{expected_sheet_version}'"))
+        msgs += self._validate_data_columns()
+        msgs += self._validate_extra_sections_not_none()
+        msgs += self._validate_header_info()
 
-        msgs += self._check_sheet()
         # if any errors are found up to this point then we can't continue with
         # the validation process.
         if msgs:
             return msgs
 
-        # we track the updated projects as a dictionary so we can propagate
+        # scrub the sample and project names for bcl2fastq compatibility
+        msgs += self._scrub_sample_and_project_names()
+
+        # revalidate the projects after scrubbing the names
+        msgs += self._validate_projects()
+
+        return msgs
+
+    def _scrub_sample_and_project_names(self):
+        msgs = []
+
+        # NB: we track the updated projects as a dictionary so we can propagate
         # these changes to the Bioinformatics and Contact sections.
         # I think it's not necessary to update the _SAMPLE_CONTEXT_KEY section
         # because it uses qiita study ids, not project names, and qiita
@@ -916,7 +945,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             self.Contact.replace(project_remapper, inplace=True)
             self.Bioinformatics.replace(project_remapper, inplace=True)
 
-        msgs += self._check_projects()
         # pairs = collections.Counter([(s.Lane, s.Sample_Project)
         #                              for s in self.samples])
         # # warn users when there's missing lane values
@@ -1000,26 +1028,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         if defer_validate or not path:
             return
 
-        # TODO: need to also integrate the checks that are being done in
-        #  _validate_sample_sheet_metadata, which check that the columns in the
-        #  NON-data sections include all the expected ones ... but that takes
-        #  in a dictionary not a sample sheet, so some refactoring will be
-        #  required.
-
-        msgs = self._check_sheet()
+        # otherwise, validate the sample sheet
+        msgs = self._validate_loaded_sheet()
         if msgs:
             err_str = '\n'.join([x.message for x in msgs])
             raise ValueError(
                 f'Sample sheet instantiation failed: {err_str}')
 
-    def _check_sheet(self):
-        """Validate sample sheet before scrubbing and return list of messages
-
-        Returns
-        -------
-        list
-            List of error or warning messages.
-        """
+    def _validate_data_columns(self):
         msgs = []
 
         # we print an error return None and exit when this happens otherwise
@@ -1028,64 +1044,54 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             if column not in self.all_sample_keys:
                 msgs.append(ErrorMessage(f'The {column} column in the '
                                          f'{_DATA_KEY} section is missing'))
+        return msgs
 
+    def _validate_header_info(self):
         # All children of sample_sheet.SampleSheet will have the following four
-        # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
-        # children of KLSampleSheet will have their columns defined in
-        # child.sections. We will test only for the difference between these
-        # two sets.
-        for section in set(type(self).sections).difference({_HEADER_KEY,
-                                                            _READS_KEY,
-                                                            _SETTINGS_KEY,
-                                                            _DATA_KEY}):
-            if getattr(self, section) is None:
-                msgs.append(ErrorMessage(f'The {section} section cannot be '
-                                         'empty'))
-
-        # For cases where a child of KLSampleSheet() is instantiated w/out a
+        # sections defined: ['Header', 'Reads', 'Settings', 'Data'].
+        # Note that where a child of KLSampleSheet() is instantiated w/out a
         # filepath, the four base sections will be defined but will be empty
-        # unless they are manually populated.
+        # (unless they are manually populated).
+        # Manually populated entries can be arbitrary, so these checks ensure
+        # a minimal degree of type consistency. (But it would be better not to
+        # let consumers make empty sample sheets and then manually populate
+        # them, for pity's sake!)
+        msgs = []
+
+        # check every expected header attribute is present
         for attribute in type(self)._HEADER:
             if attribute not in self.Header:
                 msgs.append(ErrorMessage(f"'{attribute}' is not declared in "
                                          f"{_HEADER_KEY} section"))
 
-        # Manually populated entries can be arbitrary. Ensure a minimal degree
-        # of type consistency.
+        # check the assay type is what we expect for this sample sheet class
         expected_assay_type = type(self)._HEADER[_ASSAY_KEY]
         if _ASSAY_KEY in self.Header:
             if self.Header[_ASSAY_KEY] != expected_assay_type:
                 msgs.append(ErrorMessage(f"'{_ASSAY_KEY}' value is not "
                                          f"'{expected_assay_type}'"))
 
-        # For sheets that were created by loading in a sample-sheet file,
-        # confirm that the SheetType in the file is what is expected from
-        # the child class. This helps w/trial-and-error loads that use
-        # validation to load a random sample-sheet into the correct class.
+        # check the sheet type is what is expected for this sample sheet class.
+        # NOTE: his helps w/trial-and-error loads that load an unknown
+        # sample-sheet into a random class and depend on validation to
+        # determine when they have found the right class (again, why do this??)
         expected_sheet_type = type(self)._HEADER[_SHEET_TYPE_KEY]
         if self.Header[_SHEET_TYPE_KEY] != expected_sheet_type:
             msgs.append(ErrorMessage(f"'{_SHEET_TYPE_KEY}' value is not "
                                      f"'{expected_sheet_type}'"))
 
-        expected_sheet_version = int(type(self)._HEADER[_SHEET_VERSION_KEY])
-
-        # sanitize sample-sheet SheetVersion before attempting to convert to
-        # int() type. Remove any additional enclosing quotes.
-        sheet_version = list(self.Header[_SHEET_VERSION_KEY])
-        sheet_version = [c for c in sheet_version if c not in ['"', "'"]]
-        try:
-            sheet_version = int(''.join(sheet_version))
-        except ValueError:
-            msgs.append(ErrorMessage(f"'{self.Header[_SHEET_VERSION_KEY]}' "
-                                     f"does not look like a valid value"))
-
-        if sheet_version != expected_sheet_version:
+        # check the sheet version is what we expect for this sample sheet class
+        # (after sanitizing the value to remove any enclosing quotes)
+        expected_sheet_version = type(self)._HEADER[_SHEET_VERSION_KEY]
+        found_sheet_version = self.Header[_SHEET_VERSION_KEY]
+        stripped_found_sheet_version = _strip_quotes(found_sheet_version)
+        if stripped_found_sheet_version != expected_sheet_version:
             msgs.append(ErrorMessage(f"'{_SHEET_VERSION_KEY}' value is not "
                                      f"'{expected_sheet_version}'"))
 
         return msgs
 
-    def _check_projects(self):
+    def _validate_projects(self):
         msgs = []
         pairs = collections.Counter([(s.Lane, s.Sample_Project)
                                      for s in self.samples])
@@ -1338,7 +1344,44 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return msgs
 
-    def _validate_sample_sheet_metadata(self, metadata):
+    def _validate_metadata_dict(self, metadata):
+        """Validate the metadata dictionary for the sample sheet
+
+        Parameters
+        ----------
+        metadata: dict
+            Metadata describing the sample sheet with the following fields.
+
+            - Bioinformatics: List of dictionaries, one per project, describing
+              each project's attributes, containing at least: Sample_Project,
+              QiitaID, BarcodesAreRC, ForwardAdapter, ReverseAdapter,
+              HumanFiltering, library_construction_protocol,
+              experiment_design_description - Note that the requirements will
+              depend on the SheetType and many sheets require additional
+              field(s) such as contains_replicates.
+            - Contact: List of dictionaries describing the e-mails to send to
+              external stakeholders: Sample_Project, Email
+            - SheetType: str, sample sheet type
+            - SheetVersion: str, the version of the sheet
+            - Assay: assay type for the sequencing run.
+            - SampleContext: List of dictionaries, one per blank, containing
+              Sample_Name, PrimaryQiitaStudy, SecondaryQiitaStudies, and
+              Sample_Type. If empty, blanks are inferred from data by
+              sample name.
+            - IEMFileVersion: Illumina's Experiment Manager version
+            - Investigator Name: Usually the PI's name
+            - Experiment Name: Usually RKL_<something>
+            - Date: Date when the sheet is prepared
+            - Workflow: how the sample sheet should be used
+            - Application: sample sheet's application
+            - Description: additional information
+            - Chemistry: chemistry's description
+            - Read1: Length of forward read
+            - Read2: Length of forward read
+            - ReverseComplement: If the reads in the FASTQ files should be
+              reverse-complemented by bcl2fastq
+          """
+
         msgs = []
 
         # Note: this method is used by all sample sheets, and not all
@@ -1347,10 +1390,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             if req not in metadata:
                 msgs.append(ErrorMessage('%s is a required attribute' % req))
 
-        # if both sections are found, then check that all the columns in all
-        # extra dataframe sections are present; note that checks for the
-        # contents (as opposed to mere presence) are done in the sample sheet
-        # validation routine
+        # if bioinfo and contact sections are found, then check that all the
+        # columns in all dataframe sections are present; note that checks for
+        # contents (as opposed to mere presence) are done elsewhere
         if _BIOINFORMATICS_KEY in metadata and _CONTACT_KEY in metadata:
             for section, cols_info in self._KL_ADDTL_DF_SECTIONS.items():
                 columns = frozenset(cols_info.keys())
@@ -1363,25 +1405,17 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                                    )
                         msgs.append(ErrorMessage(message))
                     if section == _BIOINFORMATICS_KEY:
-                        if (project['library_construction_protocol'] is None or
-                                project[
-                                    'library_construction_protocol'] == ''):
-                            message = (('In the %s section Project #%d does '
-                                        'not have library_construction_'
-                                        'protocol specified') %
-                                       (section, i + 1))
-                            msgs.append(ErrorMessage(message))
-                        if (project[EXPT_DESIGN_DESC_KEY] is None or
-                                project[
-                                    EXPT_DESIGN_DESC_KEY] == ''):
-                            message = (('In the %s section Project #%d does '
-                                        'not have experiment_design_'
-                                        'description specified') %
-                                       (section, i + 1))
-                            msgs.append(ErrorMessage(message))
+                        for curr_key in [LIB_CONSTRUCT_PROTOCOL_KEY,
+                                         EXPT_DESIGN_DESC_KEY]:
+                            curr_val = project.get(curr_key, "")
+                            if curr_val == '':
+                                message = (('In the %s section Project #%d '
+                                            'does not have %s specified') %
+                                           (section, i + 1, curr_key))
+                                msgs.append(ErrorMessage(message))
         if metadata.get(_ASSAY_KEY) is not None and metadata[_ASSAY_KEY] \
                 not in self._ASSAYS:
-            msgs.append(ErrorMessage(f"{metadata[_ASSAY_KEY]} is not a "
+            msgs.append(ErrorMessage(f"'{metadata[_ASSAY_KEY]}' is not a "
                                      f"supported {_ASSAY_KEY}"))
 
         keys = set(metadata.keys())
@@ -1956,8 +1990,8 @@ def _parse_header(fp):
     # conversion to dict causes SheetVersion to be wrapped in single ticks.
     # e.g.: "'100'". These should be removed if present.
     if _SHEET_VERSION_KEY in results:
-        results[_SHEET_VERSION_KEY] = \
-            results[_SHEET_VERSION_KEY].replace("'", "")
+        results[_SHEET_VERSION_KEY] = _strip_quotes(
+            results[_SHEET_VERSION_KEY])
 
     return results
 
@@ -2133,7 +2167,7 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
     sheet_class = _id_sample_sheet_class_from_dict(metadata)
     sheet = sheet_class()
 
-    messages = sheet._validate_sample_sheet_metadata(metadata)
+    messages = sheet._validate_metadata_dict(metadata)
 
     if len(messages) == 0:
         # if the user did not *explicitly* set the strict value
