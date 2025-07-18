@@ -273,7 +273,7 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
     return result
 
 
-def preparations_for_run(run_path, sheet, generated_prep_columns,
+def preparations_for_run(run_path, sheet_data_df, generated_prep_columns,
                          carried_prep_columns):
     """Given a run's path and sample sheet generates preparation files
 
@@ -281,8 +281,8 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
     ----------
     run_path: str
         Path to the run folder
-    sheet: dataFrame
-        dataFrame() of SampleSheet contents
+    sheet_data_df: dataFrame
+        dataFrame() of SampleSheet 'Data' section contents
     generated_prep_columns: list
         List of required columns for output that are not expected in
         KLSampleSheet. It is expected that prep.py can derive these values
@@ -323,28 +323,33 @@ def preparations_for_run(run_path, sheet, generated_prep_columns,
 
     # if 'well_description' is defined instead as 'description', rename it.
     # well_description is a recommended column but is not required.
-    if 'well_description' not in set(sheet.columns):
+    if 'well_description' not in set(sheet_data_df.columns):
         warnings.warn("'well_description' is not present in sample-sheet. It "
                       "is not a required column but it is a recommended one.")
-        if 'description' in sheet:
+        if 'description' in sheet_data_df:
             warnings.warn("Using 'description' instead of 'well_description'"
                           " because that column isn't present", UserWarning)
             # copy and drop the original column
-            sheet['well_description'] = sheet['description'].copy()
-            sheet.drop('description', axis=1, inplace=True)
+            sheet_data_df['well_description'] = \
+                sheet_data_df['description'].copy()
+            sheet_data_df.drop('description', axis=1, inplace=True)
 
-    not_present = set(carried_prep_columns) - set(sheet.columns)
+    # NB: the dataframe made from the sample sheet data *lowercases* all
+    # column names, so we need to lowercase the carried_prep_columns as well
+    # so we can appropriately check for their presence in the dataframe
+    lc_carried_prep_columns = [x.lower() for x in carried_prep_columns]
+    not_present = set(lc_carried_prep_columns) - set(sheet_data_df.columns)
 
     if not_present:
         raise ValueError("Required columns are missing: %s" %
                          ', '.join(not_present))
 
-    all_columns = sorted(carried_prep_columns + generated_prep_columns)
+    all_columns = sorted(lc_carried_prep_columns + generated_prep_columns)
 
     failed_samples_by_project = {}
     failed_files_by_project = {}
 
-    for project, project_sheet in sheet.groupby('sample_project'):
+    for project, project_sheet in sheet_data_df.groupby('sample_project'):
         project_name, qiita_id = get_short_name_and_id(project)
 
         # since sample-names could be duplicated across projects, associate
