@@ -2,7 +2,7 @@
 IEMFileVersion,4,,,,,,,,,
 Investigator Name,Caballero,,,,,,,,,
 SheetType,standard_metag,,,,,,,,,
-SheetVersion,100,,,,,,,,,
+SheetVersion,90,,,,,,,,,
 Experiment Name,RKL0042,,,,,,,,,
 Date,2/26/20,,,,,,,,,
 Workflow,GenerateFASTQ,,,,,,,,,
@@ -19,7 +19,7 @@ Chemistry,Default,,,,,,,,,
 ReverseComplement,0,,,,,,,,,
 ,,,,,,,,,,
 [Data],,,,,,,,,,
-Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
+Lane,Sample_ID,Sample_Name,Sample_Plate,Sample_Well,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
 3,sample_1,sample.1,FooBar_666_p1,A3,iTru7_107_09,GCCTTGTT,iTru5_01_A,AACACCAC,Baz_12345,importantsample1
 3,sample_2,sample.2,FooBar_666_p1,A4,iTru7_107_10,AACTTGCC,iTru5_01_A,CGTATCTC,Baz_12345,importantsample2
 3,sample_3,sample.3,FooBar_666_p1,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Baz_12345,importantsample3
@@ -30,9 +30,9 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 3,sample_44,sample.44,Baz_12345_p3,B99,iTru7_107_14,GTCCTAAG,iTru5_01_A,CATCTGCT,Baz_12345,importantsample44
 ,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,
-Baz_12345,100,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,False,,
-FooBar_666,666,False,AACC,GGTT,False,Knight Lab Kapa HP,SomethingWitty,False,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,
+Baz_12345,100,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,,,
+FooBar_666,666,False,AACC,GGTT,False,Knight Lab Kapa HP,SomethingWitty,,,
 ,,,,,,,,,,
 [Contact],,,,,,,,,,
 Email,Sample_Project,,,,,,,,,

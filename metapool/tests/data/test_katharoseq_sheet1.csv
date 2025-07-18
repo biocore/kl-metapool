@@ -29,8 +29,8 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,SAMPLE_5,SAMPLE-5,MyProject_99999_P40,I1,iTru7_107_11,CAATGTGG,iTru5_05_A,GGTACGAA,MyProject_99999,this is a description
 ,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,
-MyProject_99999,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,description1,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,
+MyProject_99999,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,description1,false,,
 ,,,,,,,,,,
 [Contact],,,,,,,,,,
 Email,Sample_Project,,,,,,,,,
