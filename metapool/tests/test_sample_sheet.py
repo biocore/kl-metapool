@@ -1918,9 +1918,56 @@ class ValidateSampleSheetTests(BaseTests):
         # the below three.
         exp_sample_names = ["3A", "EP981129A02",
                             "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+        obs_names = obs['sample_name'].to_list()
+        for exp_name in exp_sample_names:
+            self.assertIn(exp_name, obs_names)
 
-        for sample in exp_sample_names:
-            self.assertIn(sample, obs)
+    def test_sample_sheet_to_dataframe_no_lcase(self):
+        ss = MetagenomicSampleSheetv90(self.good_ss)
+        obs = sample_sheet_to_dataframe(ss, lcase_cols=False)
+
+        # first, confirm that the function returns a DataFrame
+        self.assertTrue(isinstance(obs, pd.DataFrame))
+
+        # confirm that function returns the [Data] section of the sample-sheet
+        # as a DataFrame.
+        exp_columns = {'Lane', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                       'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                       'Sample_Project', 'Well_description',
+                       'library_construction_protocol',
+                       'experiment_design_description'}
+        self.assertEqual(set(obs.columns), exp_columns)
+
+        # since good-sample-sheet.csv contains many samples, just check for
+        # the below three.
+        exp_sample_names = ["3A", "EP981129A02",
+                            "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+        obs_names = obs['Sample_Name'].to_list()
+        for exp_name in exp_sample_names:
+            self.assertIn(exp_name, obs_names)
+
+    def test_sample_sheet_to_dataframe_no_lcase_no_protocols(self):
+        ss = MetagenomicSampleSheetv90(self.good_ss)
+        obs = sample_sheet_to_dataframe(
+            ss, lcase_cols=False, add_protocol_info=False)
+
+        # first, confirm that the function returns a DataFrame
+        self.assertTrue(isinstance(obs, pd.DataFrame))
+
+        # confirm that function returns the [Data] section of the sample-sheet
+        # as a DataFrame.
+        exp_columns = {'Lane', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                       'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                       'Sample_Project', 'Well_description'}
+        self.assertEqual(set(obs.columns), exp_columns)
+
+        # since good-sample-sheet.csv contains many samples, just check for
+        # the below three.
+        exp_sample_names = ["3A", "EP981129A02",
+                            "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+        obs_names = obs['Sample_Name'].to_list()
+        for exp_name in exp_sample_names:
+            self.assertIn(exp_name, obs_names)
 
     def test_boolean_column_handling(self):
         sheet = MetagenomicSampleSheetv100(self.good_w_bools)

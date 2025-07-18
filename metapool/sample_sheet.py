@@ -2126,19 +2126,31 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
     raise ValueError("\n".join(msgs))
 
 
-def sample_sheet_to_dataframe(sheet):
+def sample_sheet_to_dataframe(sheet, lcase_cols=True, add_protocol_info=True):
     """Converts the [Data] section of a sample sheet into a DataFrame
 
     Parameters
     ----------
     sheet: sample_sheet.KLSampleSheet
         Object from where to extract the data.
+    lcase_cols: bool, optional
+        If True, the column names in the resulting DataFrame will be
+        converted to lower case. Defaults to True.  I can't figure out why
+        this is done, as it makes downstream work harder, but it is
+        currently the default behavior, so it is preserved here.
+    add_protocol_info: bool, optional
+        If True, add the LIB_CONSTRUCT_PROTOCOL_KEY and EXPT_DESIGN_DESC_KEY
+        keys from the Bioinformatics section into the returned DataFrame.
 
     Returns
     -------
     pd.DataFrame
         DataFrame object with the sample information.
     """
+    
+    def get_col_name(column):
+        """Returns the column name in lower case if lcase_cols is True."""
+        return column.lower() if lcase_cols else column
 
     # Get the columns names for the first sample so we have them in a list and
     # we can retrieve data in the same order on every iteration
@@ -2148,23 +2160,30 @@ def sample_sheet_to_dataframe(sheet):
     for sample in sheet.samples:
         data.append([sample[column] for column in columns])
 
-    out = pd.DataFrame(data=data, columns=[c.lower() for c in columns])
-    out = out.merge(sheet.Bioinformatics[[_SS_SAMPLE_PROJECT_KEY,
-                                          'library_construction_protocol',
-                                          EXPT_DESIGN_DESC_KEY]],
-                    left_on='sample_project', right_on=_SS_SAMPLE_PROJECT_KEY)
-    out.drop(columns=_SS_SAMPLE_PROJECT_KEY, inplace=True)
+    out = pd.DataFrame(data=data, columns=[get_col_name(c) for c in columns])
+    if add_protocol_info:
+        out = out.merge(sheet.Bioinformatics[[_SS_SAMPLE_PROJECT_KEY,
+                                              LIB_CONSTRUCT_PROTOCOL_KEY,
+                                              EXPT_DESIGN_DESC_KEY]],
+                        left_on=get_col_name(_SS_SAMPLE_PROJECT_KEY),
+                        right_on=_SS_SAMPLE_PROJECT_KEY)
+    if get_col_name(_SS_SAMPLE_PROJECT_KEY) != _SS_SAMPLE_PROJECT_KEY:
+        out.drop(columns=_SS_SAMPLE_PROJECT_KEY, inplace=True)
 
-    # it is 'sample_well' and not 'Sample_Well' because of c.lower() above.
-    if 'sample_well' in out.columns:
-        out.sort_values(by='sample_well', inplace=True)
-    elif 'well_id_384' in out.columns:
-        out.sort_values(by='well_id_384', inplace=True)
-    else:
-        raise ValueError("'Sample_Well' and 'well_id_384' columns are not "
-                         "present")
+    found_sort_key = None
+    potential_well_keys = [_SS_SAMPLE_WELL_KEY, PM_WELL_ID_384_KEY]
+    for curr_well_col_name in potential_well_keys:
+        curr_col_name = get_col_name(curr_well_col_name)
+        if curr_col_name in out.columns:
+            found_sort_key = curr_col_name
+            break
+            
+    if found_sort_key is None:
+        raise ValueError(f"'{' and '.join(potential_well_keys)}' "
+                         "columns are not present")
+    out.sort_values(by=found_sort_key, inplace=True)
 
-    return out.set_index('sample_id')
+    return out.set_index(get_col_name(SS_SAMPLE_ID_KEY))
 
 
 def sheet_needs_demuxing(sheet):
@@ -2210,14 +2229,8 @@ def _demux_sample_sheet(sheet):
     :param sheet: A valid KLSampleSheet confirmed to have replicates
     :return: a list of DataFrames.
     """
-    df = sample_sheet_to_dataframe(sheet)
-
-    # modify df to remove 'library_construction_protocol' and
-    # 'experiment_design_description' columns that we don't want for the
-    # [Data] section of this sample-sheet.
-
-    df = df.drop(columns=['library_construction_protocol',
-                          EXPT_DESIGN_DESC_KEY])
+    df = sample_sheet_to_dataframe(
+        sheet, lcase_cols=False, add_protocol_info=False)
 
     # use PlateReplication object to convert each sample's 384 well location
     # into a 96-well location + quadrant. Since replication is performed at
@@ -2299,16 +2312,12 @@ def demux_sample_sheet(sheet):
         # NB: Don't handle SampleContext section here bc it is sample-, not
         # project-specific, so needs to happen after we set the samples below.
         new_sheet.Bioinformatics = sheet.Bioinformatics.loc[
-            sheet.Bioinformatics[_SS_SAMPLE_PROJECT_KEY].isin(projects)].drop(
-            [CONTAINS_REPLICATES_KEY], axis=1).reset_index(drop=True)
+            sheet.Bioinformatics[_SS_SAMPLE_PROJECT_KEY].isin(
+                projects)].reset_index(drop=True)
+        new_sheet.Bioinformatics[CONTAINS_REPLICATES_KEY] = False
         new_sheet.Contact = sheet.Contact.loc[
             sheet.Contact[_SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
             drop=True)
-
-        # Add the SampleContext section to the new sheet. This is per-sample.
-        if _SAMPLE_CONTEXT_KEY in sheet.sections:
-            new_context_df = _get_demuxed_sample_context(sheet, df)
-            new_sheet.SampleContext = new_context_df
 
         # for our purposes here, we want to reindex df so that the index
         # becomes Sample_ID and a new numeric index is created before
@@ -2318,17 +2327,16 @@ def demux_sample_sheet(sheet):
         df[SS_SAMPLE_ID_KEY] = df.index
 
         # remove the existing sample_name column that includes appended
-        # well-ids. Replace further down w/orig_name column.
-        df = df.drop(SAMPLE_NAME_KEY, axis=1)
+        # well-ids. Replace further down w/orig_name column. Also drop the
+        # destination_well_384 column, which is not needed/relevant once the
+        # sample-sheet has been demuxed.
+        df = df.drop([_SS_SAMPLE_NAME_KEY, DESTINATION_WELL_384_KEY], axis=1)
 
-        df.rename(columns={ORIG_NAME_KEY: _SS_SAMPLE_NAME_KEY,
-                           'i7_index_id': 'I7_Index_ID',
-                           'i5_index_id': 'I5_Index_ID',
-                           'sample_project': _SS_SAMPLE_PROJECT_KEY},
-                  inplace=True)
+        df.rename(columns={ORIG_NAME_KEY: _SS_SAMPLE_NAME_KEY}, inplace=True)
         for sample in df.to_dict(orient='records'):
             new_sheet.add_sample(sample_sheet.Sample(sample))
 
+        new_sheet.validate_and_scrub_sample_sheet(echo_msgs=False)
         demuxed_sheets.append(new_sheet)
 
     return demuxed_sheets
@@ -2345,12 +2353,13 @@ def _get_demuxed_sample_context(sheet, df):
     # what goes in the revised Data section.
     relevant_samples_mask = \
         sheet.SampleContext[SAMPLE_NAME_KEY].isin(
-            df[SAMPLE_NAME_KEY])
+            df[_SS_SAMPLE_NAME_KEY])
     temp_context_df = sheet.SampleContext.loc[
         relevant_samples_mask].reset_index(drop=True)
     expanded_temp_context_df = pd.merge(
-        temp_context_df, df[[SAMPLE_NAME_KEY, ORIG_NAME_KEY]],
-        how="left", on=SAMPLE_NAME_KEY)
+        temp_context_df, df[[_SS_SAMPLE_NAME_KEY, ORIG_NAME_KEY]],
+        how="left", left_on=SAMPLE_NAME_KEY, right_on=_SS_SAMPLE_NAME_KEY)
+    expanded_temp_context_df.drop(columns=_SS_SAMPLE_NAME_KEY, inplace=True)
     expanded_temp_context_df[SAMPLE_NAME_KEY] = \
         expanded_temp_context_df[ORIG_NAME_KEY]
     expanded_temp_context_df.drop(columns=ORIG_NAME_KEY, inplace=True)
