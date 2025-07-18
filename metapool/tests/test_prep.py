@@ -6,7 +6,6 @@ from random import choice, randint, shuffle
 from string import ascii_letters, digits
 from unittest import TestCase, main
 from metapool.sample_sheet import (MetagenomicSampleSheetv90,
-                                   MetagenomicSampleSheetv100,
                                    sample_sheet_to_dataframe)
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix,
@@ -51,7 +50,7 @@ class TestPrep(TestCase):
                    'library_construction_protocol', 'platform', 'run_center',
                    'run_date', 'run_prefix', 'sequencing_meth', 'center_name',
                    'center_project_name', 'instrument_model', 'runid',
-                   'sample_plate', 'well_id_384', 'i7_index_id', 'index',
+                   'sample_plate', 'sample_well', 'i7_index_id', 'index',
                    'i5_index_id', 'index2', 'lane', 'sample_project',
                    'well_description']
 
@@ -222,7 +221,7 @@ class TestPrep(TestCase):
         pd.testing.assert_frame_equal(obs_df, exp_df)
 
     def test_preparations_for_run(self):
-        sheet = MetagenomicSampleSheetv100(self.ss)
+        sheet = MetagenomicSampleSheetv90(self.ss)
 
         # obs will be a dictionary of dataframes, with the keys being
         # a triplet of strings, rather than a single string. us is short for
@@ -263,7 +262,7 @@ class TestPrep(TestCase):
     def test_preparations_for_run_missing_columns(self):
         # Check that warnings are raised whenever we overwrite the
         # "well_description" column with the "description" column
-        sheet = MetagenomicSampleSheetv100(self.ss)
+        sheet = MetagenomicSampleSheetv90(self.ss)
         ss = sample_sheet_to_dataframe(sheet)
         ss['description'] = ss['well_description'].copy()
         ss.drop('well_description', axis=1, inplace=True)

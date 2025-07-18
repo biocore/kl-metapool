@@ -149,18 +149,18 @@ class KLSampleSheetTests(BaseTests):
             KLSampleSheet()
 
         # child class should instantiate successfully.
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss)
         self.assertIsNotNone(sheet)
 
     def test_sample_sheet_roundtripping(self):
-        # testing with all the sheets we have access to
+        # testing with various good sheets we have access to
         sheets = [self.good_ss,
-                  self.scrubbable_ss, self.bad_project_name_ss,
+                  self.scrubbable_ss,
                   self.with_comments, self.with_comments_and_new_lines,
                   self.with_new_lines]
 
         for filename in sheets:
-            sheet = MetagenomicSampleSheetv100(filename)
+            sheet = load_sample_sheet(filename)
 
             # write each KLSampleSheet object out to disk and compare the text
             # against the original.
@@ -260,12 +260,12 @@ class KLSampleSheetTests(BaseTests):
             self.assertIsNone(sheet.Contact)
 
     def test_parse(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss)
 
         exp = {
             'IEMFileVersion': '4',
             'SheetType': 'standard_metag',
-            'SheetVersion': '100',
+            'SheetVersion': '90',
             'Investigator Name': 'Knight',
             'Experiment Name': 'RKL0042',
             'Date': '2/26/20',
@@ -292,7 +292,7 @@ class KLSampleSheetTests(BaseTests):
                 "Sample_ID": "3A",
                 "Sample_Name": "3A",
                 "Sample_Plate": "Gerwick_tubes",
-                "well_id_384": "I23",
+                "Sample_Well": "I23",
                 "I7_Index_ID": "iTru7_201_03",
                 "index": "GATAGGCT",
                 "I5_Index_ID": "iTru5_09_H",
@@ -306,7 +306,7 @@ class KLSampleSheetTests(BaseTests):
                 "Sample_Name": "JM-MEC__Staphylococcus_aureusstrain_BERTI-"
                 "B0387",
                 "Sample_Plate": "Feist_11661_P43",
-                "well_id_384": "B10",
+                "Sample_Well": "B10",
                 "I7_Index_ID": "iTru7_102_03",
                 "index": "CGTTGCAA",
                 "I5_Index_ID": "iTru5_121_C",
@@ -319,7 +319,7 @@ class KLSampleSheetTests(BaseTests):
                 "Sample_ID": "EP981129A02",
                 "Sample_Name": "EP981129A02",
                 "Sample_Plate": "NYU_BMS_Melanoma_13059_P4",
-                "well_id_384": "H4",
+                "Sample_Well": "H4",
                 "I7_Index_ID": "iTru7_115_08",
                 "index": "TGGTACAG",
                 "I5_Index_ID": "iTru5_124_A",
@@ -371,9 +371,9 @@ class KLSampleSheetTests(BaseTests):
 
     def test_parse_with_comments(self):
         # the two sample sheets are identical except for the comments
-        exp = MetagenomicSampleSheetv100(self.good_ss)
+        exp = MetagenomicSampleSheetv90(self.good_ss)
         with self.assertWarnsRegex(UserWarning, 'Comments at the beginning '):
-            obs = MetagenomicSampleSheetv100(self.with_comments)
+            obs = MetagenomicSampleSheetv90(self.with_comments)
 
             self.assertEqual(obs.Header, exp.Header)
             self.assertEqual(obs.Settings, exp.Settings)
@@ -555,6 +555,7 @@ class KLSampleSheetTests(BaseTests):
                          'SomethingElse': '100'}
 
         hugo = MetagenomicSampleSheetv100()
+        hugo.Reads = [151, 151]
         hugo.add_sample(sample_sheet.Sample({
             'Sample_ID': 'a',
             'index': 'GATACA',
@@ -656,7 +657,7 @@ class KLSampleSheetTests(BaseTests):
         self.assertEqual("Y151;I8N4;Y151", sheet.Settings['OverrideCycles'])
 
     def test_sample_is_a_blank_wo_context(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss)
         # NB: the sample names and sample ids in the test spreadsheet are the
         # same.  FWIW, the intention is to use the sample names here.
         self.assertFalse(sheet.sample_is_a_blank(
@@ -732,7 +733,7 @@ class KLSampleSheetTests(BaseTests):
             'BLANK3_3E', 'BLANK3_3F', 'BLANK3_3G', 'BLANK3_3H', 'BLANK4_4A',
             'BLANK4_4B', 'BLANK4_4C', 'BLANK4_4D', 'BLANK4_4E', 'BLANK4_4F',
             'BLANK4_4G', 'BLANK4_4H']
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss)
         obs_details = sheet.get_controls_details()
         self.assertEqual(len(exp_blank_names), len(obs_details))
         for curr_blank_name in exp_blank_names:
@@ -1687,12 +1688,12 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertEqual(observed, expected)
 
     def test_validate_and_scrub_sample_sheet(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss)
         # no errors
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         # no errors
         self.assertStdOutEqual('')
@@ -1723,7 +1724,7 @@ class ValidateSampleSheetTests(BaseTests):
                                              'the Data section is missing')])
 
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
@@ -1731,7 +1732,7 @@ class ValidateSampleSheetTests(BaseTests):
                                'cannot be empty')
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
@@ -1740,7 +1741,7 @@ class ValidateSampleSheetTests(BaseTests):
                                              'cannot be empty')])
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Contact = None
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
@@ -1748,7 +1749,8 @@ class ValidateSampleSheetTests(BaseTests):
                                'cannot be empty')
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
-        sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
+        sheet = MetagenomicSampleSheetv90(
+            self.scrubbable_ss, defer_validate=True)
 
         message = ('WarningMessage: '
                    'The following sample names were scrubbed for bcl2fastq '
@@ -1810,13 +1812,13 @@ class ValidateSampleSheetTests(BaseTests):
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
         message = WarningMessage(message)
 
-        sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
+        sheet = MetagenomicSampleSheetv90(self.scrubbable_ss)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [message])
 
     def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
 
         remapper = {
             'NYU_BMS_Melanoma_13059': "NYU's Tisch Art Microbiome 13059",
@@ -1870,7 +1872,7 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual(message)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
 
         # set the lane value as empty for one of the two projects
         for sample in sheet.samples:
@@ -1897,25 +1899,20 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual(message)
 
     def test_sample_sheet_to_dataframe(self):
-        ss = MetagenomicSampleSheetv100(self.good_ss)
+        ss = MetagenomicSampleSheetv90(self.good_ss)
         obs = sample_sheet_to_dataframe(ss)
 
         # first, confirm that the function returns a DataFrame
-
         self.assertTrue(isinstance(obs, pd.DataFrame))
 
         # confirm that function returns the [Data] section of the sample-sheet
         # as a DataFrame.
-
-        exp_columns = {'lane', 'sample_name', 'sample_plate', 'well_id_384',
+        exp_columns = {'lane', 'sample_name', 'sample_plate', 'sample_well',
                        'i7_index_id', 'index', 'i5_index_id', 'index2',
                        'sample_project', 'well_description',
                        'library_construction_protocol',
                        'experiment_design_description'}
-
         self.assertEqual(set(obs.columns), exp_columns)
-
-        obs = obs['sample_name'].to_list()
 
         # since good-sample-sheet.csv contains many samples, just check for
         # the below three.
@@ -2530,7 +2527,7 @@ class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
 
 class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = MetagenomicSampleSheetv100
-    sample_sheet_name = "good-sample-sheet.csv"
+    sample_sheet_name = "good_standard_metagv100.csv"
 
     def test_MetagenomicSampleSheetv100_instantiate_from_path(self):
         self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
@@ -2821,8 +2818,8 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
 
         self.test_sheet = MetagenomicSampleSheetv102()
         self.test_sheet.Header['IEMFileVersion'] = 4
-        self.test_sheet.Header['sheetType'] = 'standard_metag'
-        self.test_sheet.Header['sheetVersion'] = '102'
+        self.test_sheet.Header['SheetType'] = 'standard_metag'
+        self.test_sheet.Header['SheetVersion'] = '102'
         self.test_sheet.Header['Investigator Name'] = 'Knight'
         self.test_sheet.Header['Experiment Name'] = 'RKO_experiment'
         self.test_sheet.Header['Date'] = '2021-08-17'
