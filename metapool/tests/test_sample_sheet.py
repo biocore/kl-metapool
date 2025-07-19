@@ -6,7 +6,6 @@ from os.path import join, dirname
 
 import pandas as pd
 import sample_sheet
-from json import loads
 
 from metapool.mp_strings import (
     QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,

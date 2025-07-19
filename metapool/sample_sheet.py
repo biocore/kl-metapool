@@ -195,8 +195,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     # sheet, but it is not required in the sense that it has to be provided
     # by a user when they create a sample sheet through this module.
     _data_columns = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                     _SS_SAMPLE_WELL_KEY, 'I7_Index_ID', 'index', 'I5_Index_ID',
-                     'index2', _SS_SAMPLE_PROJECT_KEY, 'Well_description')
+                     _SS_SAMPLE_WELL_KEY, 'I7_Index_ID', 'index',
+                     'I5_Index_ID', 'index2', _SS_SAMPLE_PROJECT_KEY,
+                     'Well_description')
 
     _column_alts = MappingProxyType({'well_description': 'Well_description',
                                      'description': 'Well_description',
@@ -206,8 +207,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
                              'i7_index_id', 'index', 'index2',
                              'library_construction_protocol',
-                             SAMPLE_NAME_KEY, 'sample_plate', 
-                             'sample_project', 'well_description', 
+                             SAMPLE_NAME_KEY, 'sample_plate',
+                             'sample_project', 'well_description',
                              _SS_SAMPLE_WELL_KEY, _LANE_KEY)
 
     _GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
@@ -854,7 +855,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs += self._validate_metadata()
             msgs += self._validate_data_columns()
             msgs += self._validate_projects()
-        except Exception as e:
+        except Exception:
             err_msg = "Validation failed due to errors"
             if report_errors:
                 err_msg = f"{err_msg}: {traceback.format_exc()}"
@@ -904,6 +905,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # revalidate the projects after scrubbing the names
         msgs += self._validate_projects()
 
+        # silently convert boolean values to either True or False and generate
+        # messages for all unrecognizable values.
+        msgs += self._normalize_df_sections_booleans()
+
         return msgs
 
     def _scrub_sample_and_project_names(self):
@@ -944,80 +949,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             project_remapper = {'Sample_Project': updated_projects}
             self.Contact.replace(project_remapper, inplace=True)
             self.Bioinformatics.replace(project_remapper, inplace=True)
-
-        # pairs = collections.Counter([(s.Lane, s.Sample_Project)
-        #                              for s in self.samples])
-        # # warn users when there's missing lane values
-        # empty_projects = [project for lane, project in pairs
-        #                   if str(lane).strip() == '']
-        # if empty_projects:
-        #     msgs.append(
-        #         ErrorMessage(
-        #             'The following projects are missing a Lane value: '
-        #             '%s' % ', '.join(sorted(empty_projects))))
-        #
-        # data_project_names = {s.Sample_Project for s in self.samples}
-        #
-        # # project identifiers are digit groups at the end of the project name
-        # # preceded by an underscore, as in: CaporasoIllumina_550
-        # bad_projects = []
-        # for project_name in data_project_names:
-        #     try:
-        #         # don't actually need the return value here :)
-        #         parse_project_name(project_name)
-        #     except ValueError:
-        #         bad_projects.append(project_name)
-        #
-        # if bad_projects:
-        #     msgs.append(
-        #         ErrorMessage(
-        #             f"The following project names in the "
-        #             f"{_SS_SAMPLE_PROJECT_KEY} column are missing a Qiita "
-        #             f"study identifier: "
-        #             f"{', '.join(sorted(bad_projects))}"))
-        #
-        # # check that the bioinformatics and data sections have the exact
-        # # same list of projects in them
-        # bfx_project_names = set(self.Bioinformatics[_SS_SAMPLE_PROJECT_KEY])
-        # not_shared = data_project_names ^ bfx_project_names
-        # if not_shared:
-        #     msgs.append(
-        #         ErrorMessage(
-        #             f"The following projects need to be in the {_DATA_KEY} "
-        #             f"and {_BIOINFORMATICS_KEY} sections: "
-        #             f"{', '.join(sorted(not_shared))}"))
-        #
-        # # contact and sample context don't have to have every project in the
-        # # bioinformatics section, but they can't have any project that ISN'T
-        # # in the bioinformatics section!
-        # # NB:below logic works even if there ISN'T a sample context section
-        # contact_project_names = set(self.Contact[_SS_SAMPLE_PROJECT_KEY])
-        # sample_context_project_ids = get_all_projects_in_context(
-        #     getattr(self, _SAMPLE_CONTEXT_KEY, None))
-        #
-        # # for each section, the below lists the expected superset and the
-        # # expected subset.  Note that contacts compares project names, while
-        # # sample context compares qiita study ids.
-        # subset_sections = {
-        #     _CONTACT_KEY: (bfx_project_names, contact_project_names),
-        #     _SAMPLE_CONTEXT_KEY: (set(self.Bioinformatics[_SS_QIITA_ID_KEY]),
-        #                           set(sample_context_project_ids))}
-        # for curr_section, curr_sets in subset_sections.items():
-        #     curr_missing_projects = curr_sets[1] - curr_sets[0]
-        #     if len(curr_missing_projects) > 0:
-        #         msgs.append(ErrorMessage((
-        #             f"The following projects were only found in the "
-        #             f"{curr_section} section: "
-        #             f"{', '.join(sorted(curr_missing_projects))}. "
-        #             f"Projects need to be listed in the {_DATA_KEY} and "
-        #             f"{_BIOINFORMATICS_KEY} section in order to be included "
-        #             f"in the {curr_section} section.")))
-        #     # end if there are missing projects for this section
-        # # next section to check
-
-        # silently convert boolean values to either True or False and generate
-        # messages for all unrecognizable values.
-        msgs += self._normalize_df_sections_booleans()
 
         # return all collected Messages, even if it's an empty list.
         return msgs
@@ -1475,8 +1406,8 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         self._optional_col_sets = self._extend_mapping_type(
             {self._REPLICATES_SET_KEY: (
                 self._optional_replicate_columns,
-                self.contains_replicates)
-            }, "_optional_col_sets")
+                self.contains_replicates
+            )}, "_optional_col_sets")
         self._validate_on_load(path, defer_validate)
 
     def contains_replicates(self, table=None):
@@ -1607,8 +1538,8 @@ class KatharoseqMixin(object):
         self._optional_col_sets = self._extend_mapping_type(
             {self._KATHARO_PREFIX: (
                 self._optional_katharoseq_columns,
-                self.contains_katharoseq_samples)
-            }, "_optional_col_sets")
+                self.contains_katharoseq_samples
+            )}, "_optional_col_sets")
         self._validate_on_load(path, defer_validate)
 
     def contains_katharoseq_samples(self, table=None):
@@ -2230,7 +2161,7 @@ def sample_sheet_to_dataframe(sheet, lcase_cols=True, add_protocol_info=True):
     pd.DataFrame
         DataFrame object with the sample information.
     """
-    
+
     def get_col_name(column):
         """Returns the column name in lower case if lcase_cols is True."""
         return column.lower() if lcase_cols else column
@@ -2260,7 +2191,7 @@ def sample_sheet_to_dataframe(sheet, lcase_cols=True, add_protocol_info=True):
         if curr_col_name in out.columns:
             found_sort_key = curr_col_name
             break
-            
+
     if found_sort_key is None:
         raise ValueError(f"'{' and '.join(potential_well_keys)}' "
                          "columns are not present")
