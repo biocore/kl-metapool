@@ -1105,25 +1105,16 @@ class SampleSheetWorkflow(BaseTests):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
             self.assertEqual(dict(sample), dict(exp))
 
-    def test_column_alternatives(self):
-        # confirm standard 'Well_description' column name behaved as intended.
+    def _help_make_test_column_alternatives_table(self):
         table2 = self.table.copy(deep=True)
 
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
 
         table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
                                   'Yanomani_2008_10052']
+        return table2
 
-        # allow 'Well_description' column to pass through to obs.
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
-
-        self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
-        self.assertIsInstance(obs, AmpliconSampleSheet)
-
+    def _help_test_column_alternatives(self, obs):
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
@@ -1152,23 +1143,44 @@ class SampleSheetWorkflow(BaseTests):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
             self.assertEqual(dict(sample), dict(exp))
 
+    def test_column_alternatives_default(self):
+        # confirm standard 'Well_description' column name behaved as intended.
+        table2 = self._help_make_test_column_alternatives_table()
+
+        # 'Well_description' column in the input does not cause an error--
+        # but it IS silently overwritten!
+        obs = make_sample_sheet(self.md_ampl,
+                                table2,
+                                'HiSeq4000',
+                                [5, 7],
+                                strict=False)
+
+        self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
+        self.assertIsInstance(obs, AmpliconSampleSheet)
+
+        self._help_test_column_alternatives(obs)
+
+    def test_column_alternatives_err_duplicates(self):
         # Try making sample-sheet w/an alternate column name and confirm that
         # the results continue to be as expected.
+        table2 = self._help_make_test_column_alternatives_table()
+
         table2.rename({'Well_description': 'well_description'},
                       axis=1, inplace=True)
+        err_msg = "The remapped sample sheet column names contain duplicates: "
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = make_sample_sheet(self.md_ampl,
+                                    table2,
+                                    'HiSeq4000',
+                                    [5, 7],
+                                    strict=False)
 
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
+    def test_column_alternatives(self):
+        # Try making sample-sheet w/an alternate column name and confirm that
+        # the results continue to be as expected.
+        table2 = self._help_make_test_column_alternatives_table()
 
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-        # Try w/another alternate column name
-        table2.rename({'well_description': 'description'},
+        table2.rename({'index2': 'i5 sequence'},
                       axis=1, inplace=True)
 
         obs = make_sample_sheet(self.md_ampl,
@@ -1177,9 +1189,7 @@ class SampleSheetWorkflow(BaseTests):
                                 [5, 7],
                                 strict=False)
 
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
+        self._help_test_column_alternatives(obs)
 
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',

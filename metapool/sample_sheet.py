@@ -590,6 +590,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             _remapper = KLSampleSheet._column_alts | self._remapper
             result.rename(_remapper, axis=1, inplace=True)
 
+            if len(result.columns) != len(result.columns.unique()):
+                raise ValueError(
+                    f"The remapped sample sheet column names contain "
+                    f"duplicates: {sorted(result.columns.tolist())}")
+
             # result may contain additional columns that aren't allowed in the
             # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
             # There may also be required columns that aren't defined in result.
