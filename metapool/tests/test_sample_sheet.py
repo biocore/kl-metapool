@@ -1170,10 +1170,10 @@ class SampleSheetWorkflow(BaseTests):
         err_msg = "The remapped sample sheet column names contain duplicates: "
         with self.assertRaisesRegex(ValueError, err_msg):
             _ = make_sample_sheet(self.md_ampl,
-                                    table2,
-                                    'HiSeq4000',
-                                    [5, 7],
-                                    strict=False)
+                                  table2,
+                                  'HiSeq4000',
+                                  [5, 7],
+                                  strict=False)
 
     def test_column_alternatives(self):
         # Try making sample-sheet w/an alternate column name and confirm that
