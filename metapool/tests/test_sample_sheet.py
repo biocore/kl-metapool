@@ -5,6 +5,7 @@ from datetime import datetime
 from os.path import join, dirname
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 import sample_sheet
 
 from metapool.mp_strings import (
@@ -150,6 +151,52 @@ class KLSampleSheetTests(BaseTests):
         # child class should instantiate successfully.
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         self.assertIsNotNone(sheet)
+
+    def test__get_section_exists(self):
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        section = sheet._get_section(_BIOINFORMATICS_KEY)
+        self.assertEqual(pd.DataFrame, type(section))
+        self.assertEqual((3, 8), section.shape)
+
+    def test__get_section_missing(self):
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        delattr(sheet, _BIOINFORMATICS_KEY)
+        section = sheet._get_section(_BIOINFORMATICS_KEY)
+        self.assertIsNone(section)
+
+    def test__get_section_missing_err(self):
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        delattr(sheet, _BIOINFORMATICS_KEY)
+        err_msg = "Section 'Bioinformatics' does not exist in sample sheet."
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = sheet._get_section(_BIOINFORMATICS_KEY, err_if_missing=True)
+
+    def test__get_data_section_to_df(self):
+        # use good_w_bools sheet because its data section is mercifully short
+        exp = pd.DataFrame([
+            {'Lane': '1', 'Sample_ID': 'CDPH-SAL_Salmonella_Typhi_MDL-143',
+             'Sample_Name': 'CDPH-SAL_Salmonella_Typhi_MDL-143',
+             'Sample_Plate': 'Feist_11661_P40', 'well_id_384': 'A1',
+             'I7_Index_ID': 'iTru7_107_07', 'index': 'CCGACTAT',
+             'I5_Index_ID': 'iTru5_01_A', 'index2': 'ACCGACAA',
+             'Sample_Project': 'Feist_11661',
+             'Well_description': 'Desc_for_CDPH-SAL_Salmonella Typhi_MDL-143'},
+            {'Lane': '1', 'Sample_ID': '3A', 'Sample_Name': '3A',
+             'Sample_Plate': 'Gerwick_tubes', 'well_id_384': 'I23',
+             'I7_Index_ID': 'iTru7_201_03', 'index': 'GATAGGCT',
+             'I5_Index_ID': 'iTru5_09_H', 'index2': 'AGAAGGAC',
+             'Sample_Project': 'Gerwick_6123',
+             'Well_description': 'Desc_for_3A'},
+            {'Lane': '1', 'Sample_ID': 'LP127890A01',
+             'Sample_Name': 'LP127890A01',
+             'Sample_Plate': 'NYU_BMS_Melanoma_13059_P1', 'well_id_384': 'I3',
+             'I7_Index_ID': 'iTru7_108_09', 'index': 'TCTCTAGG',
+             'I5_Index_ID': 'iTru5_01_B', 'index2': 'AGTGGCAA',
+             'Sample_Project': 'NYU_BMS_Melanoma_13059',
+             'Well_description': 'Desc_for_LP127890A01'}])
+        sheet = load_sample_sheet(self.good_w_bools, defer_validate=False)
+        obs = sheet._get_data_section_to_df()
+        assert_frame_equal(exp, obs)
 
     def test_sample_sheet_roundtripping(self):
         # testing with various good sheets we have access to
@@ -1702,6 +1749,18 @@ class ValidateSampleSheetTests(BaseTests):
         observed = sys.stdout.getvalue().strip()
         self.assertEqual(observed, expected)
 
+    def test_init_defer_validate_warning(self):
+        # Assure DeprecationWarning for sheet init w/o defer_validate param
+
+        with self.assertWarns(DeprecationWarning):
+            _ = MetagenomicSampleSheetv90(self.good_ss)
+
+    def test_load_sample_sheet_defer_validate_warning(self):
+        # Assure DeprecationWarning for load_sample_sheet w/o defer_validate
+
+        with self.assertWarns(DeprecationWarning):
+            _ = load_sample_sheet(self.good_ss)
+
     def test_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         # no errors
@@ -1746,7 +1805,7 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
-                               'cannot be empty')
+                               'cannot be missing')
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
@@ -1757,7 +1816,7 @@ class ValidateSampleSheetTests(BaseTests):
         msg_strs = [str(msg) for msg in msgs]
         self.assertEqual(
             msg_strs,
-            ['ErrorMessage: The Bioinformatics section cannot be empty'])
+            ['ErrorMessage: The Bioinformatics section cannot be missing'])
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
@@ -1765,7 +1824,7 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Contact section '
-                               'cannot be empty')
+                               'cannot be missing')
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = MetagenomicSampleSheetv90(
@@ -2018,7 +2077,7 @@ class ProfileTests(BaseTests):
         self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
         self.assertEqual(sheet._HEADER['SheetVersion'], '10')
         self.assertIn('mass_syndna_input_ng', sheet._data_columns)
-        self.assertNotIn('SampleContext', sheet.sections)
+        self.assertNotIn('SampleContext', sheet._section_keys)
 
     def test_profile_absquant_11(self):
         sheet = AbsQuantSampleSheetv11()
@@ -2029,7 +2088,7 @@ class ProfileTests(BaseTests):
         self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
         self.assertEqual(sheet._HEADER['SheetVersion'], '11')
         self.assertIn('mass_syndna_input_ng', sheet._data_columns)
-        self.assertIn('SampleContext', sheet.sections)
+        self.assertIn('SampleContext', sheet._section_keys)
 
 
 class DemuxReplicatesTests(BaseTests):

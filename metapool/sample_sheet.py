@@ -185,9 +185,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         **_HEADER, **_SETTINGS, **_READS, **_BIOINFORMATICS_AND_CONTACT})
 
     _ILLUMINA_METADATA_KEYS = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY)
-    # If modifying, see issue #233
-    sections = (*_ILLUMINA_METADATA_KEYS, _DATA_KEY,
-                _BIOINFORMATICS_KEY, _CONTACT_KEY)
+    _section_keys = (*_ILLUMINA_METADATA_KEYS, _DATA_KEY,
+                     _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = False
 
@@ -348,7 +347,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section_name, *_ = header_match.groups()
                     if (
                         section_name not in self._sections
-                        and section_name not in type(self).sections
+                        and section_name not in type(self)._section_keys
                     ):
                         self.add_section(section_name)
 
@@ -381,12 +380,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     continue
 
                 elif section_name in self._KL_ADDTL_DF_SECTIONS:
-                    if getattr(self, section_name) is not None:
-                        # vals beyond the header are empty values so don't add
-                        # them
-                        line = line[:len(getattr(self, section_name).columns)]
-                        df = getattr(self, section_name)
-                        df.loc[len(df)] = line
+                    curr_section = self._get_section(section_name)
+                    if curr_section is not None:
+                        # values beyond the header are empty so don't add them
+                        line = line[:len(curr_section.columns)]
+                        # len(df) = number of rows, so this adds line to end
+                        curr_section.loc[len(curr_section)] = line
                     else:
                         # CSV rows are padded to include commas for the longest
                         # line in the file, so we remove them to avoid creating
@@ -399,9 +398,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 # [<Other>]
                 else:
                     key, value, *_ = line
-                    section = getattr(self, section_name)
+                    section = self._get_section(
+                        section_name, err_if_missing=True)
                     section[key] = value
                     continue
+
+    def _get_section(self, section_name, err_if_missing=False):
+        try:
+            return getattr(self, section_name)
+        except AttributeError:
+            if err_if_missing:
+                raise ValueError(f"Section '{section_name}' does not exist in "
+                                 f"sample sheet.")
+            return None
 
     def _extend_mapping_type(self, addtl_mapping_obj,
                              mapping_obj_name="_remapper"):
@@ -440,7 +449,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             raise ValueError('Number of blank lines must be a positive int.')
 
         def _get_section_len(section_name):
-            section_df = getattr(self, section_name)
+            section_df = self._get_section(section_name)
             if section_df is None:
                 return 0
             return len(section_df.columns)
@@ -469,23 +478,19 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 writer.writerow(pad_iterable(row.values.tolist(),
                                              csv_width))
 
-        for title in self.sections:
+        for title in self._section_keys:
             writer.writerow(pad_iterable([f'[{title}]'], csv_width))
 
             # Data is not a section in this class
             if title != _DATA_KEY:
-                section = getattr(self, title)
+                section = self._get_section(title)
 
             if title == _READS_KEY:
                 for read in self.Reads:
                     writer.writerow(pad_iterable([read], csv_width))
             elif title == _DATA_KEY:
                 # turn into a df to make it easier to write
-                df_lines = []
-                for sample in self.samples:
-                    line = [getattr(sample, k) for k in self.all_sample_keys]
-                    df_lines.append(line)
-                data_df = pd.DataFrame(df_lines, columns=self.all_sample_keys)
+                data_df = self._get_data_section_to_df()
 
                 if self._ORDERED_BY_DATA_COLUMNS:
                     # order according to the expected column order.  If there
@@ -514,6 +519,21 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     writer.writerow(pad_iterable([key, value], csv_width))
             write_blank_lines(writer)
 
+    def _get_data_section_to_df(self):
+        """Get the Data section as a DataFrame.
+
+        Returns
+        -------
+        pd.DataFrame
+            The Data section of the sample sheet.
+        """
+        data = []
+        columns = self.all_sample_keys
+        for sample in self.samples:
+            data.append([getattr(sample, c) for c in columns])
+
+        return pd.DataFrame(data, columns=columns)
+
     def merge(self, sheets):
         """Merge the Data section of multiple sample sheets
 
@@ -531,14 +551,20 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             If the Header, Settings or Reads section is different between
             merged sheets.
         """
+        def get_section_pair(section_key):
+            """Get the section from self and the sheet."""
+            from_self = self._get_section(section_key, err_if_missing=True)
+            from_sheet = sheet._get_section(section_key, err_if_missing=True)
+            return from_self, from_sheet
+
         for number, sheet in enumerate(sheets):
-            for section in self._ILLUMINA_METADATA_KEYS:
-                this, that = getattr(self, section), getattr(sheet, section)
+            for section_key in self._ILLUMINA_METADATA_KEYS:
+                this, that = get_section_pair(section_key)
 
                 # For the Header section we'll ignore the Date field since that
                 # is likely to be different but shouldn't be a condition to
                 # prevent merging two sheets.
-                if section == _HEADER_KEY:
+                if section_key == _HEADER_KEY:
                     if this is not None:
                         this = {k: v for k, v in this.items() if k != 'Date'}
                     if that is not None:
@@ -546,14 +572,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
                 if this != that:
                     raise ValueError(('The %s section is different for sample '
-                                     'sheet %d ') % (section, 1 + number))
+                                     'sheet %d ') % (section_key, 1 + number))
 
             for sample in sheet.samples:
                 self.add_sample(sample)
 
             # these sections are data frames
-            for section in self._KL_ADDTL_DF_SECTIONS:
-                this, that = getattr(self, section), getattr(sheet, section)
+            for section_key in self._KL_ADDTL_DF_SECTIONS:
+                this, that = get_section_pair(section_key)
 
                 # if both frames are not None then we concatenate the rows.
                 if this is not None and that is not None:
@@ -565,7 +591,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
                 # if self's frame is None then assign a copy
                 elif this is None and that is not None:
-                    setattr(self, section, that.copy())
+                    setattr(self, section_key, that.copy())
                 # means that either self's is the only frame that's not None,
                 # so we don't need to merge anything OR that both frames are
                 # None so we have nothing to merge.
@@ -652,40 +678,40 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         Parameters
         ----------
-    metadata: dict
-        Metadata describing the sample sheet with the following fields.
-        If a value is omitted from this dictionary the values in square
-        brackets are used as defaults.
+        metadata: dict
+            Metadata describing the sample sheet with the following fields.
+            If a value is omitted from this dictionary the values in square
+            brackets are used as defaults.
 
-        - Bioinformatics: List of dictionaries, one per project, describing
-          each project's attributes, containing at least: Sample_Project,
-          QiitaID, BarcodesAreRC, ForwardAdapter, ReverseAdapter,
-          HumanFiltering, library_construction_protocol,
-          experiment_design_description - Note that the requirements will
-          depend on the SheetType and many sheets require additional
-          field(s) such as contains_replicates.
-        - Contact: List of dictionaries describing the e-mails to send to
-          external stakeholders: Sample_Project, Email
-        - SheetType: str, sample sheet type
-        - SheetVersion: str, the version of the sheet
-        - Assay: assay type for the sequencing run. No default value will be
-          set, this is required.
-        - SampleContext: List of dictionaries, one per blank, containing
-          Sample_Name, PrimaryQiitaStudy, SecondaryQiitaStudies, and
-          Sample_Type. If empty, blanks are inferred from data by
-          sample name.
-        - IEMFileVersion: Illumina's Experiment Manager version [4]
-        - Investigator Name: [Knight]
-        - Experiment Name: [RKL_experiment]
-        - Date: Date when the sheet is prepared [Today's date]
-        - Workflow: how the sample sheet should be used [GenerateFASTQ]
-        - Application: sample sheet's application [FASTQ Only]
-        - Description: additional information []
-        - Chemistry: chemistry's description [Default]
-        - Read1: Length of forward read [151]
-        - Read2: Length of forward read [151]
-        - ReverseComplement: If the reads in the FASTQ files should be reverse
-          complemented by bcl2fastq [0]
+            - Bioinformatics: List of dictionaries, one per project, describing
+              each project's attributes, containing at least: Sample_Project,
+              QiitaID, BarcodesAreRC, ForwardAdapter, ReverseAdapter,
+              HumanFiltering, library_construction_protocol,
+              experiment_design_description - Note that the requirements will
+              depend on the SheetType and many sheets require additional
+              field(s) such as contains_replicates.
+            - Contact: List of dictionaries describing the e-mails to send to
+              external stakeholders: Sample_Project, Email
+            - SheetType: str, sample sheet type
+            - SheetVersion: str, the version of the sheet
+            - Assay: assay type for the sequencing run. No default value will
+              be set, this is required.
+            - SampleContext: List of dictionaries, one per blank, containing
+              Sample_Name, PrimaryQiitaStudy, SecondaryQiitaStudies, and
+              Sample_Type. If empty, blanks are inferred from data by
+              sample name.
+            - IEMFileVersion: Illumina's Experiment Manager version [4]
+            - Investigator Name: [Knight]
+            - Experiment Name: [RKL_experiment]
+            - Date: Date when the sheet is prepared [Today's date]
+            - Workflow: how the sample sheet should be used [GenerateFASTQ]
+            - Application: sample sheet's application [FASTQ Only]
+            - Description: additional information []
+            - Chemistry: chemistry's description [Default]
+            - Read1: Length of forward read [151]
+            - Read2: Length of forward read [151]
+            - ReverseComplement: If the reads in FASTQ files should be reverse
+              complemented by bcl2fastq [0]
             """
         # set the default to avoid index errors if only one of the two is
         # provided.
@@ -814,26 +840,26 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # validate it; yes, this is round-about, but I judge it better than
         # having the section validation implemented in two places
         metadata_df = {}
-        for curr_section_key in self.sections:
+        for curr_section_key in self._section_keys:
             if not curr_section_key == _DATA_KEY:
-                section = getattr(self, curr_section_key)
+                section = self._get_section(curr_section_key)
                 if section is not None:
                     if curr_section_key in self._ILLUMINA_METADATA_KEYS:
                         # Ugh, I hate the reads, they are represented in three
                         # different ways depending on the part of the code we
                         # are in.  The self._READS is a dict with the keys
-                        # _READ_1_KEY and _READ_2_KEY and the values of their
-                        # lengths, while the self.Reads is a list two items
-                        # long, the first one being the length of read 1 and
-                        # the second one being the length of read 2.  Finally,
-                        # the reads in the metadata_df are represented two
+                        # _READ_1_KEY and _READ_2_KEY holding the *default*
+                        # values of their lengths, while the self.Reads is a
+                        # two-item list of the *actual* lengths of read 1 and
+                        # read 2, in that order.  Finally, the (actual) read
+                        # lengths in the metadata_df are represented two
                         # keys, _READ_1_KEY and _READ_2_KEY, alongside the
                         # other top-level keys (not nested under another key
                         # as a separate dictionary). Anyway, here we need to
                         # work backwards from the self.Reads list to two
                         # free-floating keys in the metadata_df, *using* the
-                        # self._READS dict to get the correct keys.  Remember
-                        # that dictionaries are ordered in Python 3.7+ so it
+                        # self._READS dict just to get the correct keys. Since
+                        # dictionaries are ordered in Python 3.7+, it
                         # is legit to depend on the first key being Read1 since
                         # it was defined that way.
                         if curr_section_key == _READS_KEY:
@@ -877,11 +903,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # children of KLSampleSheet will have their expected sections defined
         # in `sections`. Test only the difference between these two sets.
         default_sections = {_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY}
-        extra_sections = set(type(self).sections).difference(default_sections)
+        extra_sections = (
+            set(type(self)._section_keys).difference(default_sections))
         for section in extra_sections:
-            if getattr(self, section) is None:
+            if self._get_section(section) is None:
                 msgs.append(ErrorMessage(f'The {section} section cannot be '
-                                         'empty'))
+                                         'missing'))
         return msgs
 
     def quiet_validate_and_scrub_sample_sheet(self):
@@ -1079,7 +1106,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # NB:below logic works even if there ISN'T a sample context section
         contact_project_names = set(self.Contact[_SS_SAMPLE_PROJECT_KEY])
         sample_context_project_ids = get_all_projects_in_context(
-            getattr(self, _SAMPLE_CONTEXT_KEY, None))
+            self._get_section(_SAMPLE_CONTEXT_KEY))
 
         # for each section, the below lists the expected superset and the
         # expected subset.  Note that contacts compares project names, while
@@ -1128,14 +1155,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                              f"{_DATA_KEY} section")
         # endif sample not found
 
-        sample_context = getattr(self, _SAMPLE_CONTEXT_KEY, None)
+        sample_context = self._get_section(_SAMPLE_CONTEXT_KEY)
         # NB: this can be run with a null sample context, so no worries :)
         return is_blank(sample_name, sample_context)
 
     def get_controls_details(self):
         """Get the control details from the sample sheet."""
         controls_details = {}
-        sample_context = getattr(self, _SAMPLE_CONTEXT_KEY, None)
+        sample_context = self._get_section(_SAMPLE_CONTEXT_KEY)
         if sample_context is not None:
             controls_details = \
                 get_controls_details_from_context(sample_context)
@@ -1254,8 +1281,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     def _normalize_df_sections_booleans(self):
         msgs = []
         for curr_section_name in self._KL_ADDTL_DF_SECTIONS:
-            if hasattr(self, curr_section_name) and \
-                    getattr(self, curr_section_name) is not None:
+            if self._get_section(curr_section_name) is not None:
                 msgs += self._normalize_section_booleans(curr_section_name)
         return msgs
 
@@ -1272,7 +1298,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(f"'{x}' is not 'True' or 'False'")
             return x
 
-        section = getattr(self, section_name)
+        section = self._get_section(section_name, err_if_missing=True)
         col_info = self._KL_ADDTL_DF_SECTIONS[section_name]
         for col_name, col_type in col_info.items():
             if col_type is bool:
@@ -1453,8 +1479,8 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
     _ALL_METADATA = MappingProxyType(
         KLSampleSheet._ALL_METADATA | {_SAMPLE_CONTEXT_KEY: None})
 
-    sections = (*KLSampleSheet._ILLUMINA_METADATA_KEYS, _DATA_KEY,
-                _BIOINFORMATICS_KEY, _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
+    _section_keys = (*KLSampleSheet._ILLUMINA_METADATA_KEYS, _DATA_KEY,
+                     _BIOINFORMATICS_KEY, _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = True
 
@@ -2257,15 +2283,9 @@ def sample_sheet_to_dataframe(sheet, lcase_cols=True, add_protocol_info=True):
         """Returns the column name in lower case if lcase_cols is True."""
         return column.lower() if lcase_cols else column
 
-    # Get the columns names for the first sample so we have them in a list and
-    # we can retrieve data in the same order on every iteration
-    columns = sheet.all_sample_keys
+    out = sheet._get_data_section_to_df()
+    out.columns = [get_col_name(c) for c in out.columns]
 
-    data = []
-    for sample in sheet.samples:
-        data.append([sample[column] for column in columns])
-
-    out = pd.DataFrame(data=data, columns=[get_col_name(c) for c in columns])
     if add_protocol_info:
         out = out.merge(sheet.Bioinformatics[[_SS_SAMPLE_PROJECT_KEY,
                                               LIB_CONSTRUCT_PROTOCOL_KEY,
@@ -2384,7 +2404,7 @@ def demux_sample_sheet(sheet):
         new_sheet.Settings = sheet.Settings
 
         # Add the SampleContext section to the new sheet. This is per-sample.
-        if _SAMPLE_CONTEXT_KEY in sheet.sections:
+        if _SAMPLE_CONTEXT_KEY in sheet._section_keys:
             new_context_df = _get_demuxed_sample_context(sheet, df)
             new_sheet.SampleContext = new_context_df
             ctx_projects = \
@@ -2459,8 +2479,7 @@ def _get_sample_context_project_names(sheet, external_context=None):
     ctx_projects = set()
     sample_context = external_context
     if external_context is None:
-        if hasattr(sheet, _SAMPLE_CONTEXT_KEY):
-            sample_context = getattr(sheet, _SAMPLE_CONTEXT_KEY)
+        sample_context = sheet._get_section(_SAMPLE_CONTEXT_KEY)
 
     # The sample context section contains qiita study *ids*, not project
     # names. We need to match these to their corresponding project names in the
@@ -2468,7 +2487,8 @@ def _get_sample_context_project_names(sheet, external_context=None):
     # with other parts of the sample sheet.
     ctx_project_ids = get_all_projects_in_context(sample_context)
     if ctx_project_ids is not None:
-        bioinformatics = getattr(sheet, _BIOINFORMATICS_KEY)
+        bioinformatics = sheet._get_section(
+            _BIOINFORMATICS_KEY, err_if_missing=True)
         ctx_projects_mask = \
             bioinformatics[_SS_QIITA_ID_KEY].isin(ctx_project_ids)
         ctx_projects = \
