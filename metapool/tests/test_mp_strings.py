@@ -45,17 +45,17 @@ class TestMpStrings(TestCase):
     def test_parse_project_name(self):
         exp = {
             "qiita_id": "1161",
-            "short_project_name": "A_Feist",
-            "full_project_name": "A_Feist_1161"
+            "short_project_name": "A_ProjectF",
+            "full_project_name": "A_ProjectF_1161"
         }
 
-        obs = parse_project_name("A_Feist_1161")
+        obs = parse_project_name("A_ProjectF_1161")
         self.assertEqual(obs, exp)
 
     def test_parse_project_name_err_no_qiita_id(self):
         with self.assertRaisesRegex(
-                ValueError, "'A_Feist' does not contain a Qiita-ID."):
-            parse_project_name("A_Feist")
+                ValueError, "'A_ProjectF' does not contain a Qiita-ID."):
+            parse_project_name("A_ProjectF")
 
     def test_parse_project_name_err_missing(self):
         with self.assertRaisesRegex(
@@ -67,22 +67,22 @@ class TestMpStrings(TestCase):
             parse_project_name(None)
 
     def test_get_short_name_and_id(self):
-        exp = ("A_Feist", "1161")
-        obs = get_short_name_and_id("A_Feist_1161")
+        exp = ("A_ProjectF", "1161")
+        obs = get_short_name_and_id("A_ProjectF_1161")
         self.assertEqual(obs, exp)
 
     def test_get_short_name_and_id_no_qiita_id(self):
-        obs = get_short_name_and_id("A_Feist")
-        self.assertEqual(obs, ("A_Feist", None))
+        obs = get_short_name_and_id("A_ProjectF")
+        self.assertEqual(obs, ("A_ProjectF", None))
 
     def test_get_qiita_id_from_project_name(self):
-        obs = get_qiita_id_from_project_name("A_Feist_1161")
+        obs = get_qiita_id_from_project_name("A_ProjectF_1161")
         self.assertEqual(obs, "1161")
 
     def test_get_qiita_id_from_project_name_err_no_qiita_id(self):
         with self.assertRaisesRegex(
-                ValueError, "'A_Feist' does not contain a Qiita-ID."):
-            get_qiita_id_from_project_name("A_Feist")
+                ValueError, "'A_ProjectF' does not contain a Qiita-ID."):
+            get_qiita_id_from_project_name("A_ProjectF")
 
     def test_get_qiita_id_from_project_name_err_missing(self):
         with self.assertRaisesRegex(

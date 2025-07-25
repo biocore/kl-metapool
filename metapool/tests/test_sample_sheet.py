@@ -176,23 +176,23 @@ class KLSampleSheetTests(BaseTests):
         exp = pd.DataFrame([
             {'Lane': '1', 'Sample_ID': 'CDPH-SAL_Salmonella_Typhi_MDL-143',
              'Sample_Name': 'CDPH-SAL_Salmonella_Typhi_MDL-143',
-             'Sample_Plate': 'Feist_11661_P40', 'well_id_384': 'A1',
+             'Sample_Plate': 'ProjectF_11661_P40', 'well_id_384': 'A1',
              'I7_Index_ID': 'iTru7_107_07', 'index': 'CCGACTAT',
              'I5_Index_ID': 'iTru5_01_A', 'index2': 'ACCGACAA',
-             'Sample_Project': 'Feist_11661',
+             'Sample_Project': 'ProjectF_11661',
              'Well_description': 'Desc_for_CDPH-SAL_Salmonella Typhi_MDL-143'},
             {'Lane': '1', 'Sample_ID': '3A', 'Sample_Name': '3A',
-             'Sample_Plate': 'Gerwick_tubes', 'well_id_384': 'I23',
+             'Sample_Plate': 'ProjectG_tubes', 'well_id_384': 'I23',
              'I7_Index_ID': 'iTru7_201_03', 'index': 'GATAGGCT',
              'I5_Index_ID': 'iTru5_09_H', 'index2': 'AGAAGGAC',
-             'Sample_Project': 'Gerwick_6123',
+             'Sample_Project': 'ProjectG_6123',
              'Well_description': 'Desc_for_3A'},
             {'Lane': '1', 'Sample_ID': 'LP127890A01',
              'Sample_Name': 'LP127890A01',
-             'Sample_Plate': 'NYU_BMS_Melanoma_13059_P1', 'well_id_384': 'I3',
+             'Sample_Plate': 'ProjectN_13059_P1', 'well_id_384': 'I3',
              'I7_Index_ID': 'iTru7_108_09', 'index': 'TCTCTAGG',
              'I5_Index_ID': 'iTru5_01_B', 'index2': 'AGTGGCAA',
-             'Sample_Project': 'NYU_BMS_Melanoma_13059',
+             'Sample_Project': 'ProjectN_13059',
              'Well_description': 'Desc_for_LP127890A01'}])
         sheet = load_sample_sheet(self.good_w_bools, defer_validate=False)
         obs = sheet._get_data_section_to_df()
@@ -337,13 +337,13 @@ class KLSampleSheetTests(BaseTests):
                 "Lane": "1",
                 "Sample_ID": "3A",
                 "Sample_Name": "3A",
-                "Sample_Plate": "Gerwick_tubes",
+                "Sample_Plate": "ProjectG_tubes",
                 "Sample_Well": "I23",
                 "I7_Index_ID": "iTru7_201_03",
                 "index": "GATAGGCT",
                 "I5_Index_ID": "iTru5_09_H",
                 "index2": "AGAAGGAC",
-                "Sample_Project": "Gerwick_6123",
+                "Sample_Project": "ProjectG_6123",
                 "Well_description": "Desc_for_3A"
             }, {
                 "Lane": "1",
@@ -351,26 +351,26 @@ class KLSampleSheetTests(BaseTests):
                 "B0387",
                 "Sample_Name": "JM-MEC__Staphylococcus_aureusstrain_BERTI-"
                 "B0387",
-                "Sample_Plate": "Feist_11661_P43",
+                "Sample_Plate": "ProjectF_11661_P43",
                 "Sample_Well": "B10",
                 "I7_Index_ID": "iTru7_102_03",
                 "index": "CGTTGCAA",
                 "I5_Index_ID": "iTru5_121_C",
                 "index2": "CTATGCCT",
-                "Sample_Project": "Feist_11661",
+                "Sample_Project": "ProjectF_11661",
                 "Well_description": "Desc_for_JM-MEC__Staphylococcus "
                 "aureusstrain BERTI-B0387"
             }, {
                 "Lane": "1",
                 "Sample_ID": "EP981129A02",
                 "Sample_Name": "EP981129A02",
-                "Sample_Plate": "NYU_BMS_Melanoma_13059_P4",
+                "Sample_Plate": "ProjectN_13059_P4",
                 "Sample_Well": "H4",
                 "I7_Index_ID": "iTru7_115_08",
                 "index": "TGGTACAG",
                 "I5_Index_ID": "iTru5_124_A",
                 "index2": "GTACGATC",
-                "Sample_Project": "NYU_BMS_Melanoma_13059",
+                "Sample_Project": "ProjectN_13059",
                 "Well_description": "Desc_for_EP981129A02"
             }
         ]
@@ -394,11 +394,11 @@ class KLSampleSheetTests(BaseTests):
                      'library_construction_protocol',
                      'experiment_design_description'],
             data=[
-                ['NYU_BMS_Melanoma_13059', '13059', False, 'AACC', 'GGTT',
+                ['ProjectN_13059', '13059', False, 'AACC', 'GGTT',
                  False, 'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['Feist_11661', '11661', False, 'AACC', 'GGTT', False,
+                ['ProjectF_11661', '11661', False, 'AACC', 'GGTT', False,
                  'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['Gerwick_6123', '6123', False, 'AACC', 'GGTT', False,
+                ['ProjectG_6123', '6123', False, 'AACC', 'GGTT', False,
                  'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
@@ -409,7 +409,7 @@ class KLSampleSheetTests(BaseTests):
         exp = pd.DataFrame(
             columns=['Email', 'Sample_Project'],
             data=[
-                ['test@lol.com', 'Feist_11661']
+                ['test@lol.com', 'ProjectF_11661']
             ]
         )
 
@@ -806,18 +806,18 @@ class KLSampleSheetTests(BaseTests):
 
     def test_get_denormalized_controls_list(self):
         exp_details_list = [
-            ('BLANK_40_12G', '11661', 'Feist_11661'),
-            ('BLANK_40_12H', '11661', 'Feist_11661'),
-            ('BLANK_41_12G', '11661', 'Feist_11661'),
+            ('BLANK_40_12G', '11661', 'ProjectF_11661'),
+            ('BLANK_40_12H', '11661', 'ProjectF_11661'),
+            ('BLANK_41_12G', '11661', 'ProjectF_11661'),
             ('BLANK_41_12G', '10317', 'TMI_10317'),
             ('BLANK_41_12G', '11223', 'Other_11223'),
-            ('BLANK_41_12H', '11661', 'Feist_11661'),
+            ('BLANK_41_12H', '11661', 'ProjectF_11661'),
             ('BLANK_41_12H', '10317', 'TMI_10317'),
             ('BLANK_41_12H', '11223', 'Other_11223'),
-            ('BLANK_42_12G', '11661', 'Feist_11661'),
-            ('BLANK_42_12H', '11661', 'Feist_11661'),
-            ('BLANK_43_12G', '11661', 'Feist_11661'),
-            ('BLANK_43_12H', '11661', 'Feist_11661')]
+            ('BLANK_42_12G', '11661', 'ProjectF_11661'),
+            ('BLANK_42_12H', '11661', 'ProjectF_11661'),
+            ('BLANK_43_12G', '11661', 'ProjectF_11661'),
+            ('BLANK_43_12H', '11661', 'ProjectF_11661')]
         nyu_blanks = [
             'BLANK1_1A', 'BLANK1_1B', 'BLANK1_1C', 'BLANK1_1D', 'BLANK1_1E',
             'BLANK1_1F', 'BLANK1_1G', 'BLANK1_1H', 'BLANK2_2A', 'BLANK2_2B',
@@ -828,7 +828,7 @@ class KLSampleSheetTests(BaseTests):
             'BLANK4_4G', 'BLANK4_4H']
         for curr_blank_name in nyu_blanks:
             exp_details_list.append(
-                (curr_blank_name, '13059', 'NYU_BMS_Melanoma_13059'))
+                (curr_blank_name, '13059', 'ProjectN_13059'))
         exp_details_list = sorted(exp_details_list, key=lambda k: (k[0], k[1]))
 
         sheet = MetagenomicSampleSheetv101(
@@ -852,41 +852,41 @@ class KLSampleSheetTests(BaseTests):
 
     def test_get_projects_details(self):
         exp_details = {
-            'NYU_BMS_Melanoma_13059': {
+            'ProjectN_13059': {
                 QIITA_ID_KEY: '13059',
-                PROJECT_SHORT_NAME_KEY: 'NYU_BMS_Melanoma',
-                PROJECT_FULL_NAME_KEY: 'NYU_BMS_Melanoma_13059',
+                PROJECT_SHORT_NAME_KEY: 'ProjectN',
+                PROJECT_FULL_NAME_KEY: 'ProjectN_13059',
                 CONTAINS_REPLICATES_KEY: False,
                 SAMPLES_DETAILS_KEY: {
                     'LP127890A01': {
                         SAMPLE_NAME_KEY: 'LP127890A01',
-                        SAMPLE_PROJECT_KEY: 'NYU_BMS_Melanoma_13059',
+                        SAMPLE_PROJECT_KEY: 'ProjectN_13059',
                         SS_SAMPLE_ID_KEY: 'LP127890A01'
                     }
                 },
             },
-            'Feist_11661': {
+            'ProjectF_11661': {
                 QIITA_ID_KEY: '11661',
-                PROJECT_SHORT_NAME_KEY: 'Feist',
-                PROJECT_FULL_NAME_KEY: 'Feist_11661',
+                PROJECT_SHORT_NAME_KEY: 'ProjectF',
+                PROJECT_FULL_NAME_KEY: 'ProjectF_11661',
                 CONTAINS_REPLICATES_KEY: False,
                 SAMPLES_DETAILS_KEY: {
                     'CDPH-SAL_Salmonella_Typhi_MDL-143': {
                         SAMPLE_NAME_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143',
-                        SAMPLE_PROJECT_KEY: 'Feist_11661',
+                        SAMPLE_PROJECT_KEY: 'ProjectF_11661',
                         SS_SAMPLE_ID_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143'
                     }
                 },
             },
-            'Gerwick_6123': {
+            'ProjectG_6123': {
                 QIITA_ID_KEY: '6123',
-                PROJECT_SHORT_NAME_KEY: 'Gerwick',
-                PROJECT_FULL_NAME_KEY: 'Gerwick_6123',
+                PROJECT_SHORT_NAME_KEY: 'ProjectG',
+                PROJECT_FULL_NAME_KEY: 'ProjectG_6123',
                 CONTAINS_REPLICATES_KEY: False,
                 SAMPLES_DETAILS_KEY: {
                     '3A': {
                         SAMPLE_NAME_KEY: '3A',
-                        SAMPLE_PROJECT_KEY: 'Gerwick_6123',
+                        SAMPLE_PROJECT_KEY: 'ProjectG_6123',
                         SS_SAMPLE_ID_KEY: '3A'
                     }
                 }
@@ -907,8 +907,8 @@ class KLSampleSheetTests(BaseTests):
         # not going to check the whole thing, just checking one sample to
         # make sure the original name is being added correctly
         obs_details = sheet.get_projects_details()
-        self.assertTrue("Feist_11661" in obs_details)
-        an_obs_samples = obs_details["Feist_11661"][SAMPLES_DETAILS_KEY]
+        self.assertTrue("ProjectF_11661" in obs_details)
+        an_obs_samples = obs_details["ProjectF_11661"][SAMPLES_DETAILS_KEY]
         self.assertTrue("BLANK.43.12G.A1" in an_obs_samples)
         an_obs_sample = an_obs_samples["BLANK.43.12G.A1"]
         self.assertTrue(ORIG_NAME_KEY in an_obs_sample)
@@ -1900,8 +1900,8 @@ class ValidateSampleSheetTests(BaseTests):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
 
         remapper = {
-            'NYU_BMS_Melanoma_13059': "NYU's Tisch Art Microbiome 13059",
-            'Feist_11661': "The x.x microbiome project 1337"
+            'ProjectN_13059': "NYU's Tisch Art Microbiome 13059",
+            'ProjectF_11661': "The x.x microbiome project 1337"
         }
 
         for sample in sheet:
@@ -1927,7 +1927,7 @@ class ValidateSampleSheetTests(BaseTests):
         scrubbed = {
             'NYU_s_Tisch_Art_Microbiome_13059',
             'The_x_x_microbiome_project_1337',
-            'Gerwick_6123'
+            'ProjectG_6123'
         }
 
         for sample in sheet:
@@ -1946,7 +1946,7 @@ class ValidateSampleSheetTests(BaseTests):
 
         message = ('ErrorMessage: The following project names in the '
                    'Sample_Project column are missing a Qiita study '
-                   'identifier: Feist, Gerwick')
+                   'identifier: ProjectF, ProjectG')
 
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         self.assertStdOutEqual(message)
@@ -1956,12 +1956,12 @@ class ValidateSampleSheetTests(BaseTests):
 
         # set the lane value as empty for one of the two projects
         for sample in sheet.samples:
-            if sample.Sample_Project == 'Feist_11661':
+            if sample.Sample_Project == 'ProjectF_11661':
                 sample.Lane = ' '
 
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         message = ('ErrorMessage: The following projects are missing a Lane '
-                   'value: Feist_11661')
+                   'value: ProjectF_11661')
         self.assertStdOutEqual(message)
 
     def test_validate_and_scrub_sample_sheet_missing_project_names(self):

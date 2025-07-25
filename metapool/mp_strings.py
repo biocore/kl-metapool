@@ -70,7 +70,7 @@ EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
 def parse_project_name(project_name):
     """
     Split fully-qualified project_name into a short project_name and a qiita-id
-    :param project_name: A fully-qualified project name e.g: Feist_1161.
+    :param project_name: A fully-qualified project name e.g: ProjectF_1161.
     :return: Dictionary of qiita_id, short_project_name, and full_project_name
     """
     if project_name is None or project_name == '':
