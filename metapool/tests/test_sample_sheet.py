@@ -1761,6 +1761,27 @@ class ValidateSampleSheetTests(BaseTests):
     #     with self.assertWarns(DeprecationWarning):
     #         _ = load_sample_sheet(self.good_ss)
 
+    def test_init_default_validate_err(self):
+        # Using default validation setting raises error
+        err_msg = ("Sample sheet instantiation failed: The "
+                   "Sample_Project column in the Data section is missing")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = MetagenomicSampleSheetv100(self.no_project_ss)
+
+    def test_init_explicit_validate_err(self):
+        # Explicitly requesting validation raises error
+        err_msg = ("Sample sheet instantiation failed: The "
+                   "Sample_Project column in the Data section is missing")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = MetagenomicSampleSheetv100(self.no_project_ss,
+                                           defer_validate=False)
+
+    def test_init_explicit_no_validate(self):
+        # Explicitly deferring validation allows load without error
+        sheet = MetagenomicSampleSheetv100(self.no_project_ss,
+                                           defer_validate=True)
+        self.assertEqual(MetagenomicSampleSheetv100, type(sheet))
+
     def test_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         # no errors
