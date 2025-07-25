@@ -1656,15 +1656,15 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
         return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
                 {'i7_index_id', 'index', 'index2', 'i5_index_id'}]
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        # this init is only necessary because of the use of the sentinel
-        # for defer_validate; otherwise, the parent class's init
-        # would be all we needed and would be called automatically.
-        # Once we fully deprecate loading sample sheets without validation,
-        # we can remove this init and just use the parent class's init.
-        defer_validate = _check_validate_sentinel(defer_validate, path)
-        super().__init__(path=path, defer_validate=True)
-        self._validate_on_load(path, defer_validate)
+    # def __init__(self, path=None, defer_validate=_missing_param_sentinel):
+    #     # this init is only necessary because of the use of the sentinel
+    #     # for defer_validate; otherwise, the parent class's init
+    #     # would be all we needed and would be called automatically.
+    #     # Once we fully deprecate loading sample sheets without validation,
+    #     # we can remove this init and just use the parent class's init.
+    #     defer_validate = _check_validate_sentinel(defer_validate, path)
+    #     super().__init__(path=path, defer_validate=True)
+    #     self._validate_on_load(path, defer_validate)
 
 
 class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
@@ -1682,15 +1682,15 @@ class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
                 {'i7_index_id', 'index', 'index2', 'i5_index_id'}] + \
                 list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        # this init is only necessary because of the use of the sentinel
-        # for defer_validate; otherwise, the parent class's init
-        # would be all we needed and would be called automatically.
-        # Once we fully deprecate loading sample sheets without validation,
-        # we can remove this init and just use the parent class's init.
-        defer_validate = _check_validate_sentinel(defer_validate, path)
-        super().__init__(path=path, defer_validate=True)
-        self._validate_on_load(path, defer_validate)
+    # def __init__(self, path=None, defer_validate=_missing_param_sentinel):
+    #     # this init is only necessary because of the use of the sentinel
+    #     # for defer_validate; otherwise, the parent class's init
+    #     # would be all we needed and would be called automatically.
+    #     # Once we fully deprecate loading sample sheets without validation,
+    #     # we can remove this init and just use the parent class's init.
+    #     defer_validate = _check_validate_sentinel(defer_validate, path)
+    #     super().__init__(path=path, defer_validate=True)
+    #     self._validate_on_load(path, defer_validate)
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -1738,15 +1738,15 @@ class MetagenomicSampleSheetv102(
     _HEADER[_SHEET_VERSION_KEY] = '102'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        # this init is only necessary because of the use of the sentinel
-        # for defer_validate; otherwise, the parent class's init
-        # would be all we needed and would be called automatically.
-        # Once we fully deprecate loading sample sheets without validation,
-        # we can remove this init and just use the parent class's init.
-        defer_validate = _check_validate_sentinel(defer_validate, path)
-        super().__init__(path=path, defer_validate=True)
-        self._validate_on_load(path, defer_validate)
+    # def __init__(self, path=None, defer_validate=_missing_param_sentinel):
+    #     # this init is only necessary because of the use of the sentinel
+    #     # for defer_validate; otherwise, the parent class's init
+    #     # would be all we needed and would be called automatically.
+    #     # Once we fully deprecate loading sample sheets without validation,
+    #     # we can remove this init and just use the parent class's init.
+    #     defer_validate = _check_validate_sentinel(defer_validate, path)
+    #     super().__init__(path=path, defer_validate=True)
+    #     self._validate_on_load(path, defer_validate)
 
 
 class MetagenomicSampleSheetv101(KLSampleSheetWithSampleContext):
@@ -1758,15 +1758,15 @@ class MetagenomicSampleSheetv101(KLSampleSheetWithSampleContext):
     _HEADER[_SHEET_VERSION_KEY] = '101'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        # this init is only necessary because of the use of the sentinel
-        # for defer_validate; otherwise, the parent class's init
-        # would be all we needed and would be called automatically.
-        # Once we fully deprecate loading sample sheets without validation,
-        # we can remove this init and just use the parent class's init.
-        defer_validate = _check_validate_sentinel(defer_validate, path)
-        super().__init__(path=path, defer_validate=True)
-        self._validate_on_load(path, defer_validate)
+    # def __init__(self, path=None, defer_validate=_missing_param_sentinel):
+    #     # this init is only necessary because of the use of the sentinel
+    #     # for defer_validate; otherwise, the parent class's init
+    #     # would be all we needed and would be called automatically.
+    #     # Once we fully deprecate loading sample sheets without validation,
+    #     # we can remove this init and just use the parent class's init.
+    #     defer_validate = _check_validate_sentinel(defer_validate, path)
+    #     super().__init__(path=path, defer_validate=True)
+    #     self._validate_on_load(path, defer_validate)
 
 
 class MetagenomicSampleSheetv100(KLSampleSheetWithReplicates):
@@ -1784,15 +1784,15 @@ class MetagenomicSampleSheetv100(KLSampleSheetWithReplicates):
         'Chemistry': 'Default',
     }
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        # this init is only necessary because of the use of the sentinel
-        # for defer_validate; otherwise, the parent class's init
-        # would be all we needed and would be called automatically.
-        # Once we fully deprecate loading sample sheets without validation,
-        # we can remove this init and just use the parent class's init.
-        defer_validate = _check_validate_sentinel(defer_validate, path)
-        super().__init__(path=path, defer_validate=True)
-        self._validate_on_load(path, defer_validate)
+    # def __init__(self, path=None, defer_validate=_missing_param_sentinel):
+    #     # this init is only necessary because of the use of the sentinel
+    #     # for defer_validate; otherwise, the parent class's init
+    #     # would be all we needed and would be called automatically.
+    #     # Once we fully deprecate loading sample sheets without validation,
+    #     # we can remove this init and just use the parent class's init.
+    #     defer_validate = _check_validate_sentinel(defer_validate, path)
+    #     super().__init__(path=path, defer_validate=True)
+    #     self._validate_on_load(path, defer_validate)
 
 
 class MetagenomicSampleSheetv90(KLSampleSheet):
@@ -1825,8 +1825,8 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
                              'sample_plate', 'sample_project',
                              'well_description', 'Sample_Well')
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        defer_validate = _check_validate_sentinel(defer_validate, path)
+    def __init__(self, path=None, defer_validate=False):
+        # defer_validate = _check_validate_sentinel(defer_validate, path)
         super().__init__(path=path, defer_validate=True)
         self._remapper = {
             'sample sheet Sample_ID': SS_SAMPLE_ID_KEY,
@@ -1868,8 +1868,8 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
     _CARRIED_PREP_COLUMNS = \
         _BASE_CARRIED_PREP_COLUMNS + AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        defer_validate = _check_validate_sentinel(defer_validate, path)
+    def __init__(self, path=None, defer_validate=False):
+        # defer_validate = _check_validate_sentinel(defer_validate, path)
         super().__init__(path=path, defer_validate=True)
         self._remapper = MappingProxyType(
             _BASE_METAG_REMAPPER | AbsQuantMixin._ABSQUANT_REMAPPER)
@@ -1881,15 +1881,15 @@ class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
     _HEADER[_SHEET_TYPE_KEY] = ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '11'
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        # this init is only necessary because of the use of the sentinel
-        # for defer_validate; otherwise, the parent class's init
-        # would be all we needed and would be called automatically.
-        # Once we fully deprecate loading sample sheets without validation,
-        # we can remove this init and just use the parent class's init.
-        defer_validate = _check_validate_sentinel(defer_validate, path)
-        super().__init__(path=path, defer_validate=True)
-        self._validate_on_load(path, defer_validate)
+    # def __init__(self, path=None, defer_validate=_missing_param_sentinel):
+    #     # this init is only necessary because of the use of the sentinel
+    #     # for defer_validate; otherwise, the parent class's init
+    #     # would be all we needed and would be called automatically.
+    #     # Once we fully deprecate loading sample sheets without validation,
+    #     # we can remove this init and just use the parent class's init.
+    #     defer_validate = _check_validate_sentinel(defer_validate, path)
+    #     super().__init__(path=path, defer_validate=True)
+    #     self._validate_on_load(path, defer_validate)
 
 
 class MetatranscriptomicSampleSheetv0(KLSampleSheet):
@@ -1916,8 +1916,8 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
 
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        defer_validate = _check_validate_sentinel(defer_validate, path)
+    def __init__(self, path=None, defer_validate=False):
+        # defer_validate = _check_validate_sentinel(defer_validate, path)
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
         self._validate_on_load(path, defer_validate)
@@ -1958,8 +1958,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                             'total_rna_concentration_ng_ul',
                             ELUTION_VOL_KEY)
 
-    def __init__(self, path=None, defer_validate=_missing_param_sentinel):
-        defer_validate = _check_validate_sentinel(defer_validate, path)
+    def __init__(self, path=None, defer_validate=False):
+        # defer_validate = _check_validate_sentinel(defer_validate, path)
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER | {
                 'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
@@ -2042,11 +2042,11 @@ def _parse_header(fp):
 
 
 def load_sample_sheet(sample_sheet_path,
-                      defer_validate=_missing_param_sentinel):
+                      defer_validate=False):
     # identify the sample-sheet type and version from the file header,
     # and return the corresponding SampleSheet() object loaded from the file.
-    defer_validate = _check_validate_sentinel(
-        defer_validate, sample_sheet_path)
+    # defer_validate = _check_validate_sentinel(
+    #     defer_validate, sample_sheet_path)
     header = _parse_header(sample_sheet_path)
     sheet_class = _id_sample_sheet_class_from_dict(header)
     sheet = sheet_class(sample_sheet_path, defer_validate=defer_validate)

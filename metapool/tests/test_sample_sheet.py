@@ -1749,17 +1749,17 @@ class ValidateSampleSheetTests(BaseTests):
         observed = sys.stdout.getvalue().strip()
         self.assertEqual(observed, expected)
 
-    def test_init_defer_validate_warning(self):
-        # Assure DeprecationWarning for sheet init w/o defer_validate param
-
-        with self.assertWarns(DeprecationWarning):
-            _ = MetagenomicSampleSheetv90(self.good_ss)
-
-    def test_load_sample_sheet_defer_validate_warning(self):
-        # Assure DeprecationWarning for load_sample_sheet w/o defer_validate
-
-        with self.assertWarns(DeprecationWarning):
-            _ = load_sample_sheet(self.good_ss)
+    # def test_init_defer_validate_warning(self):
+    #     # Assure DeprecationWarning for sheet init w/o defer_validate param
+    #
+    #     with self.assertWarns(DeprecationWarning):
+    #         _ = MetagenomicSampleSheetv90(self.good_ss)
+    #
+    # def test_load_sample_sheet_defer_validate_warning(self):
+    #     # Assure DeprecationWarning for load_sample_sheet w/o defer_validate
+    #
+    #     with self.assertWarns(DeprecationWarning):
+    #         _ = load_sample_sheet(self.good_ss)
 
     def test_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
