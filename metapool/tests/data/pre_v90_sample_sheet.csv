@@ -1,7 +1,5 @@
 [Header],,,,,,,,,,,
 IEMFileVersion,4,,,,,,,,,,
-SheetType,standard_metag,,,,,,,,,,
-SheetVersion,100,,,,,,,,,,
 Investigator Name,Knight,,,,,,,,,,
 Experiment Name,RKL0042,,,,,,,,,,
 Date,2/26/20,,,,,,,,,,
@@ -22,8 +20,8 @@ OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,,,,
 ,,,,,,,,,,,
 [Data],,,,,,,,,,,
 Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,syndna_pool_number,Well_description
-1,CDPH-SAL_Salmonella_Typhi_MDL-143,CDPH-SAL_Salmonella_Typhi_MDL-143,ProjectF_11661_P40,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,ProjectF_11661,pool1,CDPH-SAL_Salmonella Typhi_MDL-143
-1,CDPH-SAL_Salmonella_Typhi_MDL-144,CDPH-SAL_Salmonella_Typhi_MDL-144,ProjectF_11661_P40,C1,iTru7_107_08,CCGACTAT,iTru5_02_A,CTTCGCAA,ProjectF_11661,pool2,CDPH-SAL_Salmonella Typhi_MDL-144
+1,CDPH-SAL_Salmonella_Typhi_MDL 144,CDPH-SAL_Salmonella_Typhi_MDL-143,ProjectF_11661_P40,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,ProjectF_11661,pool1,CDPH-SAL_Salmonella Typhi_MDL-143
+1,CDPH-SAL_Salmonella_Typhi_MDL.144,CDPH-SAL_Salmonella_Typhi_MDL-144,ProjectF_11661_P40,C1,iTru7_107_08,CCGACTAT,iTru5_02_A,CTTCGCAA,ProjectF_11661,pool2,CDPH-SAL_Salmonella Typhi_MDL-144
 1,CDPH-SAL_Salmonella_Typhi_MDL-145,CDPH-SAL_Salmonella_Typhi_MDL-145,ProjectF_11661_P40,E1,iTru7_107_09,GCCTTGTT,iTru5_03_A,AACACCAC,ProjectF_11661,pool1,CDPH-SAL_Salmonella Typhi_MDL-145
 1,CDPH-SAL_Salmonella_Typhi_MDL-146,CDPH-SAL_Salmonella_Typhi_MDL-146,ProjectF_11661_P40,G1,iTru7_107_10,AACTTGCC,iTru5_04_A,CGTATCTC,ProjectF_11661,pool2,CDPH-SAL_Salmonella Typhi_MDL-146
 1,CDPH-SAL_Salmonella_Typhi_MDL-147,CDPH-SAL_Salmonella_Typhi_MDL-147,ProjectF_11661_P40,I1,iTru7_107_11,CAATGTGG,iTru5_05_A,GGTACGAA,ProjectF_11661,pool1,CDPH-SAL_Salmonella Typhi_MDL-147
@@ -114,8 +112,8 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,stALE_E_coli_A18_F18_I1_R1,stALE_E_coli_A18_F18_I1_R1,ProjectF_11661_P40,C23,iTru7_114_12,CTCAGAGT,iTru5_06_H,CCTCGTTA,ProjectF_11661,pool2,stALE_E. coli_A18.F18.I1.R1
 1,stALE_E_coli_A18_F39_I1_R1,stALE_E_coli_A18_F39_I1_R1,ProjectF_11661_P40,E23,iTru7_201_01,CTTGGATG,iTru5_07_H,CGATTGGA,ProjectF_11661,pool1,stALE_E. coli_A18.F39.I1.R1
 1,stALE_E_coli_A18_F130_I1_R1,stALE_E_coli_A18_F130_I1_R1,ProjectF_11661_P40,G23,iTru7_201_02,CAGTTGGA,iTru5_08_H,CCAACGAA,ProjectF_11661,pool2,stALE_E. coli_A18.F130.I1.R1
-1,3A,3A,ProjectG_tubes,I23,iTru7_201_03,GATAGGCT,iTru5_09_H,AGAAGGAC,ProjectG,pool1,3A
-1,4A,4A,ProjectG_tubes,K23,iTru7_201_04,TTGACAGG,iTru5_10_H,TGACCGTT,ProjectG,pool2,4A
+1,3A,3A,ProjectG_tubes,I23,iTru7_201_03,GATAGGCT,iTru5_09_H,AGAAGGAC,ProjectG_6123,pool1,3A
+1,4A,4A,ProjectG_tubes,K23,iTru7_201_04,TTGACAGG,iTru5_10_H,TGACCGTT,ProjectG_6123,pool2,4A
 1,BLANK_40_12G,BLANK_40_12G,ProjectF_11661_P40,M23,iTru7_201_05,AGAATGCC,iTru5_11_H,GCGTTAGA,ProjectF_11661,pool1,BLANK.40.12G
 1,BLANK_40_12H,BLANK_40_12H,ProjectF_11661_P40,O23,iTru7_201_06,CTACATCC,iTru5_12_H,TCTAGGAG,ProjectF_11661,pool2,BLANK.40.12H
 1,Pputida_JBEI__HGL_Pputida_107_BP6,Pputida_JBEI__HGL_Pputida_107_BP6,ProjectF_11661_P41,A2,iTru7_201_07,TCATGGTG,iTru5_13_A,GGTATAGG,ProjectF_11661,pool1,Pputida_JBEI__HGL_Pputida_107_BP6
@@ -210,9 +208,9 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,JM-Metabolic__GN0_2380,JM-Metabolic__GN0_2380,ProjectF_11661_P41_diluted,C24,iTru7_208_12,TGCGAACT,iTru5_18_H,GGCGAATA,ProjectF_11661,pool2,JM-Metabolic__GN0_2380
 1,JM-Metabolic__GN0_2393,JM-Metabolic__GN0_2393,ProjectF_11661_P41_diluted,E24,iTru7_209_01,GACTTAGG,iTru5_19_H,AGGAGGTT,ProjectF_11661,pool1,JM-Metabolic__GN0_2393
 1,JM-Metabolic__GN0_2404,JM-Metabolic__GN0_2404,ProjectF_11661_P41_diluted,G24,iTru7_209_02,ACACCAGT,iTru5_20_H,ACTCTGAG,ProjectF_11661,pool2,JM-Metabolic__GN0_2404
-1,5B,5B,ProjectG_tubes,I24,iTru7_209_03,CCTGATTG,iTru5_21_H,GCCTTCTT,ProjectG,pool1,5B
-1,6A,6A,ProjectG_tubes,K24,iTru7_209_04,TTGTGTGC,iTru5_22_H,TGGACCAT,ProjectG,pool2,6A
-1,BLANK_41_12G,BLANK_41_12G,ProjectF_11661_P41,M24,iTru7_209_05,TACCACAG,iTru5_23_H,GCATAGTC,ProjectG,pool1,BLANK.41.12G
+1,5B,5B,ProjectG_tubes,I24,iTru7_209_03,CCTGATTG,iTru5_21_H,GCCTTCTT,ProjectG_6123,pool1,5B
+1,6A,6A,ProjectG_tubes,K24,iTru7_209_04,TTGTGTGC,iTru5_22_H,TGGACCAT,ProjectG_6123,pool2,6A
+1,BLANK_41_12G,BLANK_41_12G,ProjectF_11661_P41,M24,iTru7_209_05,TACCACAG,iTru5_23_H,GCATAGTC,ProjectG_6123,pool1,BLANK.41.12G
 1,BLANK_41_12H,BLANK_41_12H,ProjectF_11661_P41,O24,iTru7_209_06,ATTCGAGG,iTru5_24_H,TACACACG,ProjectF_11661,pool2,BLANK.41.12H
 1,Deoxyribose_PALE_ALE__MG1655_BOP27_4_14,Deoxyribose_PALE_ALE__MG1655_BOP27_4_14,ProjectF_11661_P42,B1,iTru7_209_07,GCACGTAA,iTru5_101_A,AACAACCG,ProjectF_11661,pool1,Deoxyribose PALE ALE _MG1655_BOP27_4_14
 1,Deoxyribose_PALE_ALE__MG1655_BOP27_4_23,Deoxyribose_PALE_ALE__MG1655_BOP27_4_23,ProjectF_11661_P42,D1,iTru7_209_08,GTGTGACA,iTru5_102_A,AAGCCTGA,ProjectF_11661,pool2,Deoxyribose PALE ALE _MG1655_BOP27_4_23
@@ -306,8 +304,8 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,JM-Metabolic__GN05128,JM-Metabolic__GN05128,ProjectF_11661_P42_diluted,D23,iTru7_401_12,TGCTCATG,iTru5_106_H,GGAATGTC,ProjectF_11661,pool2,JM-Metabolic__GN05128
 1,JM-Metabolic__GN05367,JM-Metabolic__GN05367,ProjectF_11661_P42_diluted,F23,iTru7_402_01,TGAAGACG,iTru5_107_H,GAGAAGGT,ProjectF_11661,pool1,JM-Metabolic__GN05367
 1,JM-Metabolic__GN05377,JM-Metabolic__GN05377,ProjectF_11661_P42_diluted,H23,iTru7_402_02,GTTACGCA,iTru5_108_H,GAGTAGAG,ProjectF_11661,pool2,JM-Metabolic__GN05377
-1,7A,7A,ProjectG_tubes,J23,iTru7_402_03,ACTCAGAC,iTru5_109_H,GCATTGGT,ProjectG,pool1,7A
-1,8A,8A,ProjectG_tubes,L23,iTru7_402_04,GTCCACAT,iTru5_110_H,TCCAGCAA,ProjectG,pool2,8A
+1,7A,7A,ProjectG_tubes,J23,iTru7_402_03,ACTCAGAC,iTru5_109_H,GCATTGGT,ProjectG_6123,pool1,7A
+1,8A,8A,ProjectG_tubes,L23,iTru7_402_04,GTCCACAT,iTru5_110_H,TCCAGCAA,ProjectG_6123,pool2,8A
 1,BLANK_42_12G,BLANK_42_12G,ProjectF_11661_P42,N23,iTru7_402_05,CGCTAGTA,iTru5_111_H,GAATCCGT,ProjectF_11661,pool1,BLANK.42.12G
 1,BLANK_42_12H,BLANK_42_12H,ProjectF_11661_P42,P23,iTru7_402_06,GAATCCGA,iTru5_112_H,TACATCGG,ProjectF_11661,pool2,BLANK.42.12H
 1,JM-MEC__Staphylococcus_aureusstrain_BERTI-B0326,JM-MEC__Staphylococcus_aureusstrain_BERTI-B0326,ProjectF_11661_P43,B2,iTru7_402_07,GAGACGAT,iTru5_113_A,ATAACGCC,ProjectF_11661,pool1,JM-MEC__Staphylococcus aureusstrain BERTI-B0326
@@ -402,14 +400,14 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,JM-Metabolic__GN02449,JM-Metabolic__GN02449,ProjectF_11661_P43,D24,iTru7_106_12,TGGATCAC,iTru5_118_H,TGCACTTG,ProjectF_11661,pool2,JM-Metabolic__GN02449
 1,JM-Metabolic__GN02487,JM-Metabolic__GN02487,ProjectF_11661_P43_diluted,F24,iTru7_107_01,CTCTGGTT,iTru5_119_H,TAGAACGC,ProjectF_11661,pool1,JM-Metabolic__GN02487
 1,JM-Metabolic__GN02501,JM-Metabolic__GN02501,ProjectF_11661_P43,H24,iTru7_107_02,GTTCATGG,iTru5_120_H,GATTGTCC,ProjectF_11661,pool2,JM-Metabolic__GN02501
-1,ISB,ISB,ProjectG_tubes,J24,iTru7_107_03,GCTGTAAG,iTru5_121_H,GATGCTAC,ProjectG,pool1,ISB
-1,GFR,GFR,ProjectG_tubes,L24,iTru7_107_04,GTCGAAGA,iTru5_122_H,GAACGGTT,ProjectG,pool2,GFR
+1,ISB,ISB,ProjectG_tubes,J24,iTru7_107_03,GCTGTAAG,iTru5_121_H,GATGCTAC,ProjectG_6123,pool1,ISB
+1,GFR,GFR,ProjectG_tubes,L24,iTru7_107_04,GTCGAAGA,iTru5_122_H,GAACGGTT,ProjectG_6123,pool2,GFR
 1,BLANK_43_12G,BLANK_43_12G,ProjectF_11661_P43,N24,iTru7_107_05,GAGCTCAA,iTru5_123_H,CTCTTGTC,ProjectF_11661,pool1,BLANK.43.12G
 1,BLANK_43_12H,BLANK_43_12H,ProjectF_11661_P43,P24,iTru7_107_06,TGAACCTG,iTru5_124_H,AACGCCTT,ProjectF_11661,pool2,BLANK.43.12H
 1,RMA_KHP_rpoS_Mage_Q97D,RMA_KHP_rpoS_Mage_Q97D,,,12,CTTGTAAT,U1,TATAGCGT,ProjectF_11661,pool1,RMA_KHP_rpoS Mage Q97D
 1,RMA_KHP_rpoS_Mage_Q97L,RMA_KHP_rpoS_Mage_Q97L,,,13,AGTCAAAT,U1,TATAGCGT,ProjectF_11661,pool2,RMA_KHP_rpoS Mage Q97L
 1,RMA_KHP_rpoS_Mage_Q97N,RMA_KHP_rpoS_Mage_Q97N,,,14,AGTTCCAT,U1,TATAGCGT,ProjectF_11661,pool1,RMA_KHP_rpoS Mage Q97N
-1,RMA_KHP_rpoS_Mage_Q97E,RMA_KHP_rpoS_Mage_Q97E,,,15,ATGTCAAT,U1,TATAGCGT,ProjectF,pool2,RMA_KHP_rpoS Mage Q97E
+1,RMA_KHP_rpoS_Mage_Q97E,RMA_KHP_rpoS_Mage_Q97E,,,15,ATGTCAAT,U1,TATAGCGT,ProjectF_11661,pool2,RMA_KHP_rpoS Mage Q97E
 1,JBI_KHP_HGL_021,JBI_KHP_HGL_021,,,1,ATCACGAT,U2,ATAGAGGT,ProjectF_11661,pool1,JBI_KHP_HGL_021
 1,JBI_KHP_HGL_022,JBI_KHP_HGL_022,,,2,CGATGTAT,U2,ATAGAGGT,ProjectF_11661,pool2,JBI_KHP_HGL_022
 1,JBI_KHP_HGL_023,JBI_KHP_HGL_023,,,3,TTAGGCAT,U2,ATAGAGGT,ProjectF_11661,pool1,JBI_KHP_HGL_023
@@ -807,11 +805,9 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,EP479894B04,EP479894B04,ProjectN_13059_P4,P24,iTru7_107_08,AGCTAACC,iTru5_124_H,AACGCCTT,ProjectN_13059,pool1,EP479894B04
 ,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,
-ProjectN_13059,13059,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,False,,,
-ProjectF_11661,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,False,,,
-ProjectF,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,False,,,
-ProjectG,101,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,False,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,
+ProjectN_13059,13059,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,,,,
+ProjectF_11661,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,Eqiiperiment,,,,
 ,,,,,,,,,,,
 [Contact],,,,,,,,,,,
 Email,Sample_Project,,,,,,,,,,

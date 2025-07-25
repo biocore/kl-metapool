@@ -22,17 +22,17 @@ OverrideCycles,Y151;I8N2;I8N2;Y151,,,,,,,,,
 ,,,,,,,,,,
 [Data],,,,,,,,,,
 Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,index2,Sample_Project,Well_description
-1,CDPH-SAL_Salmonella_Typhi_MDL-143,CDPH-SAL_Salmonella_Typhi_MDL-143,Feist_11661_P40,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,Feist_11661,Desc_for_CDPH-SAL_Salmonella Typhi_MDL-143
-1,3A,3A,Gerwick_tubes,I23,iTru7_201_03,GATAGGCT,iTru5_09_H,AGAAGGAC,Gerwick_6123,Desc_for_3A
-1,LP127890A01,LP127890A01,NYU_BMS_Melanoma_13059_P1,I3,iTru7_108_09,TCTCTAGG,iTru5_01_B,AGTGGCAA,NYU_BMS_Melanoma_13059,Desc_for_LP127890A01
+1,CDPH-SAL_Salmonella_Typhi_MDL-143,CDPH-SAL_Salmonella_Typhi_MDL-143,ProjectF_11661_P40,A1,iTru7_107_07,CCGACTAT,iTru5_01_A,ACCGACAA,ProjectF_11661,Desc_for_CDPH-SAL_Salmonella Typhi_MDL-143
+1,3A,3A,ProjectG_tubes,I23,iTru7_201_03,GATAGGCT,iTru5_09_H,AGAAGGAC,ProjectG_6123,Desc_for_3A
+1,LP127890A01,LP127890A01,ProjectN_13059_P1,I3,iTru7_108_09,TCTCTAGG,iTru5_01_B,AGTGGCAA,ProjectN_13059,Desc_for_LP127890A01
 ,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,
-NYU_BMS_Melanoma_13059,13059,False,AACC,GGTT,TRUE ,Knight Lab Kapa HP,Eqiiperiment,false,,
-Feist_11661,11661,FALSE,AACC,GGTT,True,Knight Lab Kapa HP,Eqiiperiment,False,,
-Gerwick_6123,6123, FaLSe ,AACC,GGTT,trUE,Knight Lab Kapa HP,Eqiiperiment,FALSE,,
+ProjectN_13059,13059,False,AACC,GGTT,TRUE ,Knight Lab Kapa HP,Eqiiperiment,false,,
+ProjectF_11661,11661,FALSE,AACC,GGTT,True,Knight Lab Kapa HP,Eqiiperiment,False,,
+ProjectG_6123,6123, FaLSe ,AACC,GGTT,trUE,Knight Lab Kapa HP,Eqiiperiment,FALSE,,
 ,,,,,,,,,,
 [Contact],,,,,,,,,,
 Email,Sample_Project,,,,,,,,,
-test@lol.com,Feist_11661,,,,,,,,,
+test@lol.com,ProjectF_11661,,,,,,,,,
 ,,,,,,,,,,

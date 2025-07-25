@@ -24,6 +24,8 @@ SAMPLE_NAME_KEY = "sample_name"
 QIITA_ID_KEY = "qiita_id"
 SAMPLE_PROJECT_KEY = "sample_project"
 ORIG_NAME_KEY = "orig_name"
+DESTINATION_WELL_384_KEY = "destination_well_384"
+LIB_CONSTRUCT_PROTOCOL_KEY = "library_construction_protocol"
 EXPT_DESIGN_DESC_KEY = 'experiment_design_description'
 CONTAINS_REPLICATES_KEY = "contains_replicates"
 PROJECT_SHORT_NAME_KEY = "short_project_name"
@@ -68,7 +70,7 @@ EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
 def parse_project_name(project_name):
     """
     Split fully-qualified project_name into a short project_name and a qiita-id
-    :param project_name: A fully-qualified project name e.g: Feist_1161.
+    :param project_name: A fully-qualified project name e.g: ProjectF_1161.
     :return: Dictionary of qiita_id, short_project_name, and full_project_name
     """
     if project_name is None or project_name == '':
