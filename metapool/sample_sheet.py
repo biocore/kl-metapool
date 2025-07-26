@@ -2340,25 +2340,8 @@ def _demux_sample_sheet(sheet):
     """
     df = sample_sheet_to_dataframe(
         sheet, lcase_cols=False, add_protocol_info=False)
-
-    # use PlateReplication object to convert each sample's 384 well location
-    # into a 96-well location + quadrant. Since replication is performed at
-    # the plate-level, this will identify which replicates belong in which
-    # new sample-sheet.
-    plate = PlateReplication(None)
-
-    df['quad'] = df.apply(lambda row: plate.get_96_well_location_and_quadrant(
-        row[DESTINATION_WELL_384_KEY])[0], axis=1)
-
-    res = []
-
-    for quad in sorted(df['quad'].unique()):
-        # for each unique quadrant found, create a new dataframe that's a
-        # subset containing only members of that quadrant. Delete the temporary
-        # 'quad' column afterwards and reset the index to an integer value
-        # starting at zero; the current-index will revert to a column named
-        # 'sample_id'. Return the list of new dataframes.
-        res.append(df[df['quad'] == quad].drop(['quad'], axis=1))
+    pr = PlateReplication(None)
+    res = pr.unmake_replicates(df, DESTINATION_WELL_384_KEY)
 
     return res
 
