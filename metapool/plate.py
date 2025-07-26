@@ -805,9 +805,9 @@ class PlateReplication:
         Returns
         -------
         per_replicate_dataframes: list of pandas DataFrame
-            A list of DataFrames, each containing the records for one used quadrant
-            of the 384-well plate. If not every quadrant was used, the list
-            will be shorter than four.
+            A list of DataFrames, each containing the records for one used
+            quadrant of the 384-well plate. If not every quadrant was used,
+            the list will be shorter than four.
 
         """
         quad_col = "quad"
