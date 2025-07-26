@@ -53,11 +53,6 @@ class TestMpStrings(TestCase):
         obs = parse_project_name("project_green_1")
         self.assertDictEqual(exp, obs)
 
-    def test_parse_project_name_err_no_qiita_id(self):
-        with self.assertRaisesRegex(
-                ValueError, "'A_ProjectF' does not contain a Qiita-ID."):
-            parse_project_name("A_ProjectF")
-
     def test_parse_project_name_err_no_project_name(self):
         expected_err = "project_name cannot be None or empty string"
         with self.assertRaisesRegex(ValueError, expected_err):

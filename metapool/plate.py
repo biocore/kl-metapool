@@ -500,7 +500,7 @@ class PlateReplication:
     def _get_96_to_384_mapping_for_quadrant(quadrant):
         """
         Returns a dictionary keyed by 96-well plate location, with value being
-        that well's 384-well plate location if placed in the specified 
+        that well's 384-well plate location if placed in the specified
         quadrant using the "interleaved" mapping method.
         corresponding 384-well plate locations for the given quadrant.
 
@@ -520,7 +520,7 @@ class PlateReplication:
         if quadrant not in PlateReplication.quadrants:
             raise ValueError(f"Invalid quadrant '{quadrant}'. Must be one of "
                              f"{PlateReplication.quadrants}.")
-        
+
         d = OrderedDict()
         for curr_row_num in range(1, 9):
             row_96 = PlateReplication.row_letters[curr_row_num - 1]
@@ -568,9 +568,9 @@ class PlateReplication:
         self._rep_counters = {'1': 1, '2': 1, '3': 1, '4': 1}
 
         self._status = {'1': PlateReplication.STATUS_EMPTY,
-                       '2': PlateReplication.STATUS_EMPTY,
-                       '3': PlateReplication.STATUS_EMPTY,
-                       '4': PlateReplication.STATUS_EMPTY}
+                        '2': PlateReplication.STATUS_EMPTY,
+                        '3': PlateReplication.STATUS_EMPTY,
+                        '4': PlateReplication.STATUS_EMPTY}
 
         # this allows us to store output dataframes for each quadrant,
         # overwrite them on demand, and save final concatenation for when
@@ -725,7 +725,7 @@ class PlateReplication:
     def make_replicates(self, plate_df_384, replicates=None, overwrite=False):
         """
         Given a 384-well plate and replication orders, generate output.
-        :param plate_df_384: A plate dataframe (one row per sample) for a 
+        :param plate_df_384: A plate dataframe (one row per sample) for a
             384-well plate.
         :param replicates: A dict containing a source quadrant and a list of
         destinations e.g.: {1: [2, 3, 4]}
@@ -790,15 +790,17 @@ class PlateReplication:
 
     def unmake_replicates(self, combined_df, well_id_384_col_name):
         """
-        Splits a 384-well df into a list of 96-well dfs, one for each quadrant used
+        Splits 384-well df into list of 96-well dfs, one for each quadrant used
 
         Parameters
         ----------
         combined_df: pandas DataFrame
-            A DataFrame containing 384-well plate data, with a column of the name
-            given in the well_id_384_col param that contains the 384 well IDs.
+            A DataFrame containing 384-well plate data, with a column with the
+            name given in the well_id_384_col param containing the 384 well
+            locations
         well_id_384_col_name: str
-            The name of the column in combined_df that contains the 384 well IDs.
+            The name of the column in combined_df that contains the 384 well
+            locations
 
         Returns
         -------
@@ -822,10 +824,10 @@ class PlateReplication:
 
         for quad in sorted(combined_df[quad_col].unique()):
             # for each unique quadrant found, create a new dataframe that's a
-            # subset containing only members of that quadrant. Delete the temporary
-            # 'quad' column afterward and reset the index to an integer value
-            # starting at zero; the current-index will revert to a column named
-            # 'sample_id'. Return the list of new dataframes.
+            # subset containing only members of that quadrant. Delete the
+            # temporary 'quad' column afterward and reset the index to an int
+            # value starting at zero; the current-index will revert to a column
+            # named 'sample_id'. Return the list of new dataframes.
             per_replicate_dataframes.append(
                 combined_df[combined_df[quad_col] == quad].drop(
                     [quad_col], axis=1)
