@@ -2196,8 +2196,9 @@ class DemuxReplicatesTests(BaseTests):
         # called.
         sheet = MetagenomicSampleSheetv90(
             self.legacy_sheet_path, defer_validate=False)
-        err = "sample-sheet does not contain replicates"
-        with self.assertRaisesRegex(ValueError, err):
+        err_msg = ("sample sheet does not have a 'contains_replicates' "
+                   "column in the 'Bioinformatics' section.")
+        with self.assertRaisesRegex(ValueError, err_msg):
             demux_sample_sheet(sheet)
 
     def test_demux_sample_sheet_err_contains_replicates_inconsistent(self):

@@ -2377,7 +2377,9 @@ def demux_sample_sheet(sheet):
         list of sheets
     """
     if CONTAINS_REPLICATES_KEY not in sheet.Bioinformatics:
-        raise ValueError("sample-sheet does not contain replicates")
+        raise ValueError(
+            f"sample sheet does not have a '{CONTAINS_REPLICATES_KEY}' "
+            f"column in the '{_BIOINFORMATICS_KEY}' section.")
 
     contains_repl_value = sheet.contains_replicates()
 
