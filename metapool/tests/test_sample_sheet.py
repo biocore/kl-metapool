@@ -3042,9 +3042,14 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
         self.assertEqual(obs, exp)
         self.assertTrue(sheet2.validate_and_scrub_sample_sheet())
 
+    def test_katharoseq_enabled_sheet_load_no_state_change(self):
         # confirm that class-wide state is not permanently changed by loading
-        # a karathoseq-enabled file. Reloading sheet1 should continue to have
-        # only the shorter set of columns.
+        # a karathoseq-enabled file. Loading sheet1 (no katharoseq columns)
+        # after sheet2 (containing katharoseq columns) should yield a sheet1
+        # samplesheet with only the shorter set of columns.
+        sheet2 = load_sample_sheet(self.katharoseq_2)
+        self.assertEqual(type(sheet2), MetagenomicSampleSheetv102)
+
         sheet1 = load_sample_sheet(self.katharoseq_1, defer_validate=False)
         self.assertEqual(type(sheet1), MetagenomicSampleSheetv102)
         exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
