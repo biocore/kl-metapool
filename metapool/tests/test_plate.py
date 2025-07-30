@@ -626,8 +626,10 @@ class PlateValidationTests(TestCase):
 
 class PlateReplicationTests(TestCase):
     def setUp(self):
-        data_dir = os.path.dirname(__file__)
-        input_plate_fp = os.path.join(data_dir, 'data/input_plate.tsv')
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        self.data_dir = data_dir
+
+        input_plate_fp = os.path.join(data_dir, 'input_plate.tsv')
         self.input_df = pd.read_csv(input_plate_fp, sep='\t', dtype=str)
 
     def test_make_replicates_overwrite_source_quad(self):
@@ -638,17 +640,18 @@ class PlateReplicationTests(TestCase):
 
         obs = pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file1.tsv',
-                          sep='\t', dtype=str)
+        df_fp = os.path.join(self.data_dir, 'file1.tsv')
+        exp = pd.read_csv(df_fp, sep='\t', dtype=str)
 
         obs = obs.set_index('Sample')
         exp = exp.set_index('Sample')
 
         assert_frame_equal(obs, exp, check_like=True)
 
+    def test_make_replicates_no_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3 with overwrites not allowed. Should return an Error.
-
+        pr = PlateReplication('Library Well')
         with self.assertRaisesRegex(ValueError, 'Quadrant 3 is a source '
                                                 'quadrant'):
             pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=False)
@@ -727,6 +730,53 @@ class PlateReplicationTests(TestCase):
             pr.make_replicates(self.input_df, {1: [2], 2: [1]},
                                overwrite=False)
 
+    def test_unmake_replicates(self):
+        # Confirm that separating replicate sheet into per-replicate dfs works.
+        pr = PlateReplication(None)
+        df_fp = os.path.join(self.data_dir, 'file1.tsv')
+        df = pd.read_csv(df_fp, sep='\t', dtype=str)
+        obs = pr.unmake_replicates(df, "Library Well")
+        for i in range(1, 5):
+            curr_exp_fp = df_fp.replace('.tsv', f'_rep{i}.tsv')
+            # NB: the indexes of the separated dfs are preserved, not reset,
+            # so they had to be included in the expected test output files
+            # instead of just inferred from the record order.
+            curr_exp_df = pd.read_csv(
+                curr_exp_fp, sep='\t', dtype=str, index_col=0)
+            curr_obs_df = obs[i - 1]
+            assert_frame_equal(curr_exp_df, curr_obs_df)
+
+    def test_get_384_well_location(self):
+        # confirm that the remapping of wells from 96 to 384 works as intended.
+        pr = PlateReplication('Library Well')
+
+        obs = pr.get_384_well_location('A1', '3')
+        self.assertEqual(obs, 'B1')
+
+        obs = pr.get_384_well_location('H12', '1')
+        self.assertEqual(obs, 'O23')
+
+        obs = pr.get_384_well_location('H10', '2')
+        self.assertEqual(obs, 'O20')
+
+        obs = pr.get_384_well_location('A12', '4')
+        self.assertEqual(obs, 'B24')
+
+    def test_get_384_well_location_err(self):
+        # confirm that an error is raised when a well not in the 96-well plate
+        # is requested.
+        pr = PlateReplication('Library Well')
+
+        # well_id_96 is given without zero padding, so A1 is there but not A01
+        err_msg = "well_id_96 'A01' not found in quadrant '1'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.get_384_well_location('A01', '1')
+
+        # there is no well H13 on 96-well plates so this should raise an error
+        err_msg = "well_id_96 'H13' not found in quadrant '2'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.get_384_well_location('H13', '2')
+
 
 class PlateRemapperTests(TestCase):
     def setUp(self):
@@ -744,12 +794,12 @@ class PlateRemapperTests(TestCase):
         with self.assertRaisesRegex(ValueError, err_msg):
             PlateRemapper(input_df)
 
-    def test_get_384_well_location_happy(self):
+    def test_get_384_well_location(self):
         remapper = PlateRemapper(self.input_df)
         obs = remapper.get_384_well_location('H10', 'Plate_42')
         self.assertEqual(obs, 'P11')
 
-    def test_get_384_well_location_err_missing_well(self):
+    def test_get_384_well_location_err(self):
         remapper = PlateRemapper(self.input_df)
 
         # wells are given without zero padding, so A1 is in there but not A01
