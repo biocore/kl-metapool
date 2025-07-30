@@ -2130,7 +2130,7 @@ class DemuxReplicatesTests(BaseTests):
                                              'sheet_wo_replicates.csv')
 
         self.legacy_sheet_path = \
-            join(self.data_dir, 'good_standard_metagv90_sheet.csv')
+            join(self.data_dir, 'good_standard_metagv90.csv')
 
         self.replicate_output_paths = [join(self.data_dir,
                                             'replicate_output1.csv'),
@@ -2611,16 +2611,32 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
     def sample_sheet_fp(self):
         return join(self.data_dir, self.sample_sheet_name)
 
-    def _help_test_instantiate_sample_sheet_from_path(self, sheet_class):
-        sheet = sheet_class(self.sample_sheet_fp, defer_validate=False)
+    def _help_test_instantiate_sample_sheet_from_path(
+            self, sheet_class, sample_sheet_fp=None, output_cols=None):
+        if sample_sheet_fp is None:
+            sample_sheet_fp = self.sample_sheet_fp
+        if output_cols is None:
+            output_cols = self._OUTPUT_COLS
+
+        sheet = sheet_class(sample_sheet_fp, defer_validate=False)
 
         obs = sheet._get_expected_data_columns()
-        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
+
+        self.assertEqual(obs, tuple(output_cols))
 
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-    def _help_test_make_sample_sheet(self, sheet_class):
-        table = pd.DataFrame(columns=self._INPUT_COLS, data=self._INPUT_DATA)
+    def _help_test_make_sample_sheet(
+            self, sheet_class, input_cols=None, input_data=None,
+            output_cols=None):
+        if input_cols is None:
+            input_cols = self._INPUT_COLS
+        if input_data is None:
+            input_data = self._INPUT_DATA
+        if output_cols is None:
+            output_cols = self._OUTPUT_COLS
+
+        table = pd.DataFrame(columns=input_cols, data=input_data)
 
         metadata = self._make_metadata(self)
         sheet = make_sample_sheet(
@@ -2629,25 +2645,31 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, sheet_class)
         obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = set(self._OUTPUT_COLS) | {'Lane'}
+        exp_columns = set(output_cols) | {'Lane'}
         self.assertEqual(exp_columns, obs_columns)
 
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-        with open("good_standard_metagv0.csv", "w") as f:
-            sheet.write(f)
+    def _help_test_load_sample_sheet(
+            self, sheet_class, sample_sheet_fp=None, output_cols=None):
+        if sample_sheet_fp is None:
+            sample_sheet_fp = self.sample_sheet_fp
+        if output_cols is None:
+            output_cols = self._OUTPUT_COLS
 
-    def _help_test_load_sample_sheet(self, sheet_class):
-        sheet1 = load_sample_sheet(self.sample_sheet_fp, defer_validate=False)
+        sheet1 = load_sample_sheet(sample_sheet_fp, defer_validate=False)
         self.assertEqual(type(sheet1), sheet_class)
 
         obs = sheet1._get_expected_data_columns()
-        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
+        self.assertEqual(obs, tuple(output_cols))
 
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-    def _help_test_roundtrip_sample_sheet(self, sheet_class):
-        sheet1 = load_sample_sheet(self.sample_sheet_fp, defer_validate=False)
+    def _help_test_roundtrip_sample_sheet(
+            self, sheet_class, sample_sheet_fp=None):
+        if sample_sheet_fp is None:
+            sample_sheet_fp = self.sample_sheet_fp
+        sheet1 = load_sample_sheet(sample_sheet_fp, defer_validate=False)
         self.assertEqual(type(sheet1), sheet_class)
 
         self.maxDiff = None
@@ -2658,12 +2680,12 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
 
             # confirm that the written sample-sheet matches the original
             self._help_test_csv_files_exact_text_match(
-                self.sample_sheet_fp, tmp.name)
+                sample_sheet_fp, tmp.name)
 
 
 class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = MetagenomicSampleSheetv90
-    sample_sheet_name = "good_standard_metagv90_sheet.csv"
+    sample_sheet_name = "good_standard_metagv90.csv"
 
     _OUTPUT_COLS = [
         'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
