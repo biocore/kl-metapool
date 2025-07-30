@@ -32,7 +32,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    _ASSAY_KEY, _SHEET_VERSION_KEY,
                                    _SHEET_TYPE_KEY, _BIOINFORMATICS_KEY,
                                    _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
-from metapool.plate import ErrorMessage, WarningMessage
+from metapool.plate import WarningMessage
 from metapool.metapool import generate_override_cycles_value
 
 
@@ -653,36 +653,39 @@ class KLSampleSheetTests(BaseTests):
         self.md_ampl['Ride'] = 'the lightning'
 
         obs = sheet._validate_metadata_dict(self.md_ampl)
-        exp = [ErrorMessage('These metadata keys are not supported: Ride')]
-        self.assertEqual(obs, exp)
+        exp = ['ErrorMessage: These metadata keys are not supported: Ride']
+        msg_strs = [str(msg) for msg in obs]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_missing_assay(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Assay'] = 'NewAssayType'
 
         obs = sheet._validate_metadata_dict(self.md_ampl)
-        exp = [ErrorMessage("'NewAssayType' is not a supported Assay")]
-        self.assertEqual(obs, exp)
+        exp = ["ErrorMessage: 'NewAssayType' is not a supported Assay"]
+        msg_strs = [str(msg) for msg in obs]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_missing_bioinformatics_data(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics']
 
         obs = sheet._validate_metadata_dict(self.md_ampl)
-        exp = [ErrorMessage('Bioinformatics is a required attribute')]
-        self.assertEqual(obs, exp)
+        exp = ['ErrorMessage: Bioinformatics is a required attribute']
+        msg_strs = [str(msg) for msg in obs]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_missing_column_in_bioinformatics(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics'][0]['Sample_Project']
-        exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
-                            ' have exactly these keys BarcodesAreRC, '
-                            'ForwardAdapter, HumanFiltering, QiitaID, '
-                            'ReverseAdapter, Sample_Project, '
-                            'experiment_design_description, '
-                            'library_construction_protocol')]
+        exp = ['ErrorMessage: In the Bioinformatics section Project #1 does '
+               'not have exactly these keys BarcodesAreRC, '
+               'ForwardAdapter, HumanFiltering, QiitaID, '
+               'ReverseAdapter, Sample_Project, '
+               'experiment_design_description, '
+               'library_construction_protocol']
         obs = sheet._validate_metadata_dict(self.md_ampl)
-        self.assertEqual(str(obs[0]), str(exp[0]))
+        self.assertEqual(str(obs[0]), exp[0])
 
     def test_set_override_cycles(self):
         sheet = load_sample_sheet(self.good_ss, defer_validate=False)
@@ -1013,23 +1016,22 @@ class SampleSheetWorkflow(BaseTests):
         messages = sheet._validate_metadata_dict({})
 
         exp = [
-            ErrorMessage('Assay is a required attribute'),
-            ErrorMessage('Bioinformatics is a required attribute'),
-            ErrorMessage('Contact is a required attribute'),
+            'ErrorMessage: Assay is a required attribute',
+            'ErrorMessage: Bioinformatics is a required attribute',
+            'ErrorMessage: Contact is a required attribute',
         ]
 
-        self.assertEqual(messages, exp)
+        msg_strs = [str(msg) for msg in messages]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_sample_sheet_metadata_not_supported(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Rush'] = 'XYZ'
         messages = sheet._validate_metadata_dict(self.md_ampl)
 
-        exp = [
-                ErrorMessage('These metadata keys are not supported: Rush'),
-        ]
-
-        self.assertEqual(messages, exp)
+        exp = ['ErrorMessage: These metadata keys are not supported: Rush']
+        msg_strs = [str(msg) for msg in messages]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_sample_sheet_metadata_good(self):
         # self.md_ampl is patterned after legacy amplicon sample-sheet.
