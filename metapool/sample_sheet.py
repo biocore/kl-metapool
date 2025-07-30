@@ -189,6 +189,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                      _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = False
+    _ALLOW_MISSING_COLS = False
 
     # NB: Inside `make_sample_sheet`, the 'Well_description' column is
     # (over)written by concatenating project plate, sample, and well.
@@ -651,12 +652,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         table = self._remap_table(table, strict)
 
-        for column in self._get_expected_data_columns():
-            # NB: If modifying this, see issue #305; should be an error?
-            if column not in table.columns:
-                warnings.warn('The column %s in the sample sheet is empty' %
-                              column)
-                table[column] = ''
+        if self._ALLOW_MISSING_COLS:
+            for column in self._get_expected_data_columns():
+                # NB: If modifying this, see issue #305; should be an error?
+                if column not in table.columns:
+                    warnings.warn('The column %s in the sample sheet is '
+                                  'empty' % column)
+                    table[column] = ''
 
         if assay != _AMPLICON:
             if 'index2' in table.columns:
@@ -1715,6 +1717,8 @@ class AmpliconSampleSheet(KLSampleSheet):
                              SAMPLE_NAME_KEY,
                              'sample_plate', 'sample_project',
                              'well_description', _SS_SAMPLE_WELL_KEY)
+
+    _ALLOW_MISSING_COLS = True
 
     def __init__(self, path=None):
         super().__init__(path)
