@@ -486,7 +486,51 @@ def merge_plate_dfs(plate_df_one, plate_df_two, wells_col,
     return pd.merge(plate_df_one, plate_df_two, on=wells_col)
 
 
-class PlateReplication:
+class _WellMapper96to384:
+    """Mixin specifying interface for 96-well to 384-well mapping"""
+
+    def get_384_well_location(self, well_96_id, well_96_unit_id):
+        """Translate 96-well id + 96-well-plate unit id to 384-well id
+
+        Parameters
+        ----------
+        well_96_id : str
+            A 96-well plate ID such as "A1", "H12", etc.
+        well_96_unit_id : str
+            The identifier for the 96-well unit that the well_id_96 belongs
+             to.  Could be e.g. a plate name, or a quadrant number.
+
+        Returns
+        -------
+        str
+            The 384-well location corresponding to the 96-well location on
+            the specified plate.
+
+        Raises
+        -------
+        NotImplementedError
+            If the method is not implemented in the subclass.
+        """
+        raise NotImplementedError("Subclasses must implement this method")
+
+    def _raise_missing_well_error(
+            self, well_96_id, well_96_unit_id, well_96_unit_key):
+        """Raise an error indicating that the 96-well location was not found
+
+        Parameters
+        ----------
+        well_96_id : str
+            A 96-well plate ID such as "A1", "H12", etc.
+        well_96_unit_id : str
+            The identifier for the 96-well unit that the well_id_96 belongs
+             to.  Could be e.g. a plate name, or a quadrant number.
+        """
+        raise ValueError(
+            f"{PM_WELL_ID_96_KEY} '{well_96_id}' not found in "
+            f"{well_96_unit_key} '{well_96_unit_id}'")
+
+
+class PlateReplication(_WellMapper96to384):
     STATUS_EMPTY = 'empty'
     STATUS_SOURCE = 'source'
     STATUS_DESTINATION = 'destination'
@@ -836,19 +880,22 @@ class PlateReplication:
         return per_replicate_dataframes
 
     def get_384_well_location(self, well_96_id, quadrant):
-        '''
+        """
         Translate a 96-well plate + a quadrant into a 384-well plate cell
         :param well_96_id: A 96-well plate ID
         :param quadrant: A quadrant of a 384-well plate e.g. '1', '2', '3', '4'
         :return: A 384-well plate ID
-        '''
+        """
         quadrant = str(quadrant)
         if quadrant in self._mapping_dicts_by_quadrant:
             if well_96_id in self._mapping_dicts_by_quadrant[quadrant]:
                 return self._mapping_dicts_by_quadrant[quadrant][well_96_id]
 
+        self._raise_missing_well_error(
+            well_96_id, quadrant, "quadrant")
 
-class PlateRemapper:
+
+class PlateRemapper(_WellMapper96to384):
     def __init__(self, a_df):
         """ Initialize a PlateRemapper object
 
@@ -897,9 +944,8 @@ class PlateRemapper:
                     (self._df[PM_WELL_ID_96_KEY] == well_96_id)
 
         if not well_mask.any():
-            raise ValueError(
-                f"{PM_WELL_ID_96_KEY} '{well_96_id}' not found in "
-                f"{PM_PROJECT_PLATE_KEY} '{plate_name}'")
+            self._raise_missing_well_error(
+                well_96_id, plate_name, PM_PROJECT_PLATE_KEY)
 
         # get a single value from the dataframe
         result = self._df.loc[well_mask, PM_WELL_ID_384_KEY].values[0]
