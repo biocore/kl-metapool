@@ -2710,6 +2710,9 @@ class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_MetagenomicSampleSheetv90_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_MetagenomicSampleSheetv90_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = MetagenomicSampleSheetv100
@@ -2723,6 +2726,9 @@ class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_MetagenomicSampleSheetv100_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv100_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2745,6 +2751,9 @@ class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_MetagenomicSampleSheetv101_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv101_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2791,6 +2800,9 @@ class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_AbsQuantSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_AbsQuantSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class AbsQuantSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = AbsQuantSampleSheetv11
@@ -2812,6 +2824,9 @@ class AbsQuantSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_AbsQuantSampleSheetv11_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_AbsQuantSampleSheetv11_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class TellseqMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2848,6 +2863,9 @@ class TellseqMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_TellseqMetagSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_TellseqMetagSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class TellseqAbsquantMetagSampleSheetv10CreationTests(
@@ -2893,6 +2911,9 @@ class TellseqAbsquantMetagSampleSheetv10CreationTests(
     def test_TellseqAbsquantMetagSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_TellseqAbsquantMetagSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class MetatranscriptomicSampleSheetv10CreationTests(
         SampleSheetLoadMakeAndLoadTests):
@@ -2934,6 +2955,9 @@ class MetatranscriptomicSampleSheetv10CreationTests(
 
     def test_MetatranscriptomicSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_MetatranscriptomicSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -3007,14 +3031,8 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_MetagenomicSampleSheetv102_load_sample_sheet_wo_kath(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
-        self.test_sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
-                     'contains_replicates', 'library_construction_protocol',
-                     'experiment_design_description'], data=[
-                ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
-                 'False', 'protocol_1', 'a designed experiment']
-            ])
+    def test_MetagenomicSampleSheetv102_roundtrip_wo_kath(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
     def test_MetagenomicSampleSheetv102_instantiate_from_path_w_kath(self):
         self._help_test_instantiate_sample_sheet_from_path(
@@ -3031,30 +3049,9 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
             self.sheet_class, self.good_w_katharoseq_sheet_fp,
             self._KATH_OUTPUT_COLS)
 
-        # because sheet1 does not contain karathoseq samples, it should not
-        # contain additional karathoseq-specific columns.
-        exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-               'Sample_Project',
-               'Well_description')
-        self.assertEqual(obs, exp)
-        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
-
-    def test_katharoseq_enabled_sheet_load_w_kath_samples(self):
-        # load metagenomic sample-sheet w/katharoseq samples in the [Data]
-        # section, and perform similar tests.
-        sheet2 = load_sample_sheet(self.katharoseq_2, defer_validate=False)
-        self.assertEqual(type(sheet2), MetagenomicSampleSheetv102)
-        exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-               'Sample_Project', 'Well_description', 'Kathseq_RackID',
-               TUBECODE_KEY, 'katharo_description', 'number_of_cells',
-               'platemap_generation_date', 'project_abbreviation',
-               'vol_extracted_elution_ul', 'well_id_96')
-        obs = sheet2._get_expected_data_columns()
-
-        self.assertEqual(obs, exp)
-        self.assertTrue(sheet2.validate_and_scrub_sample_sheet())
+    def test_MetagenomicSampleSheetv102_roundtrip_w_kath(self):
+        self._help_test_roundtrip_sample_sheet(
+            self.sheet_class, self.good_w_katharoseq_sheet_fp)
 
     def test_katharoseq_enabled_sheet_load_no_state_change(self):
         # confirm that class-wide state is not permanently changed by loading

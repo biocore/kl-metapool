@@ -119,7 +119,7 @@ BLANK_E17_test,BLANK.E17.test,Tumor_Community_P7,P6,C596,Tellseq_Shortread_Metag
 ,,,,,,,,
 [Bioinformatics],,,,,,,,
 Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates
-Tellseq_Shortread_Metagenomic_Analysis_00000,00000,TRUE,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,TRUE,tellseq,tellseq metagenomics,FALSE
+Tellseq_Shortread_Metagenomic_Analysis_00000,00000,True,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,tellseq,tellseq metagenomics,False
 ,,,,,,,,
 [Contact],,,,,,,,
 Sample_Project,Email,,,,,,,
@@ -133,3 +133,4 @@ BLANK.O15.test,control blank,00000,,,,,,
 BLANK.A17.test,control blank,00000,,,,,,
 BLANK.C17.test,control blank,00000,,,,,,
 BLANK.E17.test,control blank,00000,,,,,,
+,,,,,,,,
