@@ -202,8 +202,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                      'Well_description')
 
     _column_alts = MappingProxyType({'well_description': 'Well_description',
-                                     'description': 'Well_description',
-                                     'Description': 'Well_description',
+                                     'description': 'a_description',
+                                     'Description': 'a_description',
                                      'sample_plate': 'Sample_Plate'})
 
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
@@ -603,7 +603,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         result = table.copy(deep=True)
 
         if strict:
-            # All columns not defined in _remapper will be filtered result.
+            # All columns not defined in _remapper will be removed from result.
             result = table[self._remapper.keys()].copy()
             result.rename(self._remapper, axis=1, inplace=True)
         else:
@@ -996,6 +996,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             return
 
         # otherwise, validate the sample sheet
+        self._validate_loaded_sheet_or_error()
+
+    def _validate_loaded_sheet_or_error(self):
         msgs = self._validate_loaded_sheet()
         if msgs:
             err_str = '\n'.join([x.message for x in msgs])
@@ -1350,34 +1353,34 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         msgs = []
 
-        # Note: this method is used by all sample sheets, and not all
-        # sample sheets include SampleContext, so it is not listed here.
-        for req in [_ASSAY_KEY, _BIOINFORMATICS_KEY, _CONTACT_KEY]:
+        req_section_keys = [_ASSAY_KEY] + \
+            list(self._KL_ADDTL_DF_SECTIONS.keys()).copy()
+        for req in req_section_keys:
             if req not in metadata:
                 msgs.append(ErrorMessage('%s is a required attribute' % req))
 
         # if bioinfo and contact sections are found, then check that all the
         # columns in all dataframe sections are present; note that checks for
         # contents (as opposed to mere presence) are done elsewhere
-        if _BIOINFORMATICS_KEY in metadata and _CONTACT_KEY in metadata:
-            for section, cols_info in self._KL_ADDTL_DF_SECTIONS.items():
+        for section_key, cols_info in self._KL_ADDTL_DF_SECTIONS.items():
+            if metadata.get(section_key) is not None:
                 columns = frozenset(cols_info.keys())
 
-                for i, project in enumerate(metadata[section]):
+                for i, project in enumerate(metadata[section_key]):
                     if set(project.keys()) != columns:
                         message = (('In the %s section Project #%d does not '
                                     'have exactly these keys %s') %
-                                   (section, i + 1, ', '.join(sorted(columns)))
+                                   (section_key, i + 1, ', '.join(sorted(columns)))
                                    )
                         msgs.append(ErrorMessage(message))
-                    if section == _BIOINFORMATICS_KEY:
+                    if section_key == _BIOINFORMATICS_KEY:
                         for curr_key in [LIB_CONSTRUCT_PROTOCOL_KEY,
                                          EXPT_DESIGN_DESC_KEY]:
                             curr_val = project.get(curr_key, "")
                             if curr_val == '':
                                 message = (('In the %s section Project #%d '
                                             'does not have %s specified') %
-                                           (section, i + 1, curr_key))
+                                           (section_key, i + 1, curr_key))
                                 msgs.append(ErrorMessage(message))
         if metadata.get(_ASSAY_KEY) is not None and metadata[_ASSAY_KEY] \
                 not in self._ASSAYS:
@@ -2147,7 +2150,8 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
     return sheet_class
 
 
-def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
+def make_sample_sheet(metadata, table, sequencer, lanes,
+                      strict=None, defer_validate=False):
     """Write a valid sample sheet
 
     Parameters
@@ -2237,23 +2241,26 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
                                  strict)
 
         # now that we have a SampleSheet() object, validate it for any
-        # additional errors that may have been present in the data and/or
-        # metadata.
-        messages = sheet.quiet_validate_and_scrub_sample_sheet()
+        # additional errors that may be present in the data and/or metadata.
+        if defer_validate:
+            # gather messages but do not raise an error
+            messages = sheet.quiet_validate_and_scrub_sample_sheet()
+        else:
+            # error out if there are any issues
+            sheet._validate_loaded_sheet_or_error()
+    # end if initial metadata validation produced no messages
 
-        if not any([isinstance(m, ErrorMessage) for m in messages]):
-            # No error messages equals success.
-            # Echo any warning messages.
-            for warning_msg in messages:
-                warning_msg.echo()
-            return sheet
-
-    # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
+    # Echo all messages, both ErrorMessages and WarningMessages.
     msgs = []
     for message in messages:
         msgs.append(str(message))
         message.echo()
 
+    # if none of the messages are errors, then it is ok to return the sheet
+    if not any([isinstance(m, ErrorMessage) for m in messages]):
+        return sheet
+
+    # if we got here, then there are errors in the sample-sheet.
     # Introduce an exception raised for API calls that aren't reporting echo()
     # to the user. Specifically, calls from other modules rather than
     # notebooks. These legacy calls may or may not be testing the returned

@@ -1083,18 +1083,30 @@ class SampleSheetWorkflow(BaseTests):
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
 
-        message2 = (r"ErrorMessage: The following projects need to be in the "
-                    "Data and Bioinformatics sections: Koening_ITS_101, "
-                    "THDMI_10317, Yanomani_2008_10052")
+        message2_defer_true_prefix = r"ErrorMessage"
+        message2_defer_false_prefix = r"Sample sheet instantiation failed"
+        message2 = (r": The following "
+                    r"projects need to be in the Data and Bioinformatics "
+                    r"sections: Koening_ITS_101, THDMI_10317, "
+                    r"Yanomani_2008_10052")
 
         with self.assertWarnsRegex(UserWarning, message):
             table2 = self.table.copy(deep=True)
 
-            # first, assert that make_sample_sheet() raises an Error when the
-            # projects are improperly defined.
-            with self.assertRaisesRegex(ValueError, message2):
+            # assert that make_sample_sheet() raises an Error when the
+            # projects are improperly defined; if defer_validate is True,
+            # the error message starts with "ErrorMessage"
+            msg2_defer_true = message2_defer_true_prefix + message2
+            with self.assertRaisesRegex(ValueError, msg2_defer_true):
                 make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
-                                  strict=False)
+                                  strict=False, defer_validate=True)
+
+            # alternately, if defer_validate is False, the error message
+            # starts with "Sample sheet instantiation failed".
+            msg2_defer_false = message2_defer_false_prefix + message2
+            with self.assertRaisesRegex(ValueError, msg2_defer_false):
+                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
+                                  strict=False, defer_validate=False)
 
             # second, correct the errors in the [Data] section.
             table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
