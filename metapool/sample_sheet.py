@@ -1368,10 +1368,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
                 for i, project in enumerate(metadata[section_key]):
                     if set(project.keys()) != columns:
-                        message = (('In the %s section Project #%d does not '
-                                    'have exactly these keys %s') %
-                                   (section_key, i + 1, ', '.join(sorted(columns)))
-                                   )
+                        message = (f"In the {section_key} section "
+                                   f"Project {i + 1} does not have exactly "
+                                   f"these keys {', '.join(sorted(columns))}")
                         msgs.append(ErrorMessage(message))
                     if section_key == _BIOINFORMATICS_KEY:
                         for curr_key in [LIB_CONSTRUCT_PROTOCOL_KEY,
