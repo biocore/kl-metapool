@@ -791,22 +791,8 @@ def pre_prep_needs_demuxing(pre_prep):
     bool
         True if pre-prep needs to be demultiplexed.
     """
-    if 'contains_replicates' in pre_prep:
-        contains_replicates = pre_prep.contains_replicates.apply(
-            lambda x: x.lower() == 'true').unique()
-
-        # By convention, all values in this column must either be True or
-        # False.
-        if len(contains_replicates) > 1:
-            raise ValueError("all values in contains_replicates column must "
-                             "either be True or False")
-
-        # return either True or False, depending on the values found.
-        return list(contains_replicates)[0]
-
-    # legacy pre-prep does not handle replicates or no replicates were
-    # found.
-    return False
+    return PlateReplication.df_contains_replicates(
+        pre_prep, "pre-prep")
 
 
 def demux_pre_prep(pre_prep):

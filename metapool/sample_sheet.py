@@ -16,6 +16,7 @@ from metapool.mp_strings import parse_project_name, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY
+from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
     DELETE_SETTINGS_KEY
@@ -1294,7 +1295,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         msgs = []
 
         def func(x):
-            result = _convert_to_bool(x)
+            result = convert_to_bool(x)
             if result is not None:
                 return result
 
@@ -1453,29 +1454,8 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         self._validate_on_load(path, defer_validate)
 
     def contains_replicates(self, table=None):
-        if self.Bioinformatics is None:
-            return False
-
-        contains_replicates = self.Bioinformatics[
-            CONTAINS_REPLICATES_KEY].unique().tolist()
-
-        # by convention, all projects in the sample-sheet are either going
-        # to be True or False. If some projects are True while others are
-        # False, we should raise an Error.
-        if len(contains_replicates) > 1:
-            raise ValueError(f"All projects in {_BIOINFORMATICS_KEY} section "
-                             f"must either contain replicates or not.")
-
-        # return either True or False, depending on the values found in
-        # Bioinformatics section.
-        found_val = list(contains_replicates)[0]
-        found_bool = _convert_to_bool(found_val)
-        if found_bool is None:
-            raise ValueError(f"'{found_val}' is not a valid value for "
-                             f"'{CONTAINS_REPLICATES_KEY}' in "
-                             f"'{_BIOINFORMATICS_KEY}' section. "
-                             f"Must be 'True' or 'False'.")
-        return found_bool
+        return PlateReplication.df_contains_replicates(
+            self.Bioinformatics, f"{_BIOINFORMATICS_KEY} section")
 
 
 class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
@@ -2545,20 +2525,6 @@ def make_sections_dict(plate_df, studies_info, expt_name, expt_type,
             plate_df, blanks_mask=plate_df[PM_BLANK_KEY])
 
     return sections_dict
-
-
-def _convert_to_bool(x):
-    if type(x) is bool:
-        # column type is already correct.
-        return x
-    elif type(x) is str:
-        # strings should be converted to bool if possible.
-        if x.strip().lower() == 'true':
-            return True
-        elif x.strip().lower() == 'false':
-            return False
-
-    return None
 
 
 def _strip_quotes(input_str):

@@ -184,3 +184,17 @@ def drop_unnamed_nan_columns(df):
             if col.startswith('Unnamed:') and df[col].isna().all()
         ]
     )
+
+
+def convert_to_bool(x):
+    if type(x) is bool:
+        # column type is already correct.
+        return x
+    elif type(x) is str:
+        # strings should be converted to bool if possible.
+        if x.strip().lower() == 'true':
+            return True
+        elif x.strip().lower() == 'false':
+            return False
+
+    return None

@@ -776,6 +776,98 @@ class PlateReplicationTests(TestCase):
         with self.assertRaisesRegex(ValueError, err_msg):
             pr.get_384_well_location('H13', '2')
 
+    def test_df_contains_replicates_false_none_input(self):
+        pr = PlateReplication('Library Well')
+        obs = pr.df_contains_replicates(None, "none df")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_false_no_col(self):
+        pr = PlateReplication('Library Well')
+        obs = pr.df_contains_replicates(self.input_df, "no replicates")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_false_uniform(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # all rows have contain_replicates = False
+        df[CONTAINS_REPLICATES_KEY] = False
+        obs = pr.df_contains_replicates(df, "with replicates")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_false_mixed_falses(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # most rows have contain_replicates = False
+        # and one has the string "fAlse", so all are considered False
+        df[CONTAINS_REPLICATES_KEY] = False
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[0, CONTAINS_REPLICATES_KEY] = "fAlse"
+        obs = pr.df_contains_replicates(df, "with replicates str")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_true_uniform(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # all rows have contain_replicates = True
+        df[CONTAINS_REPLICATES_KEY] = True
+        obs = pr.df_contains_replicates(df, "with replicates")
+        self.assertTrue(obs)
+
+    def test_df_contains_replicates_true_mixed_trues(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # most rows have contain_replicates = True
+        # and one has the string "true", so all are considered True
+        df[CONTAINS_REPLICATES_KEY] = True
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[0, CONTAINS_REPLICATES_KEY] = "true"
+        obs = pr.df_contains_replicates(df, "with replicates str")
+        self.assertTrue(obs)
+
+    def test_df_contains_replicates_err_mixed_bools(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # some rows have contain_replicates = True and some False
+        df[CONTAINS_REPLICATES_KEY] = True
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[1, CONTAINS_REPLICATES_KEY] = "False"
+        err_msg = ("All projects in mixed bools test must either "
+                   "contain replicates or not.")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.df_contains_replicates(df, "mixed bools test")
+
+    def test_df_contains_replicates_err_non_bools(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # some rows have contain_replicates = True and some False
+        df[CONTAINS_REPLICATES_KEY] = True
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[1, CONTAINS_REPLICATES_KEY] = "Blue"
+        df.loc[2, CONTAINS_REPLICATES_KEY] = "Green"
+        err_msg = ("Values for 'contains_replicates' in 'non-bools test' must "
+                   "be True or False. The following values are not valid: "
+                   "Blue, Green")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.df_contains_replicates(df, "non-bools test")
+
 
 class PlateRemapperTests(TestCase):
     def setUp(self):

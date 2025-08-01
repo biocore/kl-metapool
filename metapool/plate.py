@@ -13,6 +13,7 @@ from metapool.mp_strings import EXPT_DESIGN_DESC_KEY, PM_PROJECT_NAME_KEY, \
     PM_WELL_KEY, PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, \
     ORIG_NAME_KEY, CONTAINS_REPLICATES_KEY, \
     PM_WELL_ID_96_KEY, PM_WELL_ID_384_KEY
+from metapool.util import convert_to_bool
 
 EXPECTED_COLUMNS = {
     'Plate Position', 'Plate map file', 'Plate elution volume',
@@ -585,6 +586,41 @@ class PlateReplication(_WellMapper96to384):
                 d[curr_96_well_id] = curr_384_well_id
 
         return d
+
+    @staticmethod
+    def df_contains_replicates(a_df, df_name):
+        if a_df is None or CONTAINS_REPLICATES_KEY not in a_df:
+            return False
+
+        contains_rep_vals = a_df[CONTAINS_REPLICATES_KEY].tolist()
+
+        contains_rep_bools = []
+        illegal_vals = []
+        for val in contains_rep_vals:
+            bool_val = convert_to_bool(val)
+            if bool_val is None:
+                illegal_vals.append(val)
+            else:
+                contains_rep_bools.append(bool_val)
+        # next val
+
+        if illegal_vals:
+            err_msg = (f"Values for '{CONTAINS_REPLICATES_KEY}' in "
+                       f"'{df_name}' must be True or False. The following "
+                       f"values are not valid: {', '.join(illegal_vals)}")
+            raise ValueError(err_msg)
+
+        # remove duplicates, so we can check if all values are the same
+        contains_replicates = list(set(contains_rep_bools))
+
+        # by convention, all projects described together are either going
+        # to be True or False. If some entries are True while others are
+        # False, we should raise an Error.
+        if len(contains_replicates) > 1:
+            raise ValueError(f"All projects in {df_name} "
+                             f"must either contain replicates or not.")
+
+        return contains_replicates[0]
 
     def __init__(self, dest_well_column_name):
         self._mapping_dicts_by_quadrant = {}

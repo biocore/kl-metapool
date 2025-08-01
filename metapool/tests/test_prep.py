@@ -1930,9 +1930,8 @@ class TestPrePrepReplicates(TestCase):
         # Confirm that a pre-prep file w/contains_replicates column defined
         # w/some samples expressing True while others are False returns an
         # Error.
-        with self.assertRaisesRegex(ValueError, 'all values in contains_'
-                                                'replicates column must either'
-                                                ' be True or False'):
+        err = "All projects in pre-prep must either contain replicates or not."
+        with self.assertRaisesRegex(ValueError, err):
             sheet = parse_prep(self.prep_w_mixed_replicates)
             pre_prep_needs_demuxing(sheet)
 
