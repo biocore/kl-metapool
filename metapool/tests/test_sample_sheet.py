@@ -2737,8 +2737,9 @@ class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
     sample_sheet_name = "good_standard_metagv100_wo_replicates.csv"
     replicates_sheet_name = "good_standard_metagv100_w_replicates.csv"
 
-    _REP_INPUT_COLS = SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + \
-                      [ORIG_NAME_KEY, "Library Well"]
+    _REP_INPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + \
+        [ORIG_NAME_KEY, "Library Well"]
 
     _REP_OUTPUT_COLS = \
         SampleSheetLoadMakeAndLoadTests._OUTPUT_COLS.copy() + \
