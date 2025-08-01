@@ -13,6 +13,7 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
+from metapool.mp_strings import CONTAINS_REPLICATES_KEY
 
 
 class DilutionTests(TestCase):
@@ -632,6 +633,17 @@ class PlateReplicationTests(TestCase):
         input_plate_fp = os.path.join(data_dir, 'input_plate.tsv')
         self.input_df = pd.read_csv(input_plate_fp, sep='\t', dtype=str)
 
+    def _help_test_make_replicates(self, exp_out_fname, obs_df):
+        df_fp = os.path.join(self.data_dir, exp_out_fname)
+        exp = pd.read_csv(df_fp, sep='\t', dtype=str)
+        exp[CONTAINS_REPLICATES_KEY] = \
+            exp[CONTAINS_REPLICATES_KEY].astype(bool)
+
+        obs = obs_df.set_index('Sample')
+        exp = exp.set_index('Sample')
+
+        assert_frame_equal(obs, exp, check_like=True)
+
     def test_make_replicates_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3.
@@ -640,13 +652,7 @@ class PlateReplicationTests(TestCase):
 
         obs = pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=True)
 
-        df_fp = os.path.join(self.data_dir, 'file1.tsv')
-        exp = pd.read_csv(df_fp, sep='\t', dtype=str)
-
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
+        self._help_test_make_replicates("file1.tsv", obs)
 
     def test_make_replicates_no_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
@@ -663,13 +669,7 @@ class PlateReplicationTests(TestCase):
 
         obs = pr.make_replicates(self.input_df, {3: [2, 4]}, overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file2.tsv',
-                          sep='\t', dtype=str)
-
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
+        self._help_test_make_replicates("file2.tsv", obs)
 
     def test_make_replicates_two_source_quads(self):
         # confirm that two sources can be replicated successfully.
@@ -678,13 +678,7 @@ class PlateReplicationTests(TestCase):
         obs = pr.make_replicates(self.input_df, {1: [2], 3: [4]},
                                  overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file3.tsv',
-                          sep='\t', dtype=str)
-
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
+        self._help_test_make_replicates("file3.tsv", obs)
 
     def test_make_replicates_non_list_input_params(self):
         # confirm conversion to lists works as intended.
@@ -692,15 +686,9 @@ class PlateReplicationTests(TestCase):
 
         obs = pr.make_replicates(self.input_df, {1: 2, 3: 4}, overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file4.tsv',
-                          sep='\t', dtype=str)
+        self._help_test_make_replicates("file4.tsv", obs)
 
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
-
-    def test_replicate_empty_quad(self):
+    def test_make_replicates_err_empty_quads(self):
         # confirm replicating an empty quad to an empty quad raises an Error.
 
         pr = PlateReplication('Library Well')
@@ -730,12 +718,23 @@ class PlateReplicationTests(TestCase):
             pr.make_replicates(self.input_df, {1: [2], 2: [1]},
                                overwrite=False)
 
-    def test_unmake_replicates(self):
-        # Confirm that separating replicate sheet into per-replicate dfs works.
-        pr = PlateReplication(None)
+    def test_unmake_replicates_err(self):
+        # confirm an error if destination column is not in dataframe
+
+        pr = PlateReplication("LibWell")
         df_fp = os.path.join(self.data_dir, 'file1.tsv')
         df = pd.read_csv(df_fp, sep='\t', dtype=str)
-        obs = pr.unmake_replicates(df, "Library Well")
+
+        err = "Column 'LibWell' not found in the input dataframe"
+        with self.assertRaisesRegex(ValueError, err):
+            pr.unmake_replicates(df)
+
+    def test_unmake_replicates(self):
+        # Confirm that separating replicate sheet into per-replicate dfs works.
+        pr = PlateReplication(None)  # defaults to 'Library Well' as dest well
+        df_fp = os.path.join(self.data_dir, 'file1.tsv')
+        df = pd.read_csv(df_fp, sep='\t', dtype=str)
+        obs = pr.unmake_replicates(df)
         for i in range(1, 5):
             curr_exp_fp = df_fp.replace('.tsv', f'_rep{i}.tsv')
             # NB: the indexes of the separated dfs are preserved, not reset,

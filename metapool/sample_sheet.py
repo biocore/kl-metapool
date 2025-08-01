@@ -2355,8 +2355,8 @@ def _demux_sample_sheet(sheet):
     """
     df = sample_sheet_to_dataframe(
         sheet, lcase_cols=False, add_protocol_info=False)
-    pr = PlateReplication(None)
-    res = pr.unmake_replicates(df, DESTINATION_WELL_384_KEY)
+    pr = PlateReplication(DESTINATION_WELL_384_KEY)
+    res = pr.unmake_replicates(df)
 
     return res
 
@@ -2428,6 +2428,7 @@ def demux_sample_sheet(sheet):
             sheet.Contact[_SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
             drop=True)
 
+        # TODO: move these df manipulations into unmake_replicates?
         # for our purposes here, we want to reindex df so that the index
         # becomes Sample_ID and a new numeric index is created before
         # turning it into a dict. In other situations it remains beneficial

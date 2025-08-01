@@ -586,17 +586,17 @@ class PlateReplication(_WellMapper96to384):
 
         return d
 
-    def __init__(self, well_column_name):
+    def __init__(self, dest_well_column_name):
         self._mapping_dicts_by_quadrant = {}
 
         for quadrant in PlateReplication.quadrants:
             self._mapping_dicts_by_quadrant[quadrant] = \
                 self._get_96_to_384_mapping_for_quadrant(quadrant)
 
-        if well_column_name is None:
-            self.well_column_name = 'Library Well'
+        if dest_well_column_name is None:
+            self.dest_well_column_name = 'Library Well'
         else:
-            self.well_column_name = well_column_name
+            self.dest_well_column_name = dest_well_column_name
 
         self._reset()
 
@@ -732,34 +732,62 @@ class PlateReplication(_WellMapper96to384):
         self._status[src_quad] = PlateReplication.STATUS_SOURCE
         self._data[src_quad] = pd.concat(rows, axis=0, ignore_index=True)
 
-    def _make_replicate_row(
-            self, plate_df_384, src_quad, src_384_well, dst_384_well=None):
+    def _make_replicate_row(self, plate_df_384, src_quad,
+                            src_384_well_id, dst_384_well_id=None):
+        """
+        Given a 384-well plate df and a source well ID, generate a row for the
+        destination well ID. If the destination well ID is None, then the
+        source well ID will be used as the destination well ID.
 
-        well_mask = plate_df_384[PM_WELL_KEY] == src_384_well
+        Parameters
+        ----------
+        plate_df_384: pandas DataFrame
+            A 384-well plate dataframe (one row per sample).
+        src_quad: str
+            The source quadrant, one of '1', '2', '3', or '4'.
+        src_384_well_id: str
+            The 384-well location of the sample in the source quadrant
+            (e.g., '020').
+        dst_384_well_id: str or None
+            The 384-well location of the sample in the destination quadrant.
+            If None, the source well ID will be used as the destination
+            well ID.
+
+        Returns
+        -------
+        pandas DataFrame or None
+            A DataFrame containing the row for the destination well ID, or
+            None if the source well ID does not match any row in the
+            plate_df_384.
+
+        Raises
+        -------
+        ValueError
+            If the source well ID matches more than one row in plate_df_384.
+        """
+
+        well_mask = plate_df_384[PM_WELL_KEY] == src_384_well_id
         row = plate_df_384.loc[well_mask].copy()
         # reset the numeric index, otherwise the row will keep the index
         # from the old plate and row.loc[] will not modify the right row.
         row.reset_index(inplace=True, drop=True)
 
         if row.shape[0] > 1:
-            raise ValueError(f'{src_384_well} matched more than one row in '
+            raise ValueError(f'{src_384_well_id} matched more than one row in '
                              'plate_map')
 
         # assume row.shape[0] is either 0 (no-match) or 1 (exact match)
         if row.shape[0] == 1:
-            relevant_well = dst_384_well if dst_384_well is not None \
-                else src_384_well
+            relevant_well = dst_384_well_id if dst_384_well_id is not None \
+                else src_384_well_id
 
-            row.loc[0, self.well_column_name] = relevant_well
+            row.loc[0, self.dest_well_column_name] = relevant_well
             row.loc[0, ORIG_NAME_KEY] = row.loc[0, PM_SAMPLE_KEY]
             # add dst as suffix to sample_name for uniqueness
             row.loc[0, PM_SAMPLE_KEY] = \
                 str(row.loc[0, PM_SAMPLE_KEY]) + '.' + relevant_well
             # convert _rep_counters to string so it doesn't become '1.0.'
             row.loc[0, 'replicate'] = str(self._rep_counters[src_quad])
-            # contains_replicates is a document-wide boolean. It should
-            # be True even in the source row columns.
-            row.loc[0, CONTAINS_REPLICATES_KEY] = 'True'
         elif row.shape[0] == 0:
             row = None
         # endif
@@ -796,8 +824,8 @@ class PlateReplication(_WellMapper96to384):
             # Useful for generating output even when no replications are
             # needed.
             result = plate_df_384.copy()
-            result[self.well_column_name] = result[PM_WELL_KEY].copy()
-            result[CONTAINS_REPLICATES_KEY] = 'False'
+            result[self.dest_well_column_name] = result[PM_WELL_KEY].copy()
+            result[CONTAINS_REPLICATES_KEY] = False
             return result
 
         for key in replicates:
@@ -828,11 +856,15 @@ class PlateReplication(_WellMapper96to384):
         quads = [self._data[quad] for quad in self._data if
                  self._data[quad] is not None]
         result = pd.concat(quads, axis=0, ignore_index=True)
+        # contains_replicates is a document-wide boolean (so not clear why it
+        # is being stored in this dataframe, but ...). If there are any
+        # replicates, this value should be True in ALL rows--even source rows
+        result[CONTAINS_REPLICATES_KEY] = True
         result.reset_index(drop=True, inplace=True)
 
         return result
 
-    def unmake_replicates(self, combined_df, well_id_384_col_name):
+    def unmake_replicates(self, combined_df):
         """
         Splits 384-well df into list of 96-well dfs, one for each quadrant used
 
@@ -840,11 +872,8 @@ class PlateReplication(_WellMapper96to384):
         ----------
         combined_df: pandas DataFrame
             A DataFrame containing 384-well plate data, with a column with the
-            name given in the well_id_384_col param containing the 384 well
-            locations
-        well_id_384_col_name: str
-            The name of the column in combined_df that contains the 384 well
-            locations
+            name given in the PlateReplication object's dest_well_column_name
+            property.
 
         Returns
         -------
@@ -857,13 +886,19 @@ class PlateReplication(_WellMapper96to384):
         quad_col = "quad"
         per_replicate_dataframes = []
 
+        # check that specified de-replication column exists
+        if self.dest_well_column_name not in combined_df.columns:
+            raise ValueError(
+                f"Column '{self.dest_well_column_name}' not found in "
+                f"the input dataframe.")
+
         # convert each sample's 384 well location into a
         # 96-well location + quadrant. Since replication is performed at the
         # 96-well-plate level, this will identify which replicates belong in
         # which dataframe.
         combined_df[quad_col] = combined_df.apply(
             lambda row: self._get_quadrant_and_96_well_location(
-                row[well_id_384_col_name])[0],
+                row[self.dest_well_column_name])[0],
             axis=1)
 
         for quad in sorted(combined_df[quad_col].unique()):

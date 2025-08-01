@@ -825,8 +825,8 @@ def demux_pre_prep(pre_prep):
     if not pre_prep_needs_demuxing(pre_prep):
         raise ValueError("pre_prep does not need to be demultiplexed")
 
-    pr = PlateReplication(None)
-    res = pr.unmake_replicates(pre_prep, PM_WELL_ID_384_KEY)
+    pr = PlateReplication(PM_WELL_ID_384_KEY)
+    res = pr.unmake_replicates(pre_prep)
 
     return res
 
