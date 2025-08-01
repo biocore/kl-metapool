@@ -1404,6 +1404,10 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         _CONTACT_KEY: _CONTACT_COLS,
     })
 
+    _REPLICATES_REMAPPER = MappingProxyType({
+            "Library Well": DESTINATION_WELL_384_KEY,
+        })
+
     _optional_replicate_columns = (ORIG_NAME_KEY, DESTINATION_WELL_384_KEY)
 
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
@@ -1439,6 +1443,7 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
 
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
+        self._remapper = self._extend_mapping_type(self._REPLICATES_REMAPPER)
         self._data_columns = _BASE_DATA_COLUMNS
         self._optional_col_sets = self._extend_mapping_type(
             {self._REPLICATES_SET_KEY: (
