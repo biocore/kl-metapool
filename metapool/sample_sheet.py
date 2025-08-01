@@ -2408,7 +2408,7 @@ def demux_sample_sheet(sheet):
             sheet.Contact[_SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
             drop=True)
 
-        # TODO: move these df manipulations into unmake_replicates?
+        # NB: if modifying this section, see issue #321
         # for our purposes here, we want to reindex df so that the index
         # becomes Sample_ID and a new numeric index is created before
         # turning it into a dict. In other situations it remains beneficial
