@@ -12,7 +12,7 @@ from metapool.mp_strings import (
     QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,
     CONTAINS_REPLICATES_KEY, SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
     ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY,
-    SECONDARY_STUDIES_KEY)
+    SECONDARY_STUDIES_KEY, DESTINATION_WELL_384_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,
@@ -610,8 +610,8 @@ class KLSampleSheetTests(BaseTests):
             'Sample_Name': 'a.sample'
         }))
 
-        with self.assertRaisesRegex(ValueError, 'The Settings section is '
-                                    'different for sample sheet 1'):
+        err = "The Settings section is different for sample sheet 1"
+        with self.assertRaisesRegex(ValueError, err):
             base.merge([hugo])
 
     def test_merge_different_dates(self):
@@ -903,7 +903,7 @@ class KLSampleSheetTests(BaseTests):
 
     def test_get_projects_details_w_orig_name(self):
         good_replicates_ss_fp = join(
-            self.data_dir, 'good_sheet_w_replicates.csv')
+            self.data_dir, 'good_standard_metagv100_w_replicates.csv')
         sheet = MetagenomicSampleSheetv100(
             good_replicates_ss_fp, defer_validate=False)
 
@@ -2129,8 +2129,8 @@ class ProfileTests(BaseTests):
 class DemuxReplicatesTests(BaseTests):
     def setUp(self):
         self.data_dir = join(dirname(__file__), 'data')
-        self.sheet_w_replicates_path = join(self.data_dir,
-                                            'good_sheet_w_replicates.csv')
+        self.sheet_w_replicates_path = \
+            join(self.data_dir, 'good_standard_metagv100_w_replicates.csv')
 
         # bad_sheet_w_replicates.csv contains two projects, one of which
         # doesn't contain replicates. By convention, all projects in the sheet
@@ -2250,7 +2250,7 @@ class DemuxReplicatesTests(BaseTests):
         # this test will need to compare the four completed sample-sheets
         # made using self.sheet_w_replicates_path against an expected result.
         demux_sheet_w_context_path = join(
-            self.data_dir, "good_sheet_w_replicates_and_context.csv")
+            self.data_dir, "good_standard_metagv101_w_replicates.csv")
         context_output_paths = [x.replace('.csv', '_w_context.csv') for
                                 x in self.replicate_output_paths]
         self._help_test_demux_sample_sheet(
@@ -2651,6 +2651,12 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
         table = pd.DataFrame(columns=input_cols, data=input_data)
 
         metadata = self._make_metadata(self)
+        self._help_test_make_sample_sheet_from_metadata(
+            sheet_class, metadata, table, output_cols)
+
+    def _help_test_make_sample_sheet_from_metadata(
+            self, sheet_class, metadata, table, output_cols):
+
         sheet = make_sample_sheet(
             metadata, table, 'iSeq', [1], strict=False)
 
@@ -2728,19 +2734,294 @@ class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
 
 class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = MetagenomicSampleSheetv100
-    sample_sheet_name = "good_standard_metagv100.csv"
+    sample_sheet_name = "good_standard_metagv100_wo_replicates.csv"
+    replicates_sheet_name = "good_standard_metagv100_w_replicates.csv"
 
-    def test_MetagenomicSampleSheetv100_instantiate_from_path(self):
+    _REP_INPUT_COLS = SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + \
+                      [ORIG_NAME_KEY, "Library Well"]
+
+    _REP_OUTPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._OUTPUT_COLS.copy() + \
+        [ORIG_NAME_KEY, DESTINATION_WELL_384_KEY]
+
+    def setUp(self):
+        self.data_dir = join(dirname(__file__), 'data')
+        self.good_w_reps_sheet_fp = join(
+            self.data_dir, self.replicates_sheet_name)
+
+    def test_MetagenomicSampleSheetv100_instantiate_from_path_wo_reps(self):
         self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
 
-    def test_MetagenomicSampleSheetv100_make_sample_sheet(self):
+    def test_MetagenomicSampleSheetv100_make_sample_sheet_wo_reps(self):
         self._help_test_make_sample_sheet(self.sheet_class)
 
-    def test_MetagenomicSampleSheetv100_load_sample_sheet(self):
+    def test_MetagenomicSampleSheetv100_load_sample_sheet_wo_reps(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
-    def test_MetagenomicSampleSheetv100_roundtrip(self):
+    def test_MetagenomicSampleSheetv100_roundtrip_wo_reps(self):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv100_instantiate_from_path_w_reps(self):
+        self._help_test_instantiate_sample_sheet_from_path(
+            self.sheet_class, self.good_w_reps_sheet_fp, self._REP_OUTPUT_COLS)
+
+    def test_MetagenomicSampleSheetv100_make_sample_sheet_w_reps(self):
+        metadata = self._make_metadata(self)
+        bioinfo = [
+            {'Sample_Project': 'ProjectF_11661', 'QiitaID': '11661',
+             'BarcodesAreRC': False, 'ForwardAdapter': 'AACC',
+             'ReverseAdapter': 'GGTT', 'HumanFiltering': False,
+             'library_construction_protocol': 'Nextera',
+             'experiment_design_description': 'Equipment',
+             'contains_replicates': True},
+            {'Sample_Project': 'ProjectN_13059', 'QiitaID': '13059',
+             'BarcodesAreRC': False, 'ForwardAdapter': 'AACC',
+             'ReverseAdapter': 'GGTT', 'HumanFiltering': False,
+             'library_construction_protocol': 'Knight Lab Kapa HP',
+             'experiment_design_description': 'Equipment',
+             'contains_replicates': True}]
+        contact = [
+            {'Email': 'person@domain.edu', 'Sample_Project': 'ProjectF_11661'},
+            {'Email': 'another_person@domain.edu',
+             'Sample_Project': 'ProjectN_13059'}]
+        metadata[_BIOINFORMATICS_KEY] = bioinfo
+        metadata[_CONTACT_KEY] = contact
+
+        data = {
+            'orig_name': [
+                'BLANK.43.12G', 'BLANK.43.12H', 'RMA.KHP.rpoS.Mage.Q97D',
+                'RMA.KHP.rpoS.Mage.Q97L', 'RMA.KHP.rpoS.Mage.Q97N',
+                'RMA.KHP.rpoS.Mage.Q97E', 'JBI.KHP.HGL.021', 'JBI.KHP.HGL.022',
+                'JBI.KHP.HGL.023', 'JBI.KHP.HGL.024', 'AP581451B02',
+                'EP256645B01', 'EP112567B02', 'EP337425B01', 'LP127890A01',
+                'EP159692B04', 'EP987683A01', 'AP959450A03', 'SP464350A04',
+                'EP121011B01', 'BLANK.43.12G', 'BLANK.43.12H',
+                'RMA.KHP.rpoS.Mage.Q97D', 'RMA.KHP.rpoS.Mage.Q97L',
+                'RMA.KHP.rpoS.Mage.Q97N', 'RMA.KHP.rpoS.Mage.Q97E',
+                'JBI.KHP.HGL.021', 'JBI.KHP.HGL.022', 'JBI.KHP.HGL.023',
+                'JBI.KHP.HGL.024', 'AP581451B02', 'EP256645B01', 'EP112567B02',
+                'EP337425B01', 'LP127890A01', 'EP159692B04', 'EP987683A01',
+                'AP959450A03', 'SP464350A04', 'EP121011B01', 'BLANK.43.12G',
+                'BLANK.43.12H', 'RMA.KHP.rpoS.Mage.Q97D',
+                'RMA.KHP.rpoS.Mage.Q97L', 'RMA.KHP.rpoS.Mage.Q97N',
+                'RMA.KHP.rpoS.Mage.Q97E', 'JBI.KHP.HGL.021', 'JBI.KHP.HGL.022',
+                'JBI.KHP.HGL.023', 'JBI.KHP.HGL.024', 'AP581451B02',
+                'EP256645B01', 'EP112567B02', 'EP337425B01', 'LP127890A01',
+                'EP159692B04', 'EP987683A01', 'AP959450A03', 'SP464350A04',
+                'EP121011B01'],
+            'sample sheet Sample_ID': [
+                'BLANK_43_12G_A1', 'BLANK_43_12H_A3',
+                'RMA_KHP_rpoS_Mage_Q97D_A5', 'RMA_KHP_rpoS_Mage_Q97L_A7',
+                'RMA_KHP_rpoS_Mage_Q97N_A9', 'RMA_KHP_rpoS_Mage_Q97E_A11',
+                'JBI_KHP_HGL_021_A13', 'JBI_KHP_HGL_022_A15',
+                'JBI_KHP_HGL_023_A17', 'JBI_KHP_HGL_024_A19',
+                'AP581451B02_A21', 'EP256645B01_A23', 'EP112567B02_C1',
+                'EP337425B01_C3', 'LP127890A01_C5', 'EP159692B04_C7',
+                'EP987683A01_C9', 'AP959450A03_C11', 'SP464350A04_C13',
+                'EP121011B01_C15', 'BLANK_43_12G_A2', 'BLANK_43_12H_A4',
+                'RMA_KHP_rpoS_Mage_Q97D_A6', 'RMA_KHP_rpoS_Mage_Q97L_A8',
+                'RMA_KHP_rpoS_Mage_Q97N_A10', 'RMA_KHP_rpoS_Mage_Q97E_A12',
+                'JBI_KHP_HGL_021_A14', 'JBI_KHP_HGL_022_A16',
+                'JBI_KHP_HGL_023_A18', 'JBI_KHP_HGL_024_A20',
+                'AP581451B02_A22', 'EP256645B01_A24', 'EP112567B02_C2',
+                'EP337425B01_C4', 'LP127890A01_C6', 'EP159692B04_C8',
+                'EP987683A01_C10', 'AP959450A03_C12', 'SP464350A04_C14',
+                'EP121011B01_C16', 'BLANK_43_12G_B2', 'BLANK_43_12H_B4',
+                'RMA_KHP_rpoS_Mage_Q97D_B6', 'RMA_KHP_rpoS_Mage_Q97L_B8',
+                'RMA_KHP_rpoS_Mage_Q97N_B10', 'RMA_KHP_rpoS_Mage_Q97E_B12',
+                'JBI_KHP_HGL_021_B14', 'JBI_KHP_HGL_022_B16',
+                'JBI_KHP_HGL_023_B18', 'JBI_KHP_HGL_024_B20',
+                'AP581451B02_B22', 'EP256645B01_B24', 'EP112567B02_D2',
+                'EP337425B01_D4', 'LP127890A01_D6', 'EP159692B04_D8',
+                'EP987683A01_D10', 'AP959450A03_D12', 'SP464350A04_D14',
+                'EP121011B01_D16'],
+            'Sample': [
+                'BLANK.43.12G.A1', 'BLANK.43.12H.A3',
+                'RMA.KHP.rpoS.Mage.Q97D.A5', 'RMA.KHP.rpoS.Mage.Q97L.A7',
+                'RMA.KHP.rpoS.Mage.Q97N.A9', 'RMA.KHP.rpoS.Mage.Q97E.A11',
+                'JBI.KHP.HGL.021.A13', 'JBI.KHP.HGL.022.A15',
+                'JBI.KHP.HGL.023.A17', 'JBI.KHP.HGL.024.A19',
+                'AP581451B02.A21', 'EP256645B01.A23', 'EP112567B02.C1',
+                'EP337425B01.C3', 'LP127890A01.C5', 'EP159692B04.C7',
+                'EP987683A01.C9', 'AP959450A03.C11', 'SP464350A04.C13',
+                'EP121011B01.C15', 'BLANK.43.12G.A2', 'BLANK.43.12H.A4',
+                'RMA.KHP.rpoS.Mage.Q97D.A6', 'RMA.KHP.rpoS.Mage.Q97L.A8',
+                'RMA.KHP.rpoS.Mage.Q97N.A10', 'RMA.KHP.rpoS.Mage.Q97E.A12',
+                'JBI.KHP.HGL.021.A14', 'JBI.KHP.HGL.022.A16',
+                'JBI.KHP.HGL.023.A18', 'JBI.KHP.HGL.024.A20',
+                'AP581451B02.A22', 'EP256645B01.A24', 'EP112567B02.C2',
+                'EP337425B01.C4', 'LP127890A01.C6', 'EP159692B04.C8',
+                'EP987683A01.C10', 'AP959450A03.C12', 'SP464350A04.C14',
+                'EP121011B01.C16', 'BLANK.43.12G.B2', 'BLANK.43.12H.B4',
+                'RMA.KHP.rpoS.Mage.Q97D.B6', 'RMA.KHP.rpoS.Mage.Q97L.B8',
+                'RMA.KHP.rpoS.Mage.Q97N.B10', 'RMA.KHP.rpoS.Mage.Q97E.B12',
+                'JBI.KHP.HGL.021.B14', 'JBI.KHP.HGL.022.B16',
+                'JBI.KHP.HGL.023.B18', 'JBI.KHP.HGL.024.B20',
+                'AP581451B02.B22', 'EP256645B01.B24', 'EP112567B02.D2',
+                'EP337425B01.D4', 'LP127890A01.D6', 'EP159692B04.D8',
+                'EP987683A01.D10', 'AP959450A03.D12', 'SP464350A04.D14',
+                'EP121011B01.D16'],
+            'extra_carried_col': [
+                'A1', 'A3', 'A5', 'A7', 'A9', 'A11', 'A13', 'A15', 'A17',
+                'A19', 'A21', 'A23', 'C1', 'C3', 'C5', 'C7', 'C9', 'C11',
+                'C13', 'C15', 'A1', 'A3', 'A5', 'A7', 'A9', 'A11',
+                'A13', 'A15', 'A17', 'A19', 'A21', 'A23', 'C1', 'C3', 'C5',
+                'C7', 'C9', 'C11', 'C13', 'C15', 'A1', 'A3', 'A5', 'A7',
+                'A9', 'A11', 'A13', 'A15', 'A17', 'A19', 'A21', 'A23', 'C1',
+                'C3', 'C5', 'C7', 'C9', 'C11', 'C13', 'C15'],
+            'Library Well': [
+                'A1', 'A3', 'A5', 'A7', 'A9', 'A11', 'A13', 'A15', 'A17',
+                'A19', 'A21', 'A23', 'C1', 'C3', 'C5', 'C7', 'C9', 'C11',
+                'C13', 'C15', 'A2', 'A4', 'A6', 'A8', 'A10', 'A12',
+                'A14', 'A16', 'A18', 'A20', 'A22', 'A24', 'C2', 'C4', 'C6',
+                'C8', 'C10', 'C12', 'C14', 'C16', 'B2', 'B4', 'B6', 'B8',
+                'B10', 'B12', 'B14', 'B16', 'B18', 'B20', 'B22', 'B24',
+                'D2', 'D4', 'D6', 'D8', 'D10', 'D12', 'D14', 'D16'],
+            'Project Plate': [
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1'],
+            'Well': [
+                'A1', 'A3', 'A5', 'A7', 'A9', 'A11', 'A13', 'A15', 'A17',
+                'A19', 'A21', 'A23', 'C1', 'C3', 'C5', 'C7', 'C9', 'C11',
+                'C13', 'C15', 'A2', 'A4', 'A6', 'A8', 'A10', 'A12', 'A14',
+                'A16', 'A18', 'A20', 'A22', 'A24', 'C2', 'C4', 'C6', 'C8',
+                'C10', 'C12', 'C14', 'C16', 'B2', 'B4', 'B6', 'B8', 'B10',
+                'B12', 'B14', 'B16', 'B18', 'B20', 'B22', 'B24', 'D2', 'D4',
+                'D6', 'D8', 'D10', 'D12', 'D14', 'D16'],
+            'i7 name': [
+                'iTru7_114_08', 'iTru7_114_09', 'iTru7_114_10',
+                'iTru7_114_11', 'iTru7_114_12', 'iTru7_201_01',
+                'iTru7_201_02', 'iTru7_201_03', 'iTru7_201_04',
+                'iTru7_201_05', 'iTru7_108_05', 'iTru7_108_06',
+                'iTru7_108_07', 'iTru7_108_08', 'iTru7_108_09',
+                'iTru7_108_10', 'iTru7_108_11', 'iTru7_108_12',
+                'iTru7_109_01', 'iTru7_109_04', 'iTru7_114_08',
+                'iTru7_114_09', 'iTru7_114_10', 'iTru7_114_11',
+                'iTru7_114_12', 'iTru7_201_01', 'iTru7_201_02',
+                'iTru7_201_03', 'iTru7_201_04', 'iTru7_201_05',
+                'iTru7_108_05', 'iTru7_108_06', 'iTru7_108_07',
+                'iTru7_108_08', 'iTru7_108_09', 'iTru7_108_10',
+                'iTru7_108_11', 'iTru7_108_12', 'iTru7_109_01',
+                'iTru7_109_04', 'iTru7_114_08', 'iTru7_114_09',
+                'iTru7_114_10', 'iTru7_114_11', 'iTru7_114_12',
+                'iTru7_201_01', 'iTru7_201_02', 'iTru7_201_03',
+                'iTru7_201_04', 'iTru7_201_05', 'iTru7_108_05',
+                'iTru7_108_06', 'iTru7_108_07', 'iTru7_108_08',
+                'iTru7_108_09', 'iTru7_108_10', 'iTru7_108_11',
+                'iTru7_108_12', 'iTru7_109_01', 'iTru7_109_04'],
+            'i7 sequence': [
+                'CCGACTAT', 'ACCGACAA', 'CCGACTAT', 'CTTCGCAA', 'GCCTTGTT',
+                'AACACCAC', 'AACTTGCC', 'CGTATCTC',
+                'CAATGTGG', 'GGTACGAA', 'TCTGAGAG', 'ACCGCATA', 'GAAGTACC',
+                'CAGGTATC', 'TCTCTAGG', 'AAGCACTG',
+                'CCAAGCAA', 'TGTTCGAG', 'CTCGTCTT', 'TCGGTTAC', 'TCTGAGAG',
+                'CAATAGCC', 'ACCGCATA', 'CATTCGTC',
+                'GAAGTACC', 'AGTGGCAA', 'CAGGAATC', 'GTGGAATG', 'TCTCAAGG',
+                'TGAGATGT', 'TCTGAAAG', 'ACAGCATA',
+                'GAAATACC', 'CAGATATC', 'TCTATAGG', 'AAGTTATG', 'ACAAGCAA',
+                'AGTTCGAG', 'ATCGTCTT', 'ACGGTTAC',
+                'AATTCGGT', 'TCGGACTT', 'TCGGTAAC', 'CATGTGTG', 'AAGTCGAG',
+                'TGCCTCAA', 'TATCGGTC', 'ATCTGACC',
+                'TATTCGCC', 'CACAGACT', 'GCTGAGAG', 'GCCGCATA', 'GGAGTACC',
+                'CGGGTATC', 'TGTCTAGG', 'AGGCACTG',
+                'GCAAGCAA', 'GGTTCGAG', 'GTCGTCTT', 'GCGGTTAC'],
+            'i5 name': [
+                'iTru5_01_A', 'iTru5_02_A', 'iTru5_03_A', 'iTru5_04_A',
+                'iTru5_05_A', 'iTru5_06_A', 'iTru5_07_A', 'iTru5_08_A',
+                'iTru5_09_A', 'iTru5_10_A', 'iTru5_09_A', 'iTru5_10_A',
+                'iTru5_11_A', 'iTru5_12_A', 'iTru5_01_B', 'iTru5_02_B',
+                'iTru5_03_B', 'iTru5_04_B', 'iTru5_05_B', 'iTru5_08_B',
+                'iTru5_01_A', 'iTru5_02_A', 'iTru5_03_A', 'iTru5_04_A',
+                'iTru5_05_A', 'iTru5_06_A', 'iTru5_07_A', 'iTru5_08_A',
+                'iTru5_09_A', 'iTru5_10_A', 'iTru5_09_A', 'iTru5_10_A',
+                'iTru5_11_A', 'iTru5_12_A', 'iTru5_01_B', 'iTru5_02_B',
+                'iTru5_03_B', 'iTru5_04_B', 'iTru5_05_B', 'iTru5_08_B',
+                'iTru5_01_A', 'iTru5_02_A', 'iTru5_03_A', 'iTru5_04_A',
+                'iTru5_05_A', 'iTru5_06_A', 'iTru5_07_A', 'iTru5_08_A',
+                'iTru5_09_A', 'iTru5_10_A', 'iTru5_09_A', 'iTru5_10_A',
+                'iTru5_11_A', 'iTru5_12_A', 'iTru5_01_B', 'iTru5_02_B',
+                'iTru5_03_B', 'iTru5_04_B', 'iTru5_05_B', 'iTru5_08_B'],
+            'i5 sequence': [
+                'AAGGCTGA', 'CGATCGAT', 'TTACCGAG', 'AAGACACC', 'GTCCTAAG',
+                'CATCTGCT', 'GAAGGTTC', 'CTCTCAGA',
+                'GAAGAGGT', 'TCGTCTGA', 'CTCTCAGA', 'TCGTCTGA', 'CAATAGCC',
+                'CATTCGTC', 'AGTGGCAA', 'GTGGTATG',
+                'TGAGCTGT', 'CGTCAAGA', 'AAGCATCG', 'ACCTCTTC', 'AAGCACTG',
+                'CGTCAAGA', 'CCAAGCAA', 'AAGCATCG',
+                'TGTTCGAG', 'TACTCCAG', 'CTCGTCTT', 'GATACCTG', 'CGAACTGT',
+                'ACCTCTTC', 'ATCTCAGA', 'TGGTCTGA',
+                'CATTAGCC', 'CAGTCGTC', 'AGTCGCAA', 'GTGGAATG', 'TGAGCTGT',
+                'CGTCCAGA', 'AAGAATCG', 'ACCACTTC',
+                'GTATTAGC', 'CACTGAAG', 'AGTCGCTT', 'CACAGGAA', 'TGGCACTA',
+                'CCATGAAC', 'GGTTGTCA', 'GCCAATAC',
+                'AACCTCCT', 'AGCTACCA', 'CTCTCAGA', 'TCGTCTGA', 'CAATAGCC',
+                'CATTCGTC', 'AGTGGCAA', 'GTGGTATG',
+                'TGAGCTGT', 'CGTCAAGA', 'AAGCATCG', 'ACCTCTTC'],
+            'Project Name': [
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059']}
+        table = pd.DataFrame(data)
+
+        self._help_test_make_sample_sheet_from_metadata(
+            self.sheet_class, metadata, table, self._REP_OUTPUT_COLS)
+
+    def test_MetagenomicSampleSheetv100_load_sample_sheet_w_reps(self):
+        self._help_test_load_sample_sheet(
+            self.sheet_class, self.good_w_reps_sheet_fp, self._REP_OUTPUT_COLS)
+
+    def test_MetagenomicSampleSheetv100_roundtrip_w_reps(self):
+        self._help_test_roundtrip_sample_sheet(
+            self.sheet_class, self.good_w_reps_sheet_fp)
 
 
 class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2982,8 +3263,8 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
         'number_of_cells', 'platemap_generation_date', 'project_abbreviation',
         'vol_extracted_elution_ul', 'well_id_96']
 
-    _KATH_INPUT_COLS = SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + \
-        _KATH_COLS.copy()
+    _KATH_INPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + _KATH_COLS.copy()
 
     _KATH_INPUT_DATA = [
         ['sample_1', 'sample.1', '1', '1', 'False',
@@ -3007,8 +3288,8 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
          '', '', '', '', '', '', '', '']
     ]
 
-    _KATH_OUTPUT_COLS = SampleSheetLoadMakeAndLoadTests._OUTPUT_COLS.copy() + \
-        _KATH_COLS.copy()
+    _KATH_OUTPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._OUTPUT_COLS.copy() + _KATH_COLS.copy()
 
     _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
 
@@ -3026,10 +3307,10 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
     def setUp(self):
         self.data_dir = join(dirname(__file__), 'data')
         self.good_wo_katharoseq_sheet_fp = join(
-            self.data_dir, 'good_standard_metagv102_wo_katharoseq.csv')
+            self.data_dir, self.sample_sheet_name)
 
         self.good_w_katharoseq_sheet_fp = join(
-            self.data_dir, 'good_standard_metagv102_w_katharoseq.csv')
+            self.data_dir, self.kath_sheet_name)
 
         self.bad_missing_katharoseq_col_sheet_fp = join(
             self.data_dir, 'test_katharoseq_sheet3.csv')
