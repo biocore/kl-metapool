@@ -541,8 +541,8 @@ class PlateReplication(_WellMapper96to384):
     # aka ['blue', 'green', 'red', 'yellow']
     quadrants = ['1', '2', '3', '4']
 
-    @staticmethod
-    def _get_96_to_384_mapping_for_quadrant(quadrant):
+    @classmethod
+    def _get_96_to_384_mapping_for_quadrant(cls, quadrant):
         """
         Returns a dictionary keyed by 96-well plate location, with value being
         that well's 384-well plate location if placed in the specified
@@ -562,17 +562,17 @@ class PlateReplication(_WellMapper96to384):
             96-well plate were placed in the specified quadrant using the
             "interleaved" mapping method.
         """
-        if quadrant not in PlateReplication.quadrants:
+        if quadrant not in cls.quadrants:
             raise ValueError(f"Invalid quadrant '{quadrant}'. Must be one of "
-                             f"{PlateReplication.quadrants}.")
+                             f"{cls.quadrants}.")
 
         d = OrderedDict()
         for curr_row_num in range(1, 9):
-            row_96 = PlateReplication.row_letters[curr_row_num - 1]
+            row_96 = cls.row_letters[curr_row_num - 1]
             if quadrant in ['1', '2']:
-                row_384 = PlateReplication.row_letters[(2 * curr_row_num) - 2]
+                row_384 = cls.row_letters[(2 * curr_row_num) - 2]
             else:
-                row_384 = PlateReplication.row_letters[(2 * curr_row_num) - 1]
+                row_384 = cls.row_letters[(2 * curr_row_num) - 1]
 
             for curr_col_num in range(1, 13):
                 col_96 = curr_col_num

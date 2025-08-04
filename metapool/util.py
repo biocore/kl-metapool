@@ -187,6 +187,23 @@ def drop_unnamed_nan_columns(df):
 
 
 def convert_to_bool(x):
+    """
+    Converts a value to a boolean if true or false, otherwise returns None.
+
+    Parameters
+    ----------
+    x: object
+        The value to convert to a boolean.
+
+    Returns
+    -------
+    bool or None
+        For booleans or strings that a human would read as true or false
+        (barring case, whitespace, etc.), returns True or False. For any other
+        type or value, returns None.  Note that it does NOT convert
+        integers or floats to booleans.
+
+    """
     if type(x) is bool:
         # column type is already correct.
         return x
