@@ -16,6 +16,7 @@ from metapool.mp_strings import parse_project_name, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY
+from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
     DELETE_SETTINGS_KEY
@@ -189,6 +190,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                      _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = False
+    _ALLOW_MISSING_COLS = False
 
     # NB: Inside `make_sample_sheet`, the 'Well_description' column is
     # (over)written by concatenating project plate, sample, and well.
@@ -201,8 +203,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                      'Well_description')
 
     _column_alts = MappingProxyType({'well_description': 'Well_description',
-                                     'description': 'Well_description',
-                                     'Description': 'Well_description',
+                                     'description': 'a_description',
+                                     'Description': 'a_description',
                                      'sample_plate': 'Sample_Plate'})
 
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 'i5_index_id',
@@ -602,7 +604,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         result = table.copy(deep=True)
 
         if strict:
-            # All columns not defined in _remapper will be filtered result.
+            # All columns not defined in _remapper will be removed from result.
             result = table[self._remapper.keys()].copy()
             result.rename(self._remapper, axis=1, inplace=True)
         else:
@@ -651,12 +653,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         table = self._remap_table(table, strict)
 
-        for column in self._get_expected_data_columns():
-            # NB: If modifying this, see issue #305; should be an error?
-            if column not in table.columns:
-                warnings.warn('The column %s in the sample sheet is empty' %
-                              column)
-                table[column] = ''
+        if self._ALLOW_MISSING_COLS:
+            for column in self._get_expected_data_columns():
+                # NB: If modifying this, see issue #305; should be an error?
+                if column not in table.columns:
+                    warnings.warn('The column %s in the sample sheet is '
+                                  'empty' % column)
+                    table[column] = ''
 
         if assay != _AMPLICON:
             if 'index2' in table.columns:
@@ -994,6 +997,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             return
 
         # otherwise, validate the sample sheet
+        self._validate_loaded_sheet_or_error()
+
+    def _validate_loaded_sheet_or_error(self):
         msgs = self._validate_loaded_sheet()
         if msgs:
             err_str = '\n'.join([x.message for x in msgs])
@@ -1289,7 +1295,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         msgs = []
 
         def func(x):
-            result = _convert_to_bool(x)
+            result = convert_to_bool(x)
             if result is not None:
                 return result
 
@@ -1348,34 +1354,33 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         msgs = []
 
-        # Note: this method is used by all sample sheets, and not all
-        # sample sheets include SampleContext, so it is not listed here.
-        for req in [_ASSAY_KEY, _BIOINFORMATICS_KEY, _CONTACT_KEY]:
+        req_section_keys = [_ASSAY_KEY] + \
+            list(self._KL_ADDTL_DF_SECTIONS.keys()).copy()
+        for req in req_section_keys:
             if req not in metadata:
                 msgs.append(ErrorMessage('%s is a required attribute' % req))
 
         # if bioinfo and contact sections are found, then check that all the
         # columns in all dataframe sections are present; note that checks for
         # contents (as opposed to mere presence) are done elsewhere
-        if _BIOINFORMATICS_KEY in metadata and _CONTACT_KEY in metadata:
-            for section, cols_info in self._KL_ADDTL_DF_SECTIONS.items():
+        for section_key, cols_info in self._KL_ADDTL_DF_SECTIONS.items():
+            if metadata.get(section_key) is not None:
                 columns = frozenset(cols_info.keys())
 
-                for i, project in enumerate(metadata[section]):
+                for i, project in enumerate(metadata[section_key]):
                     if set(project.keys()) != columns:
-                        message = (('In the %s section Project #%d does not '
-                                    'have exactly these keys %s') %
-                                   (section, i + 1, ', '.join(sorted(columns)))
-                                   )
+                        message = (f"In the {section_key} section "
+                                   f"Project #{i + 1} does not have exactly "
+                                   f"these keys {', '.join(sorted(columns))}")
                         msgs.append(ErrorMessage(message))
-                    if section == _BIOINFORMATICS_KEY:
+                    if section_key == _BIOINFORMATICS_KEY:
                         for curr_key in [LIB_CONSTRUCT_PROTOCOL_KEY,
                                          EXPT_DESIGN_DESC_KEY]:
                             curr_val = project.get(curr_key, "")
                             if curr_val == '':
                                 message = (('In the %s section Project #%d '
                                             'does not have %s specified') %
-                                           (section, i + 1, curr_key))
+                                           (section_key, i + 1, curr_key))
                                 msgs.append(ErrorMessage(message))
         if metadata.get(_ASSAY_KEY) is not None and metadata[_ASSAY_KEY] \
                 not in self._ASSAYS:
@@ -1399,6 +1404,10 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
         _CONTACT_KEY: _CONTACT_COLS,
     })
+
+    _REPLICATES_REMAPPER = MappingProxyType({
+            "Library Well": DESTINATION_WELL_384_KEY,
+        })
 
     _optional_replicate_columns = (ORIG_NAME_KEY, DESTINATION_WELL_384_KEY)
 
@@ -1435,6 +1444,7 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
 
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
+        self._remapper = self._extend_mapping_type(self._REPLICATES_REMAPPER)
         self._data_columns = _BASE_DATA_COLUMNS
         self._optional_col_sets = self._extend_mapping_type(
             {self._REPLICATES_SET_KEY: (
@@ -1444,29 +1454,8 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         self._validate_on_load(path, defer_validate)
 
     def contains_replicates(self, table=None):
-        if self.Bioinformatics is None:
-            return False
-
-        contains_replicates = self.Bioinformatics[
-            CONTAINS_REPLICATES_KEY].unique().tolist()
-
-        # by convention, all projects in the sample-sheet are either going
-        # to be True or False. If some projects are True while others are
-        # False, we should raise an Error.
-        if len(contains_replicates) > 1:
-            raise ValueError(f"All projects in {_BIOINFORMATICS_KEY} section "
-                             f"must either contain replicates or not.")
-
-        # return either True or False, depending on the values found in
-        # Bioinformatics section.
-        found_val = list(contains_replicates)[0]
-        found_bool = _convert_to_bool(found_val)
-        if found_bool is None:
-            raise ValueError(f"'{found_val}' is not a valid value for "
-                             f"'{CONTAINS_REPLICATES_KEY}' in "
-                             f"'{_BIOINFORMATICS_KEY}' section. "
-                             f"Must be 'True' or 'False'.")
-        return found_bool
+        return PlateReplication.df_contains_replicates(
+            self.Bioinformatics, f"{_BIOINFORMATICS_KEY} section")
 
 
 class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
@@ -1715,6 +1704,8 @@ class AmpliconSampleSheet(KLSampleSheet):
                              SAMPLE_NAME_KEY,
                              'sample_plate', 'sample_project',
                              'well_description', _SS_SAMPLE_WELL_KEY)
+
+    _ALLOW_MISSING_COLS = True
 
     def __init__(self, path=None):
         super().__init__(path)
@@ -2143,7 +2134,8 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
     return sheet_class
 
 
-def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
+def make_sample_sheet(metadata, table, sequencer, lanes,
+                      strict=None, defer_validate=False):
     """Write a valid sample sheet
 
     Parameters
@@ -2233,23 +2225,26 @@ def make_sample_sheet(metadata, table, sequencer, lanes, strict=None):
                                  strict)
 
         # now that we have a SampleSheet() object, validate it for any
-        # additional errors that may have been present in the data and/or
-        # metadata.
-        messages = sheet.quiet_validate_and_scrub_sample_sheet()
+        # additional errors that may be present in the data and/or metadata.
+        if defer_validate:
+            # gather messages but do not raise an error
+            messages = sheet.quiet_validate_and_scrub_sample_sheet()
+        else:
+            # error out if there are any issues
+            sheet._validate_loaded_sheet_or_error()
+    # end if initial metadata validation produced no messages
 
-        if not any([isinstance(m, ErrorMessage) for m in messages]):
-            # No error messages equals success.
-            # Echo any warning messages.
-            for warning_msg in messages:
-                warning_msg.echo()
-            return sheet
-
-    # Continue legacy behavior of echoing ErrorMessages and WarningMessages.
+    # Echo all messages, both ErrorMessages and WarningMessages.
     msgs = []
     for message in messages:
         msgs.append(str(message))
         message.echo()
 
+    # if none of the messages are errors, then it is ok to return the sheet
+    if not any([isinstance(m, ErrorMessage) for m in messages]):
+        return sheet
+
+    # if we got here, then there are errors in the sample-sheet.
     # Introduce an exception raised for API calls that aren't reporting echo()
     # to the user. Specifically, calls from other modules rather than
     # notebooks. These legacy calls may or may not be testing the returned
@@ -2340,25 +2335,8 @@ def _demux_sample_sheet(sheet):
     """
     df = sample_sheet_to_dataframe(
         sheet, lcase_cols=False, add_protocol_info=False)
-
-    # use PlateReplication object to convert each sample's 384 well location
-    # into a 96-well location + quadrant. Since replication is performed at
-    # the plate-level, this will identify which replicates belong in which
-    # new sample-sheet.
-    plate = PlateReplication(None)
-
-    df['quad'] = df.apply(lambda row: plate.get_96_well_location_and_quadrant(
-        row[DESTINATION_WELL_384_KEY])[0], axis=1)
-
-    res = []
-
-    for quad in sorted(df['quad'].unique()):
-        # for each unique quadrant found, create a new dataframe that's a
-        # subset containing only members of that quadrant. Delete the temporary
-        # 'quad' column afterwards and reset the index to an integer value
-        # starting at zero; the current-index will revert to a column named
-        # 'sample_id'. Return the list of new dataframes.
-        res.append(df[df['quad'] == quad].drop(['quad'], axis=1))
+    pr = PlateReplication(DESTINATION_WELL_384_KEY)
+    res = pr.unmake_replicates(df)
 
     return res
 
@@ -2377,7 +2355,9 @@ def demux_sample_sheet(sheet):
         list of sheets
     """
     if CONTAINS_REPLICATES_KEY not in sheet.Bioinformatics:
-        raise ValueError("sample-sheet does not contain replicates")
+        raise ValueError(
+            f"sample sheet does not have a '{CONTAINS_REPLICATES_KEY}' "
+            f"column in the '{_BIOINFORMATICS_KEY}' section.")
 
     contains_repl_value = sheet.contains_replicates()
 
@@ -2428,6 +2408,7 @@ def demux_sample_sheet(sheet):
             sheet.Contact[_SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
             drop=True)
 
+        # NB: if modifying this section, see issue #321
         # for our purposes here, we want to reindex df so that the index
         # becomes Sample_ID and a new numeric index is created before
         # turning it into a dict. In other situations it remains beneficial
@@ -2544,20 +2525,6 @@ def make_sections_dict(plate_df, studies_info, expt_name, expt_type,
             plate_df, blanks_mask=plate_df[PM_BLANK_KEY])
 
     return sections_dict
-
-
-def _convert_to_bool(x):
-    if type(x) is bool:
-        # column type is already correct.
-        return x
-    elif type(x) is str:
-        # strings should be converted to bool if possible.
-        if x.strip().lower() == 'true':
-            return True
-        elif x.strip().lower() == 'false':
-            return False
-
-    return None
 
 
 def _strip_quotes(input_str):

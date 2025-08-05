@@ -4,9 +4,6 @@ import pandas as pd
 from pandas.testing import assert_frame_equal
 
 from unittest import TestCase, main
-from metapool.mp_strings import (get_short_name_and_id, parse_project_name,
-                                 QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY,
-                                 PROJECT_FULL_NAME_KEY)
 from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _plate_position, validate_plate_metadata,
                             _validate_plate, Message, ErrorMessage,
@@ -16,6 +13,7 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
+from metapool.mp_strings import CONTAINS_REPLICATES_KEY
 
 
 class DilutionTests(TestCase):
@@ -629,11 +627,24 @@ class PlateValidationTests(TestCase):
 
 class PlateReplicationTests(TestCase):
     def setUp(self):
-        data_dir = os.path.dirname(__file__)
-        input_plate_fp = os.path.join(data_dir, 'data/input_plate.tsv')
+        data_dir = os.path.join(os.path.dirname(__file__), "data")
+        self.data_dir = data_dir
+
+        input_plate_fp = os.path.join(data_dir, 'input_plate.tsv')
         self.input_df = pd.read_csv(input_plate_fp, sep='\t', dtype=str)
 
-    def test_overwrite_source_quad(self):
+    def _help_test_make_replicates(self, exp_out_fname, obs_df):
+        df_fp = os.path.join(self.data_dir, exp_out_fname)
+        exp = pd.read_csv(df_fp, sep='\t', dtype=str)
+        exp[CONTAINS_REPLICATES_KEY] = \
+            exp[CONTAINS_REPLICATES_KEY].astype(bool)
+
+        obs = obs_df.set_index('Sample')
+        exp = exp.set_index('Sample')
+
+        assert_frame_equal(obs, exp, check_like=True)
+
+    def test_make_replicates_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3.
 
@@ -641,66 +652,43 @@ class PlateReplicationTests(TestCase):
 
         obs = pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file1.tsv',
-                          sep='\t', dtype=str)
+        self._help_test_make_replicates("file1.tsv", obs)
 
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
-
+    def test_make_replicates_no_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
         # source 3 with overwrites not allowed. Should return an Error.
-
+        pr = PlateReplication('Library Well')
         with self.assertRaisesRegex(ValueError, 'Quadrant 3 is a source '
                                                 'quadrant'):
             pr.make_replicates(self.input_df, {1: [2, 3, 4]}, overwrite=False)
 
-    def test_another_source(self):
+    def test_make_replicates_source_in_quad_3(self):
         # confirm that a source other than quad 1 can replicate to empty
         # sources.
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(self.input_df, {3: [2, 4]}, overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file2.tsv',
-                          sep='\t', dtype=str)
+        self._help_test_make_replicates("file2.tsv", obs)
 
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
-
-    def test_two_replications(self):
+    def test_make_replicates_two_source_quads(self):
         # confirm that two sources can be replicated successfully.
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(self.input_df, {1: [2], 3: [4]},
                                  overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file3.tsv',
-                          sep='\t', dtype=str)
+        self._help_test_make_replicates("file3.tsv", obs)
 
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
-
-    def test_parameter_conversion(self):
+    def test_make_replicates_non_list_input_params(self):
         # confirm conversion to lists works as intended.
         pr = PlateReplication('Library Well')
 
         obs = pr.make_replicates(self.input_df, {1: 2, 3: 4}, overwrite=True)
 
-        exp = pd.read_csv('metapool/tests/data/file4.tsv',
-                          sep='\t', dtype=str)
+        self._help_test_make_replicates("file4.tsv", obs)
 
-        obs = obs.set_index('Sample')
-        exp = exp.set_index('Sample')
-
-        assert_frame_equal(obs, exp, check_like=True)
-
-    def test_replicate_empty_quad(self):
+    def test_make_replicates_err_empty_quads(self):
         # confirm replicating an empty quad to an empty quad raises an Error.
 
         pr = PlateReplication('Library Well')
@@ -730,54 +718,155 @@ class PlateReplicationTests(TestCase):
             pr.make_replicates(self.input_df, {1: [2], 2: [1]},
                                overwrite=False)
 
-    def test_get_short_name_and_id(self):
-        # normal, non-pathological cases
-        obs = get_short_name_and_id('project_1')
-        self.assertEqual(2, len(obs))
-        self.assertEqual(obs[0], 'project')
-        self.assertEqual(obs[1], '1')
+    def test_unmake_replicates_err(self):
+        # confirm an error if destination column is not in dataframe
 
-        obs = get_short_name_and_id('project_00333333')
-        self.assertEqual(2, len(obs))
-        self.assertEqual(obs[0], 'project')
-        self.assertEqual(obs[1], '00333333')
+        pr = PlateReplication("LibWell")
+        df_fp = os.path.join(self.data_dir, 'file1.tsv')
+        df = pd.read_csv(df_fp, sep='\t', dtype=str)
 
-        # pathological cases
-        obs = get_short_name_and_id('project')
-        self.assertEqual(2, len(obs))
-        self.assertEqual(obs[0], 'project')
-        self.assertIsNone(obs[1])
+        err = "Column 'LibWell' not found in the input dataframe"
+        with self.assertRaisesRegex(ValueError, err):
+            pr.unmake_replicates(df)
 
-        obs = get_short_name_and_id('project_')
-        self.assertEqual(2, len(obs))
-        self.assertEqual(obs[0], 'project_')
-        self.assertIsNone(obs[1])
+    def test_unmake_replicates(self):
+        # Confirm that separating replicate sheet into per-replicate dfs works.
+        pr = PlateReplication(None)  # defaults to 'Library Well' as dest well
+        df_fp = os.path.join(self.data_dir, 'file1.tsv')
+        df = pd.read_csv(df_fp, sep='\t', dtype=str)
+        obs = pr.unmake_replicates(df)
+        for i in range(1, 5):
+            curr_exp_fp = df_fp.replace('.tsv', f'_rep{i}.tsv')
+            # NB: the indexes of the separated dfs are preserved, not reset,
+            # so they had to be included in the expected test output files
+            # instead of just inferred from the record order.
+            curr_exp_df = pd.read_csv(
+                curr_exp_fp, sep='\t', dtype=str, index_col=0)
+            curr_obs_df = obs[i - 1]
+            assert_frame_equal(curr_exp_df, curr_obs_df)
 
-    def test_parse_project_name_err_none(self):
-        expected_err = "project_name cannot be None or empty string"
-        with self.assertRaisesRegex(ValueError, expected_err):
-            parse_project_name(None)
+    def test_get_384_well_location(self):
+        # confirm that the remapping of wells from 96 to 384 works as intended.
+        pr = PlateReplication('Library Well')
 
-        with self.assertRaisesRegex(ValueError, expected_err):
-            parse_project_name("")
+        obs = pr.get_384_well_location('A1', '3')
+        self.assertEqual(obs, 'B1')
 
-    def test_parse_project_name_err_qiita_id(self):
-        with self.assertRaisesRegex(
-                ValueError, "'project' does not contain a Qiita-ID."):
-            parse_project_name("project")
+        obs = pr.get_384_well_location('H12', '1')
+        self.assertEqual(obs, 'O23')
 
-        with self.assertRaisesRegex(
-                ValueError, "'project_blue' does not contain a Qiita-ID."):
-            parse_project_name("project_blue")
+        obs = pr.get_384_well_location('H10', '2')
+        self.assertEqual(obs, 'O20')
 
-    def test_parse_project_name(self):
-        exp = {
-            QIITA_ID_KEY: '1',
-            PROJECT_SHORT_NAME_KEY: "project_green",
-            PROJECT_FULL_NAME_KEY: "project_green_1"
-        }
-        obs = parse_project_name("project_green_1")
-        self.assertDictEqual(exp, obs)
+        obs = pr.get_384_well_location('A12', '4')
+        self.assertEqual(obs, 'B24')
+
+    def test_get_384_well_location_err(self):
+        # confirm that an error is raised when a well not in the 96-well plate
+        # is requested.
+        pr = PlateReplication('Library Well')
+
+        # well_id_96 is given without zero padding, so A1 is there but not A01
+        err_msg = "well_id_96 'A01' not found in quadrant '1'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.get_384_well_location('A01', '1')
+
+        # there is no well H13 on 96-well plates so this should raise an error
+        err_msg = "well_id_96 'H13' not found in quadrant '2'"
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.get_384_well_location('H13', '2')
+
+    def test_df_contains_replicates_false_none_input(self):
+        pr = PlateReplication('Library Well')
+        obs = pr.df_contains_replicates(None, "none df")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_false_no_col(self):
+        pr = PlateReplication('Library Well')
+        obs = pr.df_contains_replicates(self.input_df, "no replicates")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_false_uniform(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # all rows have contain_replicates = False
+        df[CONTAINS_REPLICATES_KEY] = False
+        obs = pr.df_contains_replicates(df, "with replicates")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_false_mixed_falses(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # most rows have contain_replicates = False
+        # and one has the string "fAlse", so all are considered False
+        df[CONTAINS_REPLICATES_KEY] = False
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[0, CONTAINS_REPLICATES_KEY] = "fAlse"
+        obs = pr.df_contains_replicates(df, "with replicates str")
+        self.assertFalse(obs)
+
+    def test_df_contains_replicates_true_uniform(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # all rows have contain_replicates = True
+        df[CONTAINS_REPLICATES_KEY] = True
+        obs = pr.df_contains_replicates(df, "with replicates")
+        self.assertTrue(obs)
+
+    def test_df_contains_replicates_true_mixed_trues(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # most rows have contain_replicates = True
+        # and one has the string "true", so all are considered True
+        df[CONTAINS_REPLICATES_KEY] = True
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[0, CONTAINS_REPLICATES_KEY] = "true"
+        obs = pr.df_contains_replicates(df, "with replicates str")
+        self.assertTrue(obs)
+
+    def test_df_contains_replicates_err_mixed_bools(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # some rows have contain_replicates = True and some False
+        df[CONTAINS_REPLICATES_KEY] = True
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[1, CONTAINS_REPLICATES_KEY] = "False"
+        err_msg = ("All projects in mixed bools test must either "
+                   "contain replicates or not.")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.df_contains_replicates(df, "mixed bools test")
+
+    def test_df_contains_replicates_err_non_bools(self):
+        pr = PlateReplication('Library Well')
+        df = self.input_df.copy()
+
+        # some rows have contain_replicates = True and some False
+        df[CONTAINS_REPLICATES_KEY] = True
+        # set the type of the CONTAINS_REPLICATES_KEY column to object
+        # because otherwise pandas throws a FutureWarning
+        df[CONTAINS_REPLICATES_KEY] = \
+            df[CONTAINS_REPLICATES_KEY].astype(object)
+        df.loc[1, CONTAINS_REPLICATES_KEY] = "Blue"
+        df.loc[2, CONTAINS_REPLICATES_KEY] = "Green"
+        err_msg = ("Values for 'contains_replicates' in 'non-bools test' must "
+                   "be True or False. The following values are not valid: "
+                   "Blue, Green")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            pr.df_contains_replicates(df, "non-bools test")
 
 
 class PlateRemapperTests(TestCase):
@@ -796,12 +885,12 @@ class PlateRemapperTests(TestCase):
         with self.assertRaisesRegex(ValueError, err_msg):
             PlateRemapper(input_df)
 
-    def test_get_384_well_location_happy(self):
+    def test_get_384_well_location(self):
         remapper = PlateRemapper(self.input_df)
         obs = remapper.get_384_well_location('H10', 'Plate_42')
         self.assertEqual(obs, 'P11')
 
-    def test_get_384_well_location_err_missing_well(self):
+    def test_get_384_well_location_err(self):
         remapper = PlateRemapper(self.input_df)
 
         # wells are given without zero padding, so A1 is in there but not A01

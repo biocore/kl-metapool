@@ -381,3 +381,21 @@ class NotebookSupportTests(TestCase):
 
         result_df = drop_unnamed_nan_columns(df)
         assert_frame_equal(result_df, expected_df)
+
+    def test_convert_to_bool(self):
+        """Test converting various inputs to boolean."""
+        from metapool.util import convert_to_bool
+
+        # booleans and strings of those booleans return True or False
+        self.assertTrue(convert_to_bool('True'))
+        self.assertTrue(convert_to_bool('tRue'))
+        self.assertTrue(convert_to_bool(True))
+        self.assertFalse(convert_to_bool('False'))
+        self.assertFalse(convert_to_bool('falSe'))
+        self.assertFalse(convert_to_bool(False))
+
+        # anything else, including numbers, empty strings, and None, gives None
+        self.assertIsNone(convert_to_bool(None))
+        self.assertIsNone(convert_to_bool(''))
+        self.assertIsNone(convert_to_bool(1))
+        self.assertIsNone(convert_to_bool("yes"))
