@@ -1,5 +1,5 @@
 # NB: any sampler without a revcomp_samplesheet_i5_index key will not be
-# available to users when making sample sheets, because we don't know what that
+# available to users when making illumina sample sheets, because we don't know what that
 # value should be, and it's better to error than to silently do the wrong thing
 HiSeq1500:
     model_name: 'Illumina HiSeq 1500'
@@ -79,3 +79,9 @@ NovaSeqXPlus:
 # we don't seem to have any data with that prefix.  The
 # qp-klp comments say RapidRun was HiSeq 2500 (?) which is
 # confusing, so not adding it here until/unless we need it.
+Revio:
+    model_name: 'PacBio Revio'
+    machine_prefix: 'r'
+    profile_name: 'Revio'
+    # NB: *no* revcomp_samplesheet_i5_index entry because that isn't 
+    # relevant to this technology
