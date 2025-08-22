@@ -39,8 +39,6 @@ jobs:
           # conda create --yes -n metapool python=${{ matrix.python-version }} scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl 'seqtk>=1.4'
           conda env create --file environment.yml
           conda activate metapool
-          pip install coveralls flake8
-          pip install -e ".[all]"
 
       - name: Run tests and measure coverage
         shell: bash -l {0}
