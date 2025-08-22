@@ -14,4 +14,5 @@ license = { text = "BSD-3-Clause" }
 metapool = "metapool.cli:main"
 
 [tool.setuptools.packages.find]
-exclude = ["tests*", "docs*"]
+include = ["metapool*"]      # only ship your code
+exclude = ["notebooks*", "tests*", "docs*"]
