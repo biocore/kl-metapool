@@ -65,3 +65,6 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
 from . import _version
 
 __version__ = _version.get_versions()['version']
+
+from . import _version
+__version__ = _version.get_versions()['version']
