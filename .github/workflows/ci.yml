@@ -20,10 +20,6 @@ jobs:
           persist-credentials: false
           fetch-depth: 0
 
-      # - name: Set up Node.js enviroment
-      #   uses: actions/setup-node@v1
-      #   with:
-      #     node-version: 14
 
       - uses: conda-incubator/setup-miniconda@v2
         with:
