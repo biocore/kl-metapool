@@ -1,14 +1,3 @@
 [build-system]
 requires = ["setuptools>=68", "wheel", "versioneer[toml]"]
 build-backend = "setuptools.build_meta"
-
-[project]
-name = "metapool"
-dynamic = ["version"]
-requires-python = ">=3.9"
-description = "Short description"
-readme = "README.md"
-license = { text = "BSD-3-Clause" }
-
-[project.scripts]
-metapool = "metapool.cli:main"
