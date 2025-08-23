@@ -53,7 +53,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate metapool
-          flake8 --exclude versioneer.py .
+          flake8 --exclude versioneer.py,metapool/_version.py .
 
       - name: Check deploy script syntax
         run: bash -n ./deploy.sh
