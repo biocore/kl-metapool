@@ -11,7 +11,8 @@ setup(
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
     packages=find_packages(
-        exclude=("notebooks", "notebooks.*", "tests", "tests.*", "docs", "docs.*")
+        exclude=(
+            "notebooks", "notebooks.*", "tests", "tests.*", "docs", "docs.*")
     ),
     include_package_data=True,
     package_data={
