@@ -70,6 +70,7 @@ SS_SAMPLE_ID_KEY = 'Sample_ID'
 
 PROTOCOL_NAME_ILLUMINA = "Illumina"
 PROTOCOL_NAME_TELLSEQ = "TellSeq"
+PROTOCOL_NAME_PACBIO_SMRT = "PacBio SMRT"
 
 # NB: These is a single variable that other tools, like
 # qp-knight-lab-processing can import; PLEASE add any new

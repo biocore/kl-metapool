@@ -62,6 +62,6 @@ __all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
            'EXTRACTED_GDNA_CONC_KEY', 'get_model_by_instrument_id',
            'PROFILE_NAME_KEY']
 
-from . import _version
-
-__version__ = _version.get_versions()['version']
+from ._version import get_versions  # provided by Versioneer
+__version__ = get_versions()["version"]
+del get_versions

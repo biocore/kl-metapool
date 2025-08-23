@@ -28,3 +28,5 @@ dependencies:
       - coveralls
       - ipykernel
       - sample-sheet
+      # install the metapool package as editable
+      - -e .
