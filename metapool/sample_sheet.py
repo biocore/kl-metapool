@@ -1631,6 +1631,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
                             'total_rna_concentration_ng_ul',
                             ELUTION_VOL_KEY)
+    
+    _ORDERED_BY_DATA_COLUMNS = True
 
     def __init__(self, path=None):
         super().__init__(path=path)
