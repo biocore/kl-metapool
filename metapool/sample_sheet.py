@@ -1950,6 +1950,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                             'total_rna_concentration_ng_ul',
                             ELUTION_VOL_KEY)
 
+    _ORDERED_BY_DATA_COLUMNS = True
+
     def __init__(self, path=None, defer_validate=False):
         # defer_validate = _check_validate_sentinel(defer_validate, path)
         super().__init__(path=path, defer_validate=True)

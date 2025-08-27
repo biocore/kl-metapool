@@ -1537,6 +1537,14 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(exp_filt, obs_filt)
 
+    def test_merge_read_counts_w_explicit_fastqc_sample_col(self):
+        exp_fp = os.path.join(self.fp, 'data/test_output_merge.tsv')
+        exp = pd.read_csv(exp_fp, sep='\t')
+        counts_df = self.counts_df.rename(columns={'Category': 'Sample'})
+        obs = merge_read_counts(
+            self.plate_df, counts_df, fastqc_sample_colname='Sample')
+        pd.testing.assert_frame_equal(exp, obs)
+
     def test_read_survival(self):
         reads = [10 + i for i in range(11)]
         reads = pd.Series(reads)
@@ -1820,14 +1828,22 @@ class Tests(TestCase):
 
     # Validator function. No return so just asserting
     # that errors are raised when expected
-    def test_validate_plate_df_w_leading_zeroes(self):
-        # Test with no errors, preserving leading zeroes
+    def test_validate_plate_df_w_leading_zeroes_no_preserve(self):
+        # Test with no errors, NOT preserving leading zeroes (these are in both
+        # plate_df and sa_df)
+        validate_plate_df(self.validation_plate_df, self.metadata, self.sa_df,
+                          self.blanks_dir, self.katharoseq_dir)
+
+    def test_validate_plate_df_w_leading_zeroes_preserve(self):
+        # Test with no errors, preserving leading zeroes (these are in both
+        # plate_df and sa_df)
         validate_plate_df(self.validation_plate_df, self.metadata, self.sa_df,
                           self.blanks_dir, self.katharoseq_dir,
                           preserve_leading_zeroes=True)
 
-    def test_validate_plate_df_wo_leading_zeroes(self):
-        # Test with no errors, not preserving leading zeroes
+    def test_validate_plate_df_wo_leading_zeroes_no_preserve(self):
+        # Test with no errors, NOT preserving leading zeroes (but there aren't
+        # any in either plate_df or sa_df so preserving/not has no effect)
         plate_df_no_zeroes = self.validation_plate_df.copy()
         plate_df_no_zeroes['TubeCode'] = \
             plate_df_no_zeroes['TubeCode'].str.lstrip('0')
@@ -1836,6 +1852,64 @@ class Tests(TestCase):
             sa_df_no_zeroes['TubeCode'].str.lstrip('0')
         validate_plate_df(plate_df_no_zeroes, self.metadata, sa_df_no_zeroes,
                           self.blanks_dir, self.katharoseq_dir)
+
+    # NB: NOT including a test_validate_plate_df_wo_leading_zeroes_preserve
+    # method that tests with no errors in spite of preserving leading zeroes
+    # where all the inputs are without leading zeroes in their tubecodes bc
+    # although I can pretty easily take the leading zeroes out of the plate_df
+    # and sa_df, I *cannot* easily take the leading zeroes out of the blanks
+    # files in the blanks directory.  These remain to cause errors, since
+    # plate_df and sa_df match each other without leading zeroes but the
+    # tubecodes of the blanks in sa_df with no leading zeroes do not match the
+    # tubecodes of the blanks in the blanks files that DO have leading zeroes.
+
+    def test_validate_plate_df_w_plate_df_leading_zeroes_no_preserve(self):
+        # Test with no errors, NOT preserving leading zeroes (where there are
+        # leading zeroes in the plate_df but not the sa_df)
+        sa_df_no_zeroes = self.sa_df.copy()
+        sa_df_no_zeroes['TubeCode'] = \
+            sa_df_no_zeroes['TubeCode'].str.lstrip('0')
+        validate_plate_df(self.validation_plate_df, self.metadata,
+                          sa_df_no_zeroes,
+                          self.blanks_dir, self.katharoseq_dir)
+
+    def test_validate_plate_df_w_plate_df_leading_zeroes_preserve_err(self):
+        # Throw error when preserving leading zeroes where there are
+        # leading zeroes in the plate_df but not the sa_df
+        sa_df_no_zeroes = self.sa_df.copy()
+        sa_df_no_zeroes['TubeCode'] = \
+            sa_df_no_zeroes['TubeCode'].str.lstrip('0')
+        err_msg = (
+            "The following plate_df TubeCodes are missing sample "
+            "accession information: 0363132553,")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(self.validation_plate_df, self.metadata,
+                              sa_df_no_zeroes,
+                              self.blanks_dir, self.katharoseq_dir,
+                              preserve_leading_zeroes=True)
+
+    def test_validate_plate_df_w_sa_df_leading_zeroes_no_preserve(self):
+        # Test with no errors, NOT preserving leading zeroes (where there are
+        # leading zeroes in the sa_df but not the plate_df)
+        plate_df_no_zeroes = self.validation_plate_df.copy()
+        plate_df_no_zeroes['TubeCode'] = \
+            plate_df_no_zeroes['TubeCode'].str.lstrip('0')
+        validate_plate_df(plate_df_no_zeroes, self.metadata, self.sa_df,
+                          self.blanks_dir, self.katharoseq_dir)
+
+    def test_validate_plate_df_w_sa_df_leading_zeroes_preserve_err(self):
+        # Throw error when preserving leading zeroes where there are
+        # leading zeroes in the sa_df but not the plate_df
+        plate_df_no_zeroes = self.validation_plate_df.copy()
+        plate_df_no_zeroes['TubeCode'] = \
+            plate_df_no_zeroes['TubeCode'].str.lstrip('0')
+        err_msg = (
+            "The following plate_df TubeCodes are missing sample accession "
+            "information: 363132553,")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            validate_plate_df(plate_df_no_zeroes, self.metadata, self.sa_df,
+                              self.blanks_dir, self.katharoseq_dir,
+                              preserve_leading_zeroes=True)
 
     def test_validate_plate_df_err_sample_not_in_metadata(self):
         # Raises error for sample not represented in metadata
