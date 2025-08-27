@@ -1576,12 +1576,16 @@ def reformat_interleaved_to_columns(wells):
     return new_wells
 
 
-def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
+def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
+                      fastqc_sample_colname=None):
     """Merges reads counts from FASTQC report or per_sample_FASTQ summary
     :param plate_df: A DataFrame containing the growing plate dataframe.
     :param counts_df: A DataFrame containing the counts.
     :param reads_column_name: A string column header for
     the merged read counts column.
+    :param fastqc_sample_colname: An optional string column header for a
+    FastQC-type file's sample identifier column. If not provided, both column
+    header and file type will be determined by examining the counts_df.
     :return: A DataFrame containing the read counts
     from the input file in a column
     with the reads_column_name.
@@ -1590,18 +1594,23 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
     # Map unwanted characters to other characters
     plate_df["sample sheet Sample_ID"] = plate_df["Sample"].map(bcl_scrub_name)
 
+    fastqc_file_type = "FastQC"
     # Logic for multiple input_file format support
-    if 'Category' in counts_df.columns:
-        sample_column = 'Category'
-        file_type = 'FastQC'
-    elif 'filename' in counts_df.columns:
-        sample_column = 'filename'
-        file_type = 'per_sample_FASTQ'
-    elif 'qiita_prep_id' in counts_df.columns:
-        sample_column = 'old_sample_name'
-        file_type = 'prep_file'
+    if fastqc_sample_colname:
+        sample_column = fastqc_sample_colname
+        file_type = fastqc_file_type
     else:
-        raise Exception("Unsupported input file type.")
+        if 'Category' in counts_df.columns:
+            sample_column = 'Category'
+            file_type = fastqc_file_type
+        elif 'filename' in counts_df.columns:
+            sample_column = 'filename'
+            file_type = 'per_sample_FASTQ'
+        elif 'qiita_prep_id' in counts_df.columns:
+            sample_column = 'old_sample_name'
+            file_type = 'prep_file'
+        else:
+            raise Exception("Unsupported input file type.")
 
     if file_type != 'prep_file':
         # Parse table to find sample names, and sum forward and rev reads.
@@ -1615,7 +1624,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads"):
         counts_df = counts_df.groupby('Sample').sum(numeric_only=True)
 
     # Logic for multiple input_file format support
-    if file_type == 'FastQC':
+    if file_type == fastqc_file_type:
         counts_df[reads_column_name] = counts_df['Unique Reads'] + \
                                        counts_df['Duplicate Reads']
     elif file_type == 'per_sample_FASTQ':
@@ -2499,6 +2508,12 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
     If successfully validated, returns None. Raises ValueErrors if errors
     are encountered. Echos warnings to stdout.
     """
+    # if not preserving, strip leading zeroes off tubecodes in sample accession
+    # before matching to tubecodes in plate_df
+    if not preserve_leading_zeroes:
+        plate_df = strip_tubecode_leading_zeroes(plate_df)
+        sample_accession_df = \
+            strip_tubecode_leading_zeroes(sample_accession_df)
 
     # This checks that all the samples names recorded in the plate_df have
     # metadata associated with them
