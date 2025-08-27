@@ -1583,6 +1583,9 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
     :param counts_df: A DataFrame containing the counts.
     :param reads_column_name: A string column header for
     the merged read counts column.
+    :param fastqc_sample_colname: An optional string column header for a
+    FastQC-type file's sample identifier column. If not provided, both column
+    header and file type will be determined by examining the counts_df.
     :return: A DataFrame containing the read counts
     from the input file in a column
     with the reads_column_name.
