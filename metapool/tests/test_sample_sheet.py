@@ -2207,10 +2207,11 @@ class DemuxReplicatesTests(BaseTests):
     def test_sheet_needs_demuxing_no_replicates_support(self):
         # test valid sheet of a type that doesn't even support replicates.
         metat_fp = join(
-            self.data_dir, 
+            self.data_dir,
             MetatranscriptomicSampleSheetv10CreationTests.sample_sheet_name)
 
-        sheet = MetatranscriptomicSampleSheetv10(metat_fp, defer_validate=False)
+        sheet = MetatranscriptomicSampleSheetv10(
+            metat_fp, defer_validate=False)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
     def test_demux_sample_sheet_err_no_contains_replicates(self):
@@ -2437,7 +2438,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
 
     def test_metatranscriptomic_sheet_load(self):
         metat_fp = join(
-            self.data_dir, 
+            self.data_dir,
             MetatranscriptomicSampleSheetv10CreationTests.sample_sheet_name)
 
         # confirm manual loading is w/out error.
@@ -3250,7 +3251,7 @@ class MetatranscriptomicSampleSheetv10CreationTests(
         'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
         'Sample_Project', 'total_rna_concentration_ng_ul',
         'vol_extracted_elution_ul', 'Well_description']
-    
+
     @staticmethod
     def _make_metadata(a_self):
         return MetagenomicSampleSheetv90CreationTests._make_metadata(a_self)
