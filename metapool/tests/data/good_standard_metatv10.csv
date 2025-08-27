@@ -214,8 +214,8 @@ BLANK2_NPH_11_C,BLANK2.NPH.11.C,NPH_15288_P1.2,F21,iTru7_103_05,GCATGTCT,iTru5_2
 359180393,359180393,NPH_15288_P1.2,P23,iTru7_104_06,CCTATACC,iTru5_23_H,GACTATGC,NPH_15288,69.926,70,NPH_15288_P1.2.359180393.P23,1
 ,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,
-NPH_15288,15288,True,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,shotgun sequencing,False,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,
+NPH_15288,15288,True,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,shotgun sequencing,,,,,
 ,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,
 Sample_Project,Email,,,,,,,,,,,

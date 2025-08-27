@@ -1902,7 +1902,7 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
     _data_columns = _BASE_DATA_COLUMNS
 
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
-        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
         _CONTACT_KEY: _CONTACT_COLS,
     })
 
@@ -1942,7 +1942,7 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                      ELUTION_VOL_KEY, 'Well_description')
 
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
-        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
+        _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
         _CONTACT_KEY: _CONTACT_COLS,
     })
 

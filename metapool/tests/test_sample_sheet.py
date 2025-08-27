@@ -2204,6 +2204,15 @@ class DemuxReplicatesTests(BaseTests):
             self.sheet_wo_replicates_path, defer_validate=False)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
+    def test_sheet_needs_demuxing_no_replicates_support(self):
+        # test valid sheet of a type that doesn't even support replicates.
+        metat_fp = join(
+            self.data_dir, 
+            MetatranscriptomicSampleSheetv10CreationTests.sample_sheet_name)
+
+        sheet = MetatranscriptomicSampleSheetv10(metat_fp, defer_validate=False)
+        self.assertFalse(sheet_needs_demuxing(sheet))
+
     def test_demux_sample_sheet_err_no_contains_replicates(self):
         # we don't want to demux legacy sample-sheets. sheet_needs_demuxing()
         # should be used to determine if demux_sample_sheet() should be
@@ -2427,17 +2436,18 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_metatranscriptomic_sheet_load(self):
-        metat_fp = join(self.data_dir, 'good_standard_metatv10.csv')
+        metat_fp = join(
+            self.data_dir, 
+            MetatranscriptomicSampleSheetv10CreationTests.sample_sheet_name)
 
         # confirm manual loading is w/out error.
         sheet = MetatranscriptomicSampleSheetv10(
             metat_fp, defer_validate=False)
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-        # Metat v10 should include (and correctly parse) contains_replicates
-        self.assertTrue(
+        # Metat v10 should NOT include contains_replicates
+        self.assertFalse(
             CONTAINS_REPLICATES_KEY in sheet.Bioinformatics.columns)
-        self.assertFalse(sheet.Bioinformatics[CONTAINS_REPLICATES_KEY].all())
 
         # confirm load_sample_sheet() returns the correct child class of
         # KLSampleSheet.
@@ -3240,6 +3250,10 @@ class MetatranscriptomicSampleSheetv10CreationTests(
         'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
         'Sample_Project', 'total_rna_concentration_ng_ul',
         'vol_extracted_elution_ul', 'Well_description']
+    
+    @staticmethod
+    def _make_metadata(a_self):
+        return MetagenomicSampleSheetv90CreationTests._make_metadata(a_self)
 
     def test_MetatranscriptomicSampleSheetv10_instantiate_from_path(self):
         self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
