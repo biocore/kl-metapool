@@ -5,14 +5,14 @@ from datetime import datetime
 from os.path import join, dirname
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 import sample_sheet
-from json import loads
 
 from metapool.mp_strings import (
     QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,
     CONTAINS_REPLICATES_KEY, SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
     ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY,
-    SECONDARY_STUDIES_KEY)
+    SECONDARY_STUDIES_KEY, DESTINATION_WELL_384_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,
@@ -32,7 +32,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    _ASSAY_KEY, _SHEET_VERSION_KEY,
                                    _SHEET_TYPE_KEY, _BIOINFORMATICS_KEY,
                                    _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
-from metapool.plate import ErrorMessage, WarningMessage
+from metapool.plate import WarningMessage
 from metapool.metapool import generate_override_cycles_value
 
 
@@ -72,9 +72,6 @@ class BaseTests(unittest.TestCase):
                                              'new-lines.csv')
 
         self.no_project_ss = join(data_dir, 'no-project-name-sample-sheet.csv')
-
-        # "valid" upfront but will have repeated values after scrubbing
-        self.ok_ss = join(data_dir, 'ok-sample-sheet.csv')
 
         self.scrubbable_ss = join(data_dir, 'scrubbable-sample-sheet.csv')
 
@@ -135,6 +132,13 @@ class BaseTests(unittest.TestCase):
             'SheetVersion': '100'
         }
 
+    def _help_test_csv_files_exact_text_match(self, file_1, file_2):
+        with open(file_1, 'r', encoding='utf-8') as f1, \
+             open(file_2, 'r', encoding='utf-8') as f2:
+            text1 = f1.read()
+            text2 = f2.read()
+        self.assertMultiLineEqual(text1, text2)
+
 
 class KLSampleSheetTests(BaseTests):
     def test_instantiation(self):
@@ -145,18 +149,65 @@ class KLSampleSheetTests(BaseTests):
             KLSampleSheet()
 
         # child class should instantiate successfully.
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         self.assertIsNotNone(sheet)
 
+    def test__get_section_exists(self):
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        section = sheet._get_section(_BIOINFORMATICS_KEY)
+        self.assertEqual(pd.DataFrame, type(section))
+        self.assertEqual((3, 8), section.shape)
+
+    def test__get_section_missing(self):
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        delattr(sheet, _BIOINFORMATICS_KEY)
+        section = sheet._get_section(_BIOINFORMATICS_KEY)
+        self.assertIsNone(section)
+
+    def test__get_section_missing_err(self):
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        delattr(sheet, _BIOINFORMATICS_KEY)
+        err_msg = "Section 'Bioinformatics' does not exist in sample sheet."
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = sheet._get_section(_BIOINFORMATICS_KEY, err_if_missing=True)
+
+    def test__get_data_section_to_df(self):
+        # use good_w_bools sheet because its data section is mercifully short
+        exp = pd.DataFrame([
+            {'Lane': '1', 'Sample_ID': 'CDPH-SAL_Salmonella_Typhi_MDL-143',
+             'Sample_Name': 'CDPH-SAL_Salmonella_Typhi_MDL-143',
+             'Sample_Plate': 'ProjectF_11661_P40', 'well_id_384': 'A1',
+             'I7_Index_ID': 'iTru7_107_07', 'index': 'CCGACTAT',
+             'I5_Index_ID': 'iTru5_01_A', 'index2': 'ACCGACAA',
+             'Sample_Project': 'ProjectF_11661',
+             'Well_description': 'Desc_for_CDPH-SAL_Salmonella Typhi_MDL-143'},
+            {'Lane': '1', 'Sample_ID': '3A', 'Sample_Name': '3A',
+             'Sample_Plate': 'ProjectG_tubes', 'well_id_384': 'I23',
+             'I7_Index_ID': 'iTru7_201_03', 'index': 'GATAGGCT',
+             'I5_Index_ID': 'iTru5_09_H', 'index2': 'AGAAGGAC',
+             'Sample_Project': 'ProjectG_6123',
+             'Well_description': 'Desc_for_3A'},
+            {'Lane': '1', 'Sample_ID': 'LP127890A01',
+             'Sample_Name': 'LP127890A01',
+             'Sample_Plate': 'ProjectN_13059_P1', 'well_id_384': 'I3',
+             'I7_Index_ID': 'iTru7_108_09', 'index': 'TCTCTAGG',
+             'I5_Index_ID': 'iTru5_01_B', 'index2': 'AGTGGCAA',
+             'Sample_Project': 'ProjectN_13059',
+             'Well_description': 'Desc_for_LP127890A01'}])
+        sheet = load_sample_sheet(self.good_w_bools, defer_validate=False)
+        obs = sheet._get_data_section_to_df()
+        assert_frame_equal(exp, obs)
+
     def test_sample_sheet_roundtripping(self):
-        # testing with all the sheets we have access to
-        sheets = [self.good_ss, self.no_project_ss, self.ok_ss,
-                  self.scrubbable_ss, self.bad_project_name_ss,
+        # testing with various good sheets we have access to
+        sheets = [self.good_ss,
+                  self.scrubbable_ss,
                   self.with_comments, self.with_comments_and_new_lines,
                   self.with_new_lines]
-        sheets = {sheet: MetagenomicSampleSheetv100(sheet) for sheet in sheets}
 
-        for filename, sheet in sheets.items():
+        for filename in sheets:
+            sheet = load_sample_sheet(filename, defer_validate=False)
+
             # write each KLSampleSheet object out to disk and compare the text
             # against the original.
             with tempfile.NamedTemporaryFile('w+') as tmp:
@@ -185,7 +236,7 @@ class KLSampleSheetTests(BaseTests):
     def test_write_w_lane(self):
         test_fp = self.good_metag_ss_w_context.replace(
             ".csv", "_lane_overwritten.csv")
-        sheet = MetagenomicSampleSheetv101(test_fp)
+        sheet = MetagenomicSampleSheetv101(test_fp, defer_validate=False)
 
         with tempfile.NamedTemporaryFile('w+') as tmp:
             sheet.write(tmp, lane=3)
@@ -245,7 +296,7 @@ class KLSampleSheetTests(BaseTests):
             for line in empty:
                 tmp.write(line + '\n')
 
-            sheet = MetagenomicSampleSheetv100(tmp.name)
+            sheet = MetagenomicSampleSheetv100(tmp.name, defer_validate=True)
 
             self.assertEqual(sheet.samples, [])
             self.assertEqual(sheet.Settings, {})
@@ -255,12 +306,12 @@ class KLSampleSheetTests(BaseTests):
             self.assertIsNone(sheet.Contact)
 
     def test_parse(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
 
         exp = {
             'IEMFileVersion': '4',
             'SheetType': 'standard_metag',
-            'SheetVersion': '100',
+            'SheetVersion': '90',
             'Investigator Name': 'Knight',
             'Experiment Name': 'RKL0042',
             'Date': '2/26/20',
@@ -286,13 +337,13 @@ class KLSampleSheetTests(BaseTests):
                 "Lane": "1",
                 "Sample_ID": "3A",
                 "Sample_Name": "3A",
-                "Sample_Plate": "Gerwick_tubes",
-                "well_id_384": "I23",
+                "Sample_Plate": "ProjectG_tubes",
+                "Sample_Well": "I23",
                 "I7_Index_ID": "iTru7_201_03",
                 "index": "GATAGGCT",
                 "I5_Index_ID": "iTru5_09_H",
                 "index2": "AGAAGGAC",
-                "Sample_Project": "Gerwick_6123",
+                "Sample_Project": "ProjectG_6123",
                 "Well_description": "Desc_for_3A"
             }, {
                 "Lane": "1",
@@ -300,26 +351,26 @@ class KLSampleSheetTests(BaseTests):
                 "B0387",
                 "Sample_Name": "JM-MEC__Staphylococcus_aureusstrain_BERTI-"
                 "B0387",
-                "Sample_Plate": "Feist_11661_P43",
-                "well_id_384": "B10",
+                "Sample_Plate": "ProjectF_11661_P43",
+                "Sample_Well": "B10",
                 "I7_Index_ID": "iTru7_102_03",
                 "index": "CGTTGCAA",
                 "I5_Index_ID": "iTru5_121_C",
                 "index2": "CTATGCCT",
-                "Sample_Project": "Feist_11661",
+                "Sample_Project": "ProjectF_11661",
                 "Well_description": "Desc_for_JM-MEC__Staphylococcus "
                 "aureusstrain BERTI-B0387"
             }, {
                 "Lane": "1",
                 "Sample_ID": "EP981129A02",
                 "Sample_Name": "EP981129A02",
-                "Sample_Plate": "NYU_BMS_Melanoma_13059_P4",
-                "well_id_384": "H4",
+                "Sample_Plate": "ProjectN_13059_P4",
+                "Sample_Well": "H4",
                 "I7_Index_ID": "iTru7_115_08",
                 "index": "TGGTACAG",
                 "I5_Index_ID": "iTru5_124_A",
                 "index2": "GTACGATC",
-                "Sample_Project": "NYU_BMS_Melanoma_13059",
+                "Sample_Project": "ProjectN_13059",
                 "Well_description": "Desc_for_EP981129A02"
             }
         ]
@@ -343,11 +394,11 @@ class KLSampleSheetTests(BaseTests):
                      'library_construction_protocol',
                      'experiment_design_description'],
             data=[
-                ['NYU_BMS_Melanoma_13059', '13059', False, 'AACC', 'GGTT',
+                ['ProjectN_13059', '13059', False, 'AACC', 'GGTT',
                  False, 'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['Feist_11661', '11661', False, 'AACC', 'GGTT', False,
+                ['ProjectF_11661', '11661', False, 'AACC', 'GGTT', False,
                  'Knight Lab Kapa HP', 'Eqiiperiment'],
-                ['Gerwick_6123', '6123', False, 'AACC', 'GGTT', False,
+                ['ProjectG_6123', '6123', False, 'AACC', 'GGTT', False,
                  'Knight Lab Kapa HP', 'Eqiiperiment']
             ]
         )
@@ -358,7 +409,7 @@ class KLSampleSheetTests(BaseTests):
         exp = pd.DataFrame(
             columns=['Email', 'Sample_Project'],
             data=[
-                ['test@lol.com', 'Feist_11661']
+                ['test@lol.com', 'ProjectF_11661']
             ]
         )
 
@@ -366,9 +417,10 @@ class KLSampleSheetTests(BaseTests):
 
     def test_parse_with_comments(self):
         # the two sample sheets are identical except for the comments
-        exp = MetagenomicSampleSheetv100(self.good_ss)
+        exp = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         with self.assertWarnsRegex(UserWarning, 'Comments at the beginning '):
-            obs = MetagenomicSampleSheetv100(self.with_comments)
+            obs = MetagenomicSampleSheetv90(
+                self.with_comments, defer_validate=False)
 
             self.assertEqual(obs.Header, exp.Header)
             self.assertEqual(obs.Settings, exp.Settings)
@@ -550,6 +602,7 @@ class KLSampleSheetTests(BaseTests):
                          'SomethingElse': '100'}
 
         hugo = MetagenomicSampleSheetv100()
+        hugo.Reads = [151, 151]
         hugo.add_sample(sample_sheet.Sample({
             'Sample_ID': 'a',
             'index': 'GATACA',
@@ -557,8 +610,8 @@ class KLSampleSheetTests(BaseTests):
             'Sample_Name': 'a.sample'
         }))
 
-        with self.assertRaisesRegex(ValueError, 'The Settings section is '
-                                    'different for sample sheet 1'):
+        err = "The Settings section is different for sample sheet 1"
+        with self.assertRaisesRegex(ValueError, err):
             base.merge([hugo])
 
     def test_merge_different_dates(self):
@@ -592,47 +645,50 @@ class KLSampleSheetTests(BaseTests):
 
     def test_validate(self):
         sheet = AmpliconSampleSheet()
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
         self.assertEqual(obs, [])
 
     def test_more_attributes(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Ride'] = 'the lightning'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        exp = [ErrorMessage('These metadata keys are not supported: Ride')]
-        self.assertEqual(obs, exp)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
+        exp = ['ErrorMessage: These metadata keys are not supported: Ride']
+        msg_strs = [str(msg) for msg in obs]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_missing_assay(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Assay'] = 'NewAssayType'
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        exp = [ErrorMessage('NewAssayType is not a supported Assay')]
-        self.assertEqual(obs, exp)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
+        exp = ["ErrorMessage: 'NewAssayType' is not a supported Assay"]
+        msg_strs = [str(msg) for msg in obs]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_missing_bioinformatics_data(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics']
 
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        exp = [ErrorMessage('Bioinformatics is a required attribute')]
-        self.assertEqual(obs, exp)
+        obs = sheet._validate_metadata_dict(self.md_ampl)
+        exp = ['ErrorMessage: Bioinformatics is a required attribute']
+        msg_strs = [str(msg) for msg in obs]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_missing_column_in_bioinformatics(self):
         sheet = AmpliconSampleSheet()
         del self.md_ampl['Bioinformatics'][0]['Sample_Project']
-        exp = [ErrorMessage('In the Bioinformatics section Project #1 does not'
-                            ' have exactly these keys BarcodesAreRC, '
-                            'ForwardAdapter, HumanFiltering, QiitaID, '
-                            'ReverseAdapter, Sample_Project, '
-                            'experiment_design_description, '
-                            'library_construction_protocol')]
-        obs = sheet._validate_sample_sheet_metadata(self.md_ampl)
-        self.assertEqual(str(obs[0]), str(exp[0]))
+        exp = ['ErrorMessage: In the Bioinformatics section Project #1 does '
+               'not have exactly these keys BarcodesAreRC, '
+               'ForwardAdapter, HumanFiltering, QiitaID, '
+               'ReverseAdapter, Sample_Project, '
+               'experiment_design_description, '
+               'library_construction_protocol']
+        obs = sheet._validate_metadata_dict(self.md_ampl)
+        self.assertEqual(str(obs[0]), exp[0])
 
     def test_set_override_cycles(self):
-        sheet = load_sample_sheet(self.good_ss)
+        sheet = load_sample_sheet(self.good_ss, defer_validate=False)
 
         # assert that the original value of the sheet is as expected.
         self.assertEqual("Y151;I8N2;I8N2;Y151",
@@ -651,7 +707,7 @@ class KLSampleSheetTests(BaseTests):
         self.assertEqual("Y151;I8N4;Y151", sheet.Settings['OverrideCycles'])
 
     def test_sample_is_a_blank_wo_context(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         # NB: the sample names and sample ids in the test spreadsheet are the
         # same.  FWIW, the intention is to use the sample names here.
         self.assertFalse(sheet.sample_is_a_blank(
@@ -666,7 +722,8 @@ class KLSampleSheetTests(BaseTests):
             sheet.sample_is_a_blank('blank_40_12g')
 
     def test_sample_is_a_blank_w_context(self):
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=False)
         # NB: the sample names and sample ids in the test spreadsheet are the
         # same.  FWIW, the intention is to use the sample names here.
         self.assertFalse(sheet.sample_is_a_blank(
@@ -691,7 +748,8 @@ class KLSampleSheetTests(BaseTests):
             'BLANK3_3E', 'BLANK3_3F', 'BLANK3_3G', 'BLANK3_3H', 'BLANK4_4A',
             'BLANK4_4B', 'BLANK4_4C', 'BLANK4_4D', 'BLANK4_4E', 'BLANK4_4F',
             'BLANK4_4G', 'BLANK4_4H']
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=False)
         obs_details = sheet.get_controls_details()
         self.assertEqual(len(exp_blank_names), len(obs_details))
         for curr_blank_name in exp_blank_names:
@@ -727,7 +785,7 @@ class KLSampleSheetTests(BaseTests):
             'BLANK3_3E', 'BLANK3_3F', 'BLANK3_3G', 'BLANK3_3H', 'BLANK4_4A',
             'BLANK4_4B', 'BLANK4_4C', 'BLANK4_4D', 'BLANK4_4E', 'BLANK4_4F',
             'BLANK4_4G', 'BLANK4_4H']
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         obs_details = sheet.get_controls_details()
         self.assertEqual(len(exp_blank_names), len(obs_details))
         for curr_blank_name in exp_blank_names:
@@ -751,18 +809,18 @@ class KLSampleSheetTests(BaseTests):
 
     def test_get_denormalized_controls_list(self):
         exp_details_list = [
-            ('BLANK_40_12G', '11661', 'Feist_11661'),
-            ('BLANK_40_12H', '11661', 'Feist_11661'),
-            ('BLANK_41_12G', '11661', 'Feist_11661'),
+            ('BLANK_40_12G', '11661', 'ProjectF_11661'),
+            ('BLANK_40_12H', '11661', 'ProjectF_11661'),
+            ('BLANK_41_12G', '11661', 'ProjectF_11661'),
             ('BLANK_41_12G', '10317', 'TMI_10317'),
             ('BLANK_41_12G', '11223', 'Other_11223'),
-            ('BLANK_41_12H', '11661', 'Feist_11661'),
+            ('BLANK_41_12H', '11661', 'ProjectF_11661'),
             ('BLANK_41_12H', '10317', 'TMI_10317'),
             ('BLANK_41_12H', '11223', 'Other_11223'),
-            ('BLANK_42_12G', '11661', 'Feist_11661'),
-            ('BLANK_42_12H', '11661', 'Feist_11661'),
-            ('BLANK_43_12G', '11661', 'Feist_11661'),
-            ('BLANK_43_12H', '11661', 'Feist_11661')]
+            ('BLANK_42_12G', '11661', 'ProjectF_11661'),
+            ('BLANK_42_12H', '11661', 'ProjectF_11661'),
+            ('BLANK_43_12G', '11661', 'ProjectF_11661'),
+            ('BLANK_43_12H', '11661', 'ProjectF_11661')]
         nyu_blanks = [
             'BLANK1_1A', 'BLANK1_1B', 'BLANK1_1C', 'BLANK1_1D', 'BLANK1_1E',
             'BLANK1_1F', 'BLANK1_1G', 'BLANK1_1H', 'BLANK2_2A', 'BLANK2_2B',
@@ -773,10 +831,11 @@ class KLSampleSheetTests(BaseTests):
             'BLANK4_4G', 'BLANK4_4H']
         for curr_blank_name in nyu_blanks:
             exp_details_list.append(
-                (curr_blank_name, '13059', 'NYU_BMS_Melanoma_13059'))
+                (curr_blank_name, '13059', 'ProjectN_13059'))
         exp_details_list = sorted(exp_details_list, key=lambda k: (k[0], k[1]))
 
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=False)
         obs_details_list = sheet.get_denormalized_controls_list()
         self.assertEqual(len(exp_details_list), len(obs_details_list))
         for i in range(len(exp_details_list)):
@@ -796,61 +855,63 @@ class KLSampleSheetTests(BaseTests):
 
     def test_get_projects_details(self):
         exp_details = {
-            'NYU_BMS_Melanoma_13059': {
+            'ProjectN_13059': {
                 QIITA_ID_KEY: '13059',
-                PROJECT_SHORT_NAME_KEY: 'NYU_BMS_Melanoma',
-                PROJECT_FULL_NAME_KEY: 'NYU_BMS_Melanoma_13059',
+                PROJECT_SHORT_NAME_KEY: 'ProjectN',
+                PROJECT_FULL_NAME_KEY: 'ProjectN_13059',
                 CONTAINS_REPLICATES_KEY: False,
                 SAMPLES_DETAILS_KEY: {
                     'LP127890A01': {
                         SAMPLE_NAME_KEY: 'LP127890A01',
-                        SAMPLE_PROJECT_KEY: 'NYU_BMS_Melanoma_13059',
+                        SAMPLE_PROJECT_KEY: 'ProjectN_13059',
                         SS_SAMPLE_ID_KEY: 'LP127890A01'
                     }
                 },
             },
-            'Feist_11661': {
+            'ProjectF_11661': {
                 QIITA_ID_KEY: '11661',
-                PROJECT_SHORT_NAME_KEY: 'Feist',
-                PROJECT_FULL_NAME_KEY: 'Feist_11661',
+                PROJECT_SHORT_NAME_KEY: 'ProjectF',
+                PROJECT_FULL_NAME_KEY: 'ProjectF_11661',
                 CONTAINS_REPLICATES_KEY: False,
                 SAMPLES_DETAILS_KEY: {
                     'CDPH-SAL_Salmonella_Typhi_MDL-143': {
                         SAMPLE_NAME_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143',
-                        SAMPLE_PROJECT_KEY: 'Feist_11661',
+                        SAMPLE_PROJECT_KEY: 'ProjectF_11661',
                         SS_SAMPLE_ID_KEY: 'CDPH-SAL_Salmonella_Typhi_MDL-143'
                     }
                 },
             },
-            'Gerwick_6123': {
+            'ProjectG_6123': {
                 QIITA_ID_KEY: '6123',
-                PROJECT_SHORT_NAME_KEY: 'Gerwick',
-                PROJECT_FULL_NAME_KEY: 'Gerwick_6123',
+                PROJECT_SHORT_NAME_KEY: 'ProjectG',
+                PROJECT_FULL_NAME_KEY: 'ProjectG_6123',
                 CONTAINS_REPLICATES_KEY: False,
                 SAMPLES_DETAILS_KEY: {
                     '3A': {
                         SAMPLE_NAME_KEY: '3A',
-                        SAMPLE_PROJECT_KEY: 'Gerwick_6123',
+                        SAMPLE_PROJECT_KEY: 'ProjectG_6123',
                         SS_SAMPLE_ID_KEY: '3A'
                     }
                 }
             }
         }
 
-        sheet = MetagenomicSampleSheetv100(self.good_w_bools)
+        sheet = MetagenomicSampleSheetv100(
+            self.good_w_bools, defer_validate=False)
         obs_details = sheet.get_projects_details()
         self.assertEqual(exp_details, obs_details)
 
     def test_get_projects_details_w_orig_name(self):
         good_replicates_ss_fp = join(
-            self.data_dir, 'good_sheet_w_replicates.csv')
-        sheet = MetagenomicSampleSheetv100(good_replicates_ss_fp)
+            self.data_dir, 'good_standard_metagv100_w_replicates.csv')
+        sheet = MetagenomicSampleSheetv100(
+            good_replicates_ss_fp, defer_validate=False)
 
         # not going to check the whole thing, just checking one sample to
         # make sure the original name is being added correctly
         obs_details = sheet.get_projects_details()
-        self.assertTrue("Feist_11661" in obs_details)
-        an_obs_samples = obs_details["Feist_11661"][SAMPLES_DETAILS_KEY]
+        self.assertTrue("ProjectF_11661" in obs_details)
+        an_obs_samples = obs_details["ProjectF_11661"][SAMPLES_DETAILS_KEY]
         self.assertTrue("BLANK.43.12G.A1" in an_obs_samples)
         an_obs_sample = an_obs_samples["BLANK.43.12G.A1"]
         self.assertTrue(ORIG_NAME_KEY in an_obs_sample)
@@ -952,40 +1013,39 @@ class SampleSheetWorkflow(BaseTests):
 
     def test_validate_sample_sheet_metadata_empty(self):
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata({})
+        messages = sheet._validate_metadata_dict({})
 
         exp = [
-            ErrorMessage('Assay is a required attribute'),
-            ErrorMessage('Bioinformatics is a required attribute'),
-            ErrorMessage('Contact is a required attribute'),
+            'ErrorMessage: Assay is a required attribute',
+            'ErrorMessage: Bioinformatics is a required attribute',
+            'ErrorMessage: Contact is a required attribute',
         ]
 
-        self.assertEqual(messages, exp)
+        msg_strs = [str(msg) for msg in messages]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_sample_sheet_metadata_not_supported(self):
         sheet = AmpliconSampleSheet()
         self.md_ampl['Rush'] = 'XYZ'
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        messages = sheet._validate_metadata_dict(self.md_ampl)
 
-        exp = [
-                ErrorMessage('These metadata keys are not supported: Rush'),
-        ]
-
-        self.assertEqual(messages, exp)
+        exp = ['ErrorMessage: These metadata keys are not supported: Rush']
+        msg_strs = [str(msg) for msg in messages]
+        self.assertEqual(msg_strs, exp)
 
     def test_validate_sample_sheet_metadata_good(self):
         # self.md_ampl is patterned after legacy amplicon sample-sheet.
         sheet = AmpliconSampleSheet()
-        messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
+        messages = sheet._validate_metadata_dict(self.md_ampl)
         self.assertEqual(messages, [])
 
-        # test _validate_sample_sheet_metadata() against a
+        # test _validate_metadata_dict() against a
         # MetagenomicSampleSheetv100 object which defines an extra column
         # (contains_replicates) in the Bioinformatics section. Since
         # self.metadata does not contain this extra column, ErrorMessage()s
         # should be returned saying as much.
         sheet = MetagenomicSampleSheetv100()
-        messages = sheet._validate_sample_sheet_metadata(self.md_metag)
+        messages = sheet._validate_metadata_dict(self.md_metag)
 
         exp_msgs = ['In the Bioinformatics section Project #1 does not have '
                     'exactly these keys BarcodesAreRC, ForwardAdapter, Human'
@@ -1008,8 +1068,8 @@ class SampleSheetWorkflow(BaseTests):
 
         for invalid_type in invalid_types:
             self.md_ampl['Assay'] = invalid_type
-            messages = sheet._validate_sample_sheet_metadata(self.md_ampl)
-            exp = f'ErrorMessage: {invalid_type} is not a supported Assay'
+            messages = sheet._validate_metadata_dict(self.md_ampl)
+            exp = f"ErrorMessage: '{invalid_type}' is not a supported Assay"
             self.assertEqual(str(messages[0]), exp)
 
     def test_make_sample_sheet(self):
@@ -1023,18 +1083,30 @@ class SampleSheetWorkflow(BaseTests):
         message = (r'The column (I5_Index_ID|index2|Well_description) '
                    r'in the sample sheet is empty')
 
-        message2 = (r"ErrorMessage: The following projects need to be in the "
-                    "Data and Bioinformatics sections: Koening_ITS_101, "
-                    "THDMI_10317, Yanomani_2008_10052")
+        message2_defer_true_prefix = r"ErrorMessage"
+        message2_defer_false_prefix = r"Sample sheet instantiation failed"
+        message2 = (r": The following "
+                    r"projects need to be in the Data and Bioinformatics "
+                    r"sections: Koening_ITS_101, THDMI_10317, "
+                    r"Yanomani_2008_10052")
 
         with self.assertWarnsRegex(UserWarning, message):
             table2 = self.table.copy(deep=True)
 
-            # first, assert that make_sample_sheet() raises an Error when the
-            # projects are improperly defined.
-            with self.assertRaisesRegex(ValueError, message2):
+            # assert that make_sample_sheet() raises an Error when the
+            # projects are improperly defined; if defer_validate is True,
+            # the error message starts with "ErrorMessage"
+            msg2_defer_true = message2_defer_true_prefix + message2
+            with self.assertRaisesRegex(ValueError, msg2_defer_true):
                 make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
-                                  strict=False)
+                                  strict=False, defer_validate=True)
+
+            # alternately, if defer_validate is False, the error message
+            # starts with "Sample sheet instantiation failed".
+            msg2_defer_false = message2_defer_false_prefix + message2
+            with self.assertRaisesRegex(ValueError, msg2_defer_false):
+                make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
+                                  strict=False, defer_validate=False)
 
             # second, correct the errors in the [Data] section.
             table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
@@ -1094,25 +1166,16 @@ class SampleSheetWorkflow(BaseTests):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
             self.assertEqual(dict(sample), dict(exp))
 
-    def test_column_alternatives(self):
-        # confirm standard 'Well_description' column name behaved as intended.
+    def _help_make_test_column_alternatives_table(self):
         table2 = self.table.copy(deep=True)
 
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
 
         table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
                                   'Yanomani_2008_10052']
+        return table2
 
-        # allow 'Well_description' column to pass through to obs.
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
-
-        self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
-        self.assertIsInstance(obs, AmpliconSampleSheet)
-
+    def _help_test_column_alternatives(self, obs):
         data = (
             [5, 'X00180471', 'X00180471', 'THDMI_10317_PUK2', 'A1', '515rcbc0',
              'AGCCTTCGTCGC', '', '', 'Koening_ITS_101',
@@ -1141,23 +1204,44 @@ class SampleSheetWorkflow(BaseTests):
             exp = sample_sheet.Sample(dict(zip(keys, row)))
             self.assertEqual(dict(sample), dict(exp))
 
+    def test_column_alternatives_default(self):
+        # confirm standard 'Well_description' column name behaved as intended.
+        table2 = self._help_make_test_column_alternatives_table()
+
+        # 'Well_description' column in the input does not cause an error--
+        # but it IS silently overwritten!
+        obs = make_sample_sheet(self.md_ampl,
+                                table2,
+                                'HiSeq4000',
+                                [5, 7],
+                                strict=False)
+
+        self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
+        self.assertIsInstance(obs, AmpliconSampleSheet)
+
+        self._help_test_column_alternatives(obs)
+
+    def test_column_alternatives_err_duplicates(self):
         # Try making sample-sheet w/an alternate column name and confirm that
         # the results continue to be as expected.
+        table2 = self._help_make_test_column_alternatives_table()
+
         table2.rename({'Well_description': 'well_description'},
                       axis=1, inplace=True)
+        err_msg = "The remapped sample sheet column names contain duplicates: "
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = make_sample_sheet(self.md_ampl,
+                                  table2,
+                                  'HiSeq4000',
+                                  [5, 7],
+                                  strict=False)
 
-        obs = make_sample_sheet(self.md_ampl,
-                                table2,
-                                'HiSeq4000',
-                                [5, 7],
-                                strict=False)
+    def test_column_alternatives(self):
+        # Try making sample-sheet w/an alternate column name and confirm that
+        # the results continue to be as expected.
+        table2 = self._help_make_test_column_alternatives_table()
 
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
-
-        # Try w/another alternate column name
-        table2.rename({'well_description': 'description'},
+        table2.rename({'index2': 'i5 sequence'},
                       axis=1, inplace=True)
 
         obs = make_sample_sheet(self.md_ampl,
@@ -1166,9 +1250,7 @@ class SampleSheetWorkflow(BaseTests):
                                 [5, 7],
                                 strict=False)
 
-        for sample, row in zip(obs.samples, data):
-            exp = sample_sheet.Sample(dict(zip(keys, row)))
-            self.assertEqual(dict(sample), dict(exp))
+        self._help_test_column_alternatives(obs)
 
     def test_remap_table_amplicon(self):
         columns = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
@@ -1681,67 +1763,107 @@ class ValidateSampleSheetTests(BaseTests):
         observed = sys.stdout.getvalue().strip()
         self.assertEqual(observed, expected)
 
+    # def test_init_defer_validate_warning(self):
+    #     # Assure DeprecationWarning for sheet init w/o defer_validate param
+    #
+    #     with self.assertWarns(DeprecationWarning):
+    #         _ = MetagenomicSampleSheetv90(self.good_ss)
+    #
+    # def test_load_sample_sheet_defer_validate_warning(self):
+    #     # Assure DeprecationWarning for load_sample_sheet w/o defer_validate
+    #
+    #     with self.assertWarns(DeprecationWarning):
+    #         _ = load_sample_sheet(self.good_ss)
+
+    def test_init_default_validate_err(self):
+        # Using default validation setting raises error
+        err_msg = ("Sample sheet instantiation failed: The "
+                   "Sample_Project column in the Data section is missing")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = MetagenomicSampleSheetv100(self.no_project_ss)
+
+    def test_init_explicit_validate_err(self):
+        # Explicitly requesting validation raises error
+        err_msg = ("Sample sheet instantiation failed: The "
+                   "Sample_Project column in the Data section is missing")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            _ = MetagenomicSampleSheetv100(self.no_project_ss,
+                                           defer_validate=False)
+
+    def test_init_explicit_no_validate(self):
+        # Explicitly deferring validation allows load without error
+        sheet = MetagenomicSampleSheetv100(self.no_project_ss,
+                                           defer_validate=True)
+        self.assertEqual(MetagenomicSampleSheetv100, type(sheet))
+
     def test_validate_and_scrub_sample_sheet(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         # no errors
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         # no errors
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [])
 
     def test_quiet_validate_and_scrub_sample_sheet_w_context(self):
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=False)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         # no errors
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [])
 
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
-        sheet = MetagenomicSampleSheetv100(self.no_project_ss)
+        sheet = MetagenomicSampleSheetv100(
+            self.no_project_ss, defer_validate=True)
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
                                ' Data section is missing')
 
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
-        sheet = MetagenomicSampleSheetv100(self.no_project_ss)
+        sheet = MetagenomicSampleSheetv100(
+            self.no_project_ss, defer_validate=True)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
-        self.assertEqual(msgs, [ErrorMessage('The Sample_Project column in '
-                                             'the Data section is missing')])
+        msg_strs = [str(msg) for msg in msgs]
+        self.assertEqual(msg_strs, ['ErrorMessage: The Sample_Project column'
+                                    ' in the Data section is missing'])
 
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
-                               'cannot be empty')
+                               'cannot be missing')
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
         self.assertStdOutEqual('')
-        self.assertEqual(msgs, [ErrorMessage('The Bioinformatics section '
-                                             'cannot be empty')])
+        msg_strs = [str(msg) for msg in msgs]
+        self.assertEqual(
+            msg_strs,
+            ['ErrorMessage: The Bioinformatics section cannot be missing'])
 
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Contact = None
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertStdOutEqual('ErrorMessage: The Contact section '
-                               'cannot be empty')
+                               'cannot be missing')
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
-        sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
+        sheet = MetagenomicSampleSheetv90(
+            self.scrubbable_ss, defer_validate=True)
 
         message = ('WarningMessage: '
                    'The following sample names were scrubbed for bcl2fastq '
@@ -1803,17 +1925,18 @@ class ValidateSampleSheetTests(BaseTests):
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
         message = WarningMessage(message)
 
-        sheet = MetagenomicSampleSheetv100(self.scrubbable_ss)
+        sheet = MetagenomicSampleSheetv90(
+            self.scrubbable_ss, defer_validate=False)
         msgs = sheet.quiet_validate_and_scrub_sample_sheet()
         self.assertStdOutEqual('')
         self.assertEqual(msgs, [message])
 
     def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
 
         remapper = {
-            'NYU_BMS_Melanoma_13059': "NYU's Tisch Art Microbiome 13059",
-            'Feist_11661': "The x.x microbiome project 1337"
+            'ProjectN_13059': "NYU's Tisch Art Microbiome 13059",
+            'ProjectF_11661': "The x.x microbiome project 1337"
         }
 
         for sample in sheet:
@@ -1839,7 +1962,7 @@ class ValidateSampleSheetTests(BaseTests):
         scrubbed = {
             'NYU_s_Tisch_Art_Microbiome_13059',
             'The_x_x_microbiome_project_1337',
-            'Gerwick_6123'
+            'ProjectG_6123'
         }
 
         for sample in sheet:
@@ -1853,30 +1976,32 @@ class ValidateSampleSheetTests(BaseTests):
             self.assertTrue(project in scrubbed)
 
     def test_validate_and_scrub_sample_sheet_bad_project_names(self):
-        sheet = MetagenomicSampleSheetv100(self.bad_project_name_ss)
+        sheet = MetagenomicSampleSheetv100(
+            self.bad_project_name_ss, defer_validate=True)
 
         message = ('ErrorMessage: The following project names in the '
                    'Sample_Project column are missing a Qiita study '
-                   'identifier: Feist, Gerwick')
+                   'identifier: ProjectF, ProjectG')
 
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         self.assertStdOutEqual(message)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
-        sheet = MetagenomicSampleSheetv100(self.good_ss)
+        sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
 
         # set the lane value as empty for one of the two projects
         for sample in sheet.samples:
-            if sample.Sample_Project == 'Feist_11661':
+            if sample.Sample_Project == 'ProjectF_11661':
                 sample.Lane = ' '
 
         self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         message = ('ErrorMessage: The following projects are missing a Lane '
-                   'value: Feist_11661')
+                   'value: ProjectF_11661')
         self.assertStdOutEqual(message)
 
     def test_validate_and_scrub_sample_sheet_missing_project_names(self):
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=True)
         # pick a random entry in the sample context section and set its
         # qiita study id to something that doesn't exist in the other metadata
         a_blank_mask = sheet.SampleContext[SAMPLE_NAME_KEY] == "BLANK1_1A"
@@ -1890,36 +2015,79 @@ class ValidateSampleSheetTests(BaseTests):
         self.assertStdOutEqual(message)
 
     def test_sample_sheet_to_dataframe(self):
-        ss = MetagenomicSampleSheetv100(self.good_ss)
+        ss = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
         obs = sample_sheet_to_dataframe(ss)
 
         # first, confirm that the function returns a DataFrame
-
         self.assertTrue(isinstance(obs, pd.DataFrame))
 
         # confirm that function returns the [Data] section of the sample-sheet
         # as a DataFrame.
-
-        exp_columns = {'lane', 'sample_name', 'sample_plate', 'well_id_384',
+        exp_columns = {'lane', 'sample_name', 'sample_plate', 'sample_well',
                        'i7_index_id', 'index', 'i5_index_id', 'index2',
                        'sample_project', 'well_description',
                        'library_construction_protocol',
                        'experiment_design_description'}
-
         self.assertEqual(set(obs.columns), exp_columns)
-
-        obs = obs['sample_name'].to_list()
 
         # since good-sample-sheet.csv contains many samples, just check for
         # the below three.
         exp_sample_names = ["3A", "EP981129A02",
                             "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+        obs_names = obs['sample_name'].to_list()
+        for exp_name in exp_sample_names:
+            self.assertIn(exp_name, obs_names)
 
-        for sample in exp_sample_names:
-            self.assertIn(sample, obs)
+    def test_sample_sheet_to_dataframe_no_lcase(self):
+        ss = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        obs = sample_sheet_to_dataframe(ss, lcase_cols=False)
+
+        # first, confirm that the function returns a DataFrame
+        self.assertTrue(isinstance(obs, pd.DataFrame))
+
+        # confirm that function returns the [Data] section of the sample-sheet
+        # as a DataFrame.
+        exp_columns = {'Lane', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                       'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                       'Sample_Project', 'Well_description',
+                       'library_construction_protocol',
+                       'experiment_design_description'}
+        self.assertEqual(set(obs.columns), exp_columns)
+
+        # since good-sample-sheet.csv contains many samples, just check for
+        # the below three.
+        exp_sample_names = ["3A", "EP981129A02",
+                            "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+        obs_names = obs['Sample_Name'].to_list()
+        for exp_name in exp_sample_names:
+            self.assertIn(exp_name, obs_names)
+
+    def test_sample_sheet_to_dataframe_no_lcase_no_protocols(self):
+        ss = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
+        obs = sample_sheet_to_dataframe(
+            ss, lcase_cols=False, add_protocol_info=False)
+
+        # first, confirm that the function returns a DataFrame
+        self.assertTrue(isinstance(obs, pd.DataFrame))
+
+        # confirm that function returns the [Data] section of the sample-sheet
+        # as a DataFrame.
+        exp_columns = {'Lane', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+                       'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+                       'Sample_Project', 'Well_description'}
+        self.assertEqual(set(obs.columns), exp_columns)
+
+        # since good-sample-sheet.csv contains many samples, just check for
+        # the below three.
+        exp_sample_names = ["3A", "EP981129A02",
+                            "JM-MEC__Staphylococcus_aureusstrain_BERTI-B0387"]
+        obs_names = obs['Sample_Name'].to_list()
+        for exp_name in exp_sample_names:
+            self.assertIn(exp_name, obs_names)
 
     def test_boolean_column_handling(self):
-        sheet = MetagenomicSampleSheetv100(self.good_w_bools)
+        sheet = MetagenomicSampleSheetv100(
+            self.good_w_bools, defer_validate=False)
 
         # self.good_w_bools contains a [Bioinformatics] section w/multiple
         # projects and values for BarcodesAreRC and HumanFiltering columns that
@@ -1944,7 +2112,7 @@ class ProfileTests(BaseTests):
         self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
         self.assertEqual(sheet._HEADER['SheetVersion'], '10')
         self.assertIn('mass_syndna_input_ng', sheet._data_columns)
-        self.assertNotIn('SampleContext', sheet.sections)
+        self.assertNotIn('SampleContext', sheet._section_keys)
 
     def test_profile_absquant_11(self):
         sheet = AbsQuantSampleSheetv11()
@@ -1955,14 +2123,14 @@ class ProfileTests(BaseTests):
         self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
         self.assertEqual(sheet._HEADER['SheetVersion'], '11')
         self.assertIn('mass_syndna_input_ng', sheet._data_columns)
-        self.assertIn('SampleContext', sheet.sections)
+        self.assertIn('SampleContext', sheet._section_keys)
 
 
 class DemuxReplicatesTests(BaseTests):
     def setUp(self):
         self.data_dir = join(dirname(__file__), 'data')
-        self.sheet_w_replicates_path = join(self.data_dir,
-                                            'good_sheet_w_replicates.csv')
+        self.sheet_w_replicates_path = \
+            join(self.data_dir, 'good_standard_metagv100_w_replicates.csv')
 
         # bad_sheet_w_replicates.csv contains two projects, one of which
         # doesn't contain replicates. By convention, all projects in the sheet
@@ -1974,7 +2142,7 @@ class DemuxReplicatesTests(BaseTests):
                                              'sheet_wo_replicates.csv')
 
         self.legacy_sheet_path = \
-            join(self.data_dir, 'good_standard_metagv90_sheet.csv')
+            join(self.data_dir, 'good_standard_metagv90.csv')
 
         self.replicate_output_paths = [join(self.data_dir,
                                             'replicate_output1.csv'),
@@ -1983,11 +2151,37 @@ class DemuxReplicatesTests(BaseTests):
                                        join(self.data_dir,
                                             'replicate_output3.csv')]
 
+    def _help_test_demux_sample_sheet(
+            self, sheet_class, input_path, output_paths):
+
+        # read in a sample sheet containing replicates
+        sheet = sheet_class(input_path, defer_validate=False)
+
+        # demux and write out the demuxed sample-sheets
+        results = demux_sample_sheet(sheet)
+
+        # assert that the proper number of demuxed sample sheets were returned
+        num_expected = len(output_paths)
+        self.assertEqual(len(results), num_expected)
+
+        # compare the completed sample-sheets against an expected results.
+        # among other things confirm that 'orig_name' is not in the
+        # output replicate csvs, indicating it has become the 'Sample_Name'
+        # column for that replicate sample-sheet.
+        self.maxDiff = None
+        for curr_path_num in range(num_expected):
+            with tempfile.NamedTemporaryFile(mode='w+') as tmp:
+                results[curr_path_num].write(tmp)
+                tmp.flush()
+                self._help_test_csv_files_exact_text_match(
+                    output_paths[curr_path_num], tmp.name)
+
     def test_sheet_needs_demuxing(self):
         # confirm legacy sample-sheets w/out contains_replicates column will
         # return False, instead of raising an Error. For processing purposes,
         # it's only critical to know whether the sheet needs demuxing or not.
-        sheet = MetagenomicSampleSheetv90(self.legacy_sheet_path)
+        sheet = MetagenomicSampleSheetv90(
+            self.legacy_sheet_path, defer_validate=False)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
         # confirm bad sample-sheet raises a ValueError for containing projects
@@ -1996,131 +2190,82 @@ class DemuxReplicatesTests(BaseTests):
                                                 "Bioinformatics section must "
                                                 "either contain replicates or "
                                                 "not."):
-            sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
+            sheet = MetagenomicSampleSheetv100(
+                self.bad_sht_w_replicates_path, defer_validate=False)
             sheet_needs_demuxing(sheet)
 
         # test a valid sample-sheet with replicates.
-        sheet = MetagenomicSampleSheetv100(self.sheet_w_replicates_path)
+        sheet = MetagenomicSampleSheetv100(
+            self.sheet_w_replicates_path, defer_validate=False)
         self.assertTrue(sheet_needs_demuxing(sheet))
 
         # test a valid sample-sheet w/out replicates.
-        sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
+        sheet = MetagenomicSampleSheetv100(
+            self.sheet_wo_replicates_path, defer_validate=False)
         self.assertFalse(sheet_needs_demuxing(sheet))
 
-    def test_demux_sample_sheet(self):
+    def test_sheet_needs_demuxing_no_replicates_support(self):
+        # test valid sheet of a type that doesn't even support replicates.
+        metat_fp = join(
+            self.data_dir,
+            MetatranscriptomicSampleSheetv10CreationTests.sample_sheet_name)
+
+        sheet = MetatranscriptomicSampleSheetv10(
+            metat_fp, defer_validate=False)
+        self.assertFalse(sheet_needs_demuxing(sheet))
+
+    def test_demux_sample_sheet_err_no_contains_replicates(self):
         # we don't want to demux legacy sample-sheets. sheet_needs_demuxing()
         # should be used to determine if demux_sample_sheet() should be
         # called.
-        with self.assertRaisesRegex(ValueError, "sample-sheet does not contain"
-                                                " replicates"):
-            sheet = MetagenomicSampleSheetv90(self.legacy_sheet_path)
+        sheet = MetagenomicSampleSheetv90(
+            self.legacy_sheet_path, defer_validate=False)
+        err_msg = ("sample sheet does not have a 'contains_replicates' "
+                   "column in the 'Bioinformatics' section.")
+        with self.assertRaisesRegex(ValueError, err_msg):
             demux_sample_sheet(sheet)
 
+    def test_demux_sample_sheet_err_contains_replicates_inconsistent(self):
         # by convention, all replication is done at the plate level, and all
         # projects in a sample-sheet will either contain replicates, or all of
         # them will not. Hence, a sample-sheet with both True and False in
         # the contains_replicates column in the [Bioinformatics] section should
-        # raise an error.
-        with self.assertRaisesRegex(ValueError, "All projects in Bioinfor"
-                                                "matics section must either "
-                                                "contain replicates or not."):
-            sheet = MetagenomicSampleSheetv100(self.bad_sht_w_replicates_path)
+        # raise an error. Note that this error would be caught at the
+        # point the sheet was created if the defer_validate flag was False!
+        sheet = MetagenomicSampleSheetv100(
+            self.bad_sht_w_replicates_path, defer_validate=True)
+        err = ("All projects in Bioinformatics section must either contain"
+               " replicates or not.")
+        with self.assertRaisesRegex(ValueError, err):
             demux_sample_sheet(sheet)
 
+    def test_demux_sample_sheet_err_contains_replicates_false(self):
         # as mentioned above, sheet_needs_demuxing() should be used to
         # determine if demux_sample_sheet() should be called. If a sample
         # sheet is passed to demux_sample_sheet() and all projects are False,
         # an Error should be raised to alert the user of an unexpected
         # condition, rather than silently allow as a degenerative case.
-        with self.assertRaisesRegex(ValueError, "No projects in Bioinfor"
-                                                "matics section contain"
-                                                " replicates"):
-            sheet = MetagenomicSampleSheetv100(self.sheet_wo_replicates_path)
+        sheet = MetagenomicSampleSheetv100(
+            self.sheet_wo_replicates_path, defer_validate=False)
+        err = "No projects in Bioinformatics section contain replicates"
+        with self.assertRaisesRegex(ValueError, err):
             demux_sample_sheet(sheet)
 
-        # this test will need to compare the four completed sample-sheets
-        # made using self.sheet_w_replicates_path against an expected result.
-
-        # test sample-sheet w/both projects w/replicates and not.
-        sheet = MetagenomicSampleSheetv100(self.sheet_w_replicates_path)
-        results = demux_sample_sheet(sheet)
-
-        # assert that the proper number of KLSampleSheets were returned.
-        self.assertEqual(len(results), len(self.replicate_output_paths))
-
-        # assert that each sample-sheet appears in the correct order and
-        # matches known results.
-        for replicate_output_path in self.replicate_output_paths:
-            exp = MetagenomicSampleSheetv100(replicate_output_path)
-            obs = results.pop(0)
-            self.assertEqual(obs.Header, exp.Header)
-            self.assertEqual(obs.Reads, exp.Reads)
-            self.assertEqual(obs.Settings, exp.Settings)
-            self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
-            self.assertTrue(obs.Contact.equals(exp.Contact))
-
-            # since samples are stored an internal data-structure of the
-            # third-party sample_sheet library, convert the sample metadata
-            # to JSON before comparing them.
-            j_obs = loads(obs.to_json())['Data']
-            j_exp = loads(exp.to_json())['Data']
-
-            # confirm that 'orig_name' is not in the output replicate csvs,
-            # indicating it has become the 'sample_name' column for that
-            # replicate sample-sheet.
-            self.assertFalse('orig_name' in j_obs)
-
-            # confirm that the set of sample-names in each replicate
-            # sample-sheet is all of and only the samples assigned to each
-            # replicate.
-
-            self.assertEqual(set([x['Sample_Name'] for x in j_obs]),
-                             set([x['sample_name'] for x in j_exp]))
+    def test_demux_sample_sheet(self):
+        self._help_test_demux_sample_sheet(
+            MetagenomicSampleSheetv100, self.sheet_w_replicates_path,
+            self.replicate_output_paths)
 
     def test_demux_sample_sheet_w_context(self):
         # this test will need to compare the four completed sample-sheets
         # made using self.sheet_w_replicates_path against an expected result.
-
-        # test sample-sheet w/both projects w/replicates and not.
         demux_sheet_w_context_path = join(
-            self.data_dir, "good_sheet_w_replicates_and_context.csv")
-        sheet = MetagenomicSampleSheetv101(demux_sheet_w_context_path)
-        results = demux_sample_sheet(sheet)
-
-        # assert that the proper number of KLSampleSheets were returned.
-        self.assertEqual(len(results), len(self.replicate_output_paths))
-
-        # assert that each sample-sheet appears in the correct order and
-        # matches known results.
-        for replicate_output_path in self.replicate_output_paths:
-            rep_context_path = replicate_output_path.replace(
-                '.csv', '_w_context.csv')
-            exp = MetagenomicSampleSheetv101(rep_context_path)
-            obs = results.pop(0)
-            self.assertEqual(obs.Header, exp.Header)
-            self.assertEqual(obs.Reads, exp.Reads)
-            self.assertEqual(obs.Settings, exp.Settings)
-            self.assertTrue(obs.Bioinformatics.equals(exp.Bioinformatics))
-            self.assertTrue(obs.Contact.equals(exp.Contact))
-            self.assertTrue(obs.SampleContext.equals(exp.SampleContext))
-
-            # since samples are stored an internal data-structure of the
-            # third-party sample_sheet library, convert the sample metadata
-            # to JSON before comparing them.
-            j_obs = loads(obs.to_json())['Data']
-            j_exp = loads(exp.to_json())['Data']
-
-            # confirm that 'orig_name' is not in the output replicate csvs,
-            # indicating it has become the 'sample_name' column for that
-            # replicate sample-sheet.
-            self.assertFalse('orig_name' in j_obs)
-
-            # confirm that the set of sample-names in each replicate
-            # sample-sheet is all of and only the samples assigned to each
-            # replicate.
-
-            self.assertEqual(set([x['Sample_Name'] for x in j_obs]),
-                             set([x['sample_name'] for x in j_exp]))
+            self.data_dir, "good_standard_metagv101_w_replicates.csv")
+        context_output_paths = [x.replace('.csv', '_w_context.csv') for
+                                x in self.replicate_output_paths]
+        self._help_test_demux_sample_sheet(
+            MetagenomicSampleSheetv101, demux_sheet_w_context_path,
+            context_output_paths)
 
 
 class AdditionalSampleSheetCreationTests(BaseTests):
@@ -2292,20 +2437,22 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
     def test_metatranscriptomic_sheet_load(self):
-        metat_fp = join(self.data_dir, 'good_standard_metatv10.csv')
+        metat_fp = join(
+            self.data_dir,
+            MetatranscriptomicSampleSheetv10CreationTests.sample_sheet_name)
 
         # confirm manual loading is w/out error.
-        sheet = MetatranscriptomicSampleSheetv10(metat_fp)
+        sheet = MetatranscriptomicSampleSheetv10(
+            metat_fp, defer_validate=False)
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-        # Metat v10 should include (and correctly parse) contains_replicates
-        self.assertTrue(
+        # Metat v10 should NOT include contains_replicates
+        self.assertFalse(
             CONTAINS_REPLICATES_KEY in sheet.Bioinformatics.columns)
-        self.assertFalse(sheet.Bioinformatics[CONTAINS_REPLICATES_KEY].all())
 
         # confirm load_sample_sheet() returns the correct child class of
         # KLSampleSheet.
-        sheet = load_sample_sheet(metat_fp)
+        sheet = load_sample_sheet(metat_fp, defer_validate=False)
         self.assertIsInstance(sheet, MetatranscriptomicSampleSheetv10)
 
     def test_metagenomic_sheet_creation(self):
@@ -2403,12 +2550,14 @@ class AdditionalSampleSheetCreationTests(BaseTests):
 
     def test_metagenomic_sheet_w_context_load(self):
         # confirm manual loading is w/out error.
-        sheet = MetagenomicSampleSheetv101(self.good_metag_ss_w_context)
+        sheet = MetagenomicSampleSheetv101(
+            self.good_metag_ss_w_context, defer_validate=False)
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
         # confirm load_sample_sheet() returns the correct child class of
         # KLSampleSheet.
-        sheet = load_sample_sheet(self.good_metag_ss_w_context)
+        sheet = load_sample_sheet(
+            self.good_metag_ss_w_context, defer_validate=False)
         self.assertIsInstance(sheet, MetagenomicSampleSheetv101)
 
 
@@ -2485,43 +2634,71 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
     def sample_sheet_fp(self):
         return join(self.data_dir, self.sample_sheet_name)
 
-    def _help_test_instantiate_sample_sheet_from_path(self, sheet_class):
-        sheet = sheet_class(self.sample_sheet_fp)
+    def _help_test_instantiate_sample_sheet_from_path(
+            self, sheet_class, sample_sheet_fp=None, output_cols=None):
+        if sample_sheet_fp is None:
+            sample_sheet_fp = self.sample_sheet_fp
+        if output_cols is None:
+            output_cols = self._OUTPUT_COLS
+
+        sheet = sheet_class(sample_sheet_fp, defer_validate=False)
 
         obs = sheet._get_expected_data_columns()
-        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
+
+        self.assertEqual(obs, tuple(output_cols))
 
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-    def _help_test_make_sample_sheet(self, sheet_class):
-        table = pd.DataFrame(columns=self._INPUT_COLS, data=self._INPUT_DATA)
+    def _help_test_make_sample_sheet(
+            self, sheet_class, input_cols=None, input_data=None,
+            output_cols=None):
+        if input_cols is None:
+            input_cols = self._INPUT_COLS
+        if input_data is None:
+            input_data = self._INPUT_DATA
+        if output_cols is None:
+            output_cols = self._OUTPUT_COLS
+
+        table = pd.DataFrame(columns=input_cols, data=input_data)
 
         metadata = self._make_metadata(self)
+        self._help_test_make_sample_sheet_from_metadata(
+            sheet_class, metadata, table, output_cols)
+
+    def _help_test_make_sample_sheet_from_metadata(
+            self, sheet_class, metadata, table, output_cols):
+
         sheet = make_sample_sheet(
             metadata, table, 'iSeq', [1], strict=False)
 
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, sheet_class)
         obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = set(self._OUTPUT_COLS) | {'Lane'}
+        exp_columns = set(output_cols) | {'Lane'}
         self.assertEqual(exp_columns, obs_columns)
 
         self.assertTrue(sheet.validate_and_scrub_sample_sheet())
 
-        with open("good_standard_metagv0.csv", "w") as f:
-            sheet.write(f)
+    def _help_test_load_sample_sheet(
+            self, sheet_class, sample_sheet_fp=None, output_cols=None):
+        if sample_sheet_fp is None:
+            sample_sheet_fp = self.sample_sheet_fp
+        if output_cols is None:
+            output_cols = self._OUTPUT_COLS
 
-    def _help_test_load_sample_sheet(self, sheet_class):
-        sheet1 = load_sample_sheet(self.sample_sheet_fp)
+        sheet1 = load_sample_sheet(sample_sheet_fp, defer_validate=False)
         self.assertEqual(type(sheet1), sheet_class)
 
         obs = sheet1._get_expected_data_columns()
-        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
+        self.assertEqual(obs, tuple(output_cols))
 
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-    def _help_test_roundtrip_sample_sheet(self, sheet_class):
-        sheet1 = load_sample_sheet(self.sample_sheet_fp)
+    def _help_test_roundtrip_sample_sheet(
+            self, sheet_class, sample_sheet_fp=None):
+        if sample_sheet_fp is None:
+            sample_sheet_fp = self.sample_sheet_fp
+        sheet1 = load_sample_sheet(sample_sheet_fp, defer_validate=False)
         self.assertEqual(type(sheet1), sheet_class)
 
         self.maxDiff = None
@@ -2532,12 +2709,12 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
 
             # confirm that the written sample-sheet matches the original
             self._help_test_csv_files_exact_text_match(
-                self.sample_sheet_fp, tmp.name)
+                sample_sheet_fp, tmp.name)
 
 
 class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = MetagenomicSampleSheetv90
-    sample_sheet_name = "good_standard_metagv90_sheet.csv"
+    sample_sheet_name = "good_standard_metagv90.csv"
 
     _OUTPUT_COLS = [
         'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
@@ -2562,19 +2739,301 @@ class MetagenomicSampleSheetv90CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_MetagenomicSampleSheetv90_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_MetagenomicSampleSheetv90_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = MetagenomicSampleSheetv100
-    sample_sheet_name = "good-sample-sheet.csv"
+    sample_sheet_name = "good_standard_metagv100_wo_replicates.csv"
+    replicates_sheet_name = "good_standard_metagv100_w_replicates.csv"
 
-    def test_MetagenomicSampleSheetv100_instantiate_from_path(self):
+    _REP_INPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + \
+        [ORIG_NAME_KEY, "Library Well"]
+
+    _REP_OUTPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._OUTPUT_COLS.copy() + \
+        [ORIG_NAME_KEY, DESTINATION_WELL_384_KEY]
+
+    def setUp(self):
+        self.data_dir = join(dirname(__file__), 'data')
+        self.good_w_reps_sheet_fp = join(
+            self.data_dir, self.replicates_sheet_name)
+
+    def test_MetagenomicSampleSheetv100_instantiate_from_path_wo_reps(self):
         self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
 
-    def test_MetagenomicSampleSheetv100_make_sample_sheet(self):
+    def test_MetagenomicSampleSheetv100_make_sample_sheet_wo_reps(self):
         self._help_test_make_sample_sheet(self.sheet_class)
 
-    def test_MetagenomicSampleSheetv100_load_sample_sheet(self):
+    def test_MetagenomicSampleSheetv100_load_sample_sheet_wo_reps(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv100_roundtrip_wo_reps(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv100_instantiate_from_path_w_reps(self):
+        self._help_test_instantiate_sample_sheet_from_path(
+            self.sheet_class, self.good_w_reps_sheet_fp, self._REP_OUTPUT_COLS)
+
+    def test_MetagenomicSampleSheetv100_make_sample_sheet_w_reps(self):
+        metadata = self._make_metadata(self)
+        bioinfo = [
+            {'Sample_Project': 'ProjectF_11661', 'QiitaID': '11661',
+             'BarcodesAreRC': False, 'ForwardAdapter': 'AACC',
+             'ReverseAdapter': 'GGTT', 'HumanFiltering': False,
+             'library_construction_protocol': 'Nextera',
+             'experiment_design_description': 'Equipment',
+             'contains_replicates': True},
+            {'Sample_Project': 'ProjectN_13059', 'QiitaID': '13059',
+             'BarcodesAreRC': False, 'ForwardAdapter': 'AACC',
+             'ReverseAdapter': 'GGTT', 'HumanFiltering': False,
+             'library_construction_protocol': 'Knight Lab Kapa HP',
+             'experiment_design_description': 'Equipment',
+             'contains_replicates': True}]
+        contact = [
+            {'Email': 'person@domain.edu', 'Sample_Project': 'ProjectF_11661'},
+            {'Email': 'another_person@domain.edu',
+             'Sample_Project': 'ProjectN_13059'}]
+        metadata[_BIOINFORMATICS_KEY] = bioinfo
+        metadata[_CONTACT_KEY] = contact
+
+        data = {
+            'orig_name': [
+                'BLANK.43.12G', 'BLANK.43.12H', 'RMA.KHP.rpoS.Mage.Q97D',
+                'RMA.KHP.rpoS.Mage.Q97L', 'RMA.KHP.rpoS.Mage.Q97N',
+                'RMA.KHP.rpoS.Mage.Q97E', 'JBI.KHP.HGL.021', 'JBI.KHP.HGL.022',
+                'JBI.KHP.HGL.023', 'JBI.KHP.HGL.024', 'AP581451B02',
+                'EP256645B01', 'EP112567B02', 'EP337425B01', 'LP127890A01',
+                'EP159692B04', 'EP987683A01', 'AP959450A03', 'SP464350A04',
+                'EP121011B01', 'BLANK.43.12G', 'BLANK.43.12H',
+                'RMA.KHP.rpoS.Mage.Q97D', 'RMA.KHP.rpoS.Mage.Q97L',
+                'RMA.KHP.rpoS.Mage.Q97N', 'RMA.KHP.rpoS.Mage.Q97E',
+                'JBI.KHP.HGL.021', 'JBI.KHP.HGL.022', 'JBI.KHP.HGL.023',
+                'JBI.KHP.HGL.024', 'AP581451B02', 'EP256645B01', 'EP112567B02',
+                'EP337425B01', 'LP127890A01', 'EP159692B04', 'EP987683A01',
+                'AP959450A03', 'SP464350A04', 'EP121011B01', 'BLANK.43.12G',
+                'BLANK.43.12H', 'RMA.KHP.rpoS.Mage.Q97D',
+                'RMA.KHP.rpoS.Mage.Q97L', 'RMA.KHP.rpoS.Mage.Q97N',
+                'RMA.KHP.rpoS.Mage.Q97E', 'JBI.KHP.HGL.021', 'JBI.KHP.HGL.022',
+                'JBI.KHP.HGL.023', 'JBI.KHP.HGL.024', 'AP581451B02',
+                'EP256645B01', 'EP112567B02', 'EP337425B01', 'LP127890A01',
+                'EP159692B04', 'EP987683A01', 'AP959450A03', 'SP464350A04',
+                'EP121011B01'],
+            'sample sheet Sample_ID': [
+                'BLANK_43_12G_A1', 'BLANK_43_12H_A3',
+                'RMA_KHP_rpoS_Mage_Q97D_A5', 'RMA_KHP_rpoS_Mage_Q97L_A7',
+                'RMA_KHP_rpoS_Mage_Q97N_A9', 'RMA_KHP_rpoS_Mage_Q97E_A11',
+                'JBI_KHP_HGL_021_A13', 'JBI_KHP_HGL_022_A15',
+                'JBI_KHP_HGL_023_A17', 'JBI_KHP_HGL_024_A19',
+                'AP581451B02_A21', 'EP256645B01_A23', 'EP112567B02_C1',
+                'EP337425B01_C3', 'LP127890A01_C5', 'EP159692B04_C7',
+                'EP987683A01_C9', 'AP959450A03_C11', 'SP464350A04_C13',
+                'EP121011B01_C15', 'BLANK_43_12G_A2', 'BLANK_43_12H_A4',
+                'RMA_KHP_rpoS_Mage_Q97D_A6', 'RMA_KHP_rpoS_Mage_Q97L_A8',
+                'RMA_KHP_rpoS_Mage_Q97N_A10', 'RMA_KHP_rpoS_Mage_Q97E_A12',
+                'JBI_KHP_HGL_021_A14', 'JBI_KHP_HGL_022_A16',
+                'JBI_KHP_HGL_023_A18', 'JBI_KHP_HGL_024_A20',
+                'AP581451B02_A22', 'EP256645B01_A24', 'EP112567B02_C2',
+                'EP337425B01_C4', 'LP127890A01_C6', 'EP159692B04_C8',
+                'EP987683A01_C10', 'AP959450A03_C12', 'SP464350A04_C14',
+                'EP121011B01_C16', 'BLANK_43_12G_B2', 'BLANK_43_12H_B4',
+                'RMA_KHP_rpoS_Mage_Q97D_B6', 'RMA_KHP_rpoS_Mage_Q97L_B8',
+                'RMA_KHP_rpoS_Mage_Q97N_B10', 'RMA_KHP_rpoS_Mage_Q97E_B12',
+                'JBI_KHP_HGL_021_B14', 'JBI_KHP_HGL_022_B16',
+                'JBI_KHP_HGL_023_B18', 'JBI_KHP_HGL_024_B20',
+                'AP581451B02_B22', 'EP256645B01_B24', 'EP112567B02_D2',
+                'EP337425B01_D4', 'LP127890A01_D6', 'EP159692B04_D8',
+                'EP987683A01_D10', 'AP959450A03_D12', 'SP464350A04_D14',
+                'EP121011B01_D16'],
+            'Sample': [
+                'BLANK.43.12G.A1', 'BLANK.43.12H.A3',
+                'RMA.KHP.rpoS.Mage.Q97D.A5', 'RMA.KHP.rpoS.Mage.Q97L.A7',
+                'RMA.KHP.rpoS.Mage.Q97N.A9', 'RMA.KHP.rpoS.Mage.Q97E.A11',
+                'JBI.KHP.HGL.021.A13', 'JBI.KHP.HGL.022.A15',
+                'JBI.KHP.HGL.023.A17', 'JBI.KHP.HGL.024.A19',
+                'AP581451B02.A21', 'EP256645B01.A23', 'EP112567B02.C1',
+                'EP337425B01.C3', 'LP127890A01.C5', 'EP159692B04.C7',
+                'EP987683A01.C9', 'AP959450A03.C11', 'SP464350A04.C13',
+                'EP121011B01.C15', 'BLANK.43.12G.A2', 'BLANK.43.12H.A4',
+                'RMA.KHP.rpoS.Mage.Q97D.A6', 'RMA.KHP.rpoS.Mage.Q97L.A8',
+                'RMA.KHP.rpoS.Mage.Q97N.A10', 'RMA.KHP.rpoS.Mage.Q97E.A12',
+                'JBI.KHP.HGL.021.A14', 'JBI.KHP.HGL.022.A16',
+                'JBI.KHP.HGL.023.A18', 'JBI.KHP.HGL.024.A20',
+                'AP581451B02.A22', 'EP256645B01.A24', 'EP112567B02.C2',
+                'EP337425B01.C4', 'LP127890A01.C6', 'EP159692B04.C8',
+                'EP987683A01.C10', 'AP959450A03.C12', 'SP464350A04.C14',
+                'EP121011B01.C16', 'BLANK.43.12G.B2', 'BLANK.43.12H.B4',
+                'RMA.KHP.rpoS.Mage.Q97D.B6', 'RMA.KHP.rpoS.Mage.Q97L.B8',
+                'RMA.KHP.rpoS.Mage.Q97N.B10', 'RMA.KHP.rpoS.Mage.Q97E.B12',
+                'JBI.KHP.HGL.021.B14', 'JBI.KHP.HGL.022.B16',
+                'JBI.KHP.HGL.023.B18', 'JBI.KHP.HGL.024.B20',
+                'AP581451B02.B22', 'EP256645B01.B24', 'EP112567B02.D2',
+                'EP337425B01.D4', 'LP127890A01.D6', 'EP159692B04.D8',
+                'EP987683A01.D10', 'AP959450A03.D12', 'SP464350A04.D14',
+                'EP121011B01.D16'],
+            'extra_carried_col': [
+                'A1', 'A3', 'A5', 'A7', 'A9', 'A11', 'A13', 'A15', 'A17',
+                'A19', 'A21', 'A23', 'C1', 'C3', 'C5', 'C7', 'C9', 'C11',
+                'C13', 'C15', 'A1', 'A3', 'A5', 'A7', 'A9', 'A11',
+                'A13', 'A15', 'A17', 'A19', 'A21', 'A23', 'C1', 'C3', 'C5',
+                'C7', 'C9', 'C11', 'C13', 'C15', 'A1', 'A3', 'A5', 'A7',
+                'A9', 'A11', 'A13', 'A15', 'A17', 'A19', 'A21', 'A23', 'C1',
+                'C3', 'C5', 'C7', 'C9', 'C11', 'C13', 'C15'],
+            'Library Well': [
+                'A1', 'A3', 'A5', 'A7', 'A9', 'A11', 'A13', 'A15', 'A17',
+                'A19', 'A21', 'A23', 'C1', 'C3', 'C5', 'C7', 'C9', 'C11',
+                'C13', 'C15', 'A2', 'A4', 'A6', 'A8', 'A10', 'A12',
+                'A14', 'A16', 'A18', 'A20', 'A22', 'A24', 'C2', 'C4', 'C6',
+                'C8', 'C10', 'C12', 'C14', 'C16', 'B2', 'B4', 'B6', 'B8',
+                'B10', 'B12', 'B14', 'B16', 'B18', 'B20', 'B22', 'B24',
+                'D2', 'D4', 'D6', 'D8', 'D10', 'D12', 'D14', 'D16'],
+            'Project Plate': [
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectF_11661_P43', 'ProjectF_11661_P43',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1',
+                'ProjectN_13059_P1', 'ProjectN_13059_P1'],
+            'Well': [
+                'A1', 'A3', 'A5', 'A7', 'A9', 'A11', 'A13', 'A15', 'A17',
+                'A19', 'A21', 'A23', 'C1', 'C3', 'C5', 'C7', 'C9', 'C11',
+                'C13', 'C15', 'A2', 'A4', 'A6', 'A8', 'A10', 'A12', 'A14',
+                'A16', 'A18', 'A20', 'A22', 'A24', 'C2', 'C4', 'C6', 'C8',
+                'C10', 'C12', 'C14', 'C16', 'B2', 'B4', 'B6', 'B8', 'B10',
+                'B12', 'B14', 'B16', 'B18', 'B20', 'B22', 'B24', 'D2', 'D4',
+                'D6', 'D8', 'D10', 'D12', 'D14', 'D16'],
+            'i7 name': [
+                'iTru7_114_08', 'iTru7_114_09', 'iTru7_114_10',
+                'iTru7_114_11', 'iTru7_114_12', 'iTru7_201_01',
+                'iTru7_201_02', 'iTru7_201_03', 'iTru7_201_04',
+                'iTru7_201_05', 'iTru7_108_05', 'iTru7_108_06',
+                'iTru7_108_07', 'iTru7_108_08', 'iTru7_108_09',
+                'iTru7_108_10', 'iTru7_108_11', 'iTru7_108_12',
+                'iTru7_109_01', 'iTru7_109_04', 'iTru7_114_08',
+                'iTru7_114_09', 'iTru7_114_10', 'iTru7_114_11',
+                'iTru7_114_12', 'iTru7_201_01', 'iTru7_201_02',
+                'iTru7_201_03', 'iTru7_201_04', 'iTru7_201_05',
+                'iTru7_108_05', 'iTru7_108_06', 'iTru7_108_07',
+                'iTru7_108_08', 'iTru7_108_09', 'iTru7_108_10',
+                'iTru7_108_11', 'iTru7_108_12', 'iTru7_109_01',
+                'iTru7_109_04', 'iTru7_114_08', 'iTru7_114_09',
+                'iTru7_114_10', 'iTru7_114_11', 'iTru7_114_12',
+                'iTru7_201_01', 'iTru7_201_02', 'iTru7_201_03',
+                'iTru7_201_04', 'iTru7_201_05', 'iTru7_108_05',
+                'iTru7_108_06', 'iTru7_108_07', 'iTru7_108_08',
+                'iTru7_108_09', 'iTru7_108_10', 'iTru7_108_11',
+                'iTru7_108_12', 'iTru7_109_01', 'iTru7_109_04'],
+            'i7 sequence': [
+                'CCGACTAT', 'ACCGACAA', 'CCGACTAT', 'CTTCGCAA', 'GCCTTGTT',
+                'AACACCAC', 'AACTTGCC', 'CGTATCTC',
+                'CAATGTGG', 'GGTACGAA', 'TCTGAGAG', 'ACCGCATA', 'GAAGTACC',
+                'CAGGTATC', 'TCTCTAGG', 'AAGCACTG',
+                'CCAAGCAA', 'TGTTCGAG', 'CTCGTCTT', 'TCGGTTAC', 'TCTGAGAG',
+                'CAATAGCC', 'ACCGCATA', 'CATTCGTC',
+                'GAAGTACC', 'AGTGGCAA', 'CAGGAATC', 'GTGGAATG', 'TCTCAAGG',
+                'TGAGATGT', 'TCTGAAAG', 'ACAGCATA',
+                'GAAATACC', 'CAGATATC', 'TCTATAGG', 'AAGTTATG', 'ACAAGCAA',
+                'AGTTCGAG', 'ATCGTCTT', 'ACGGTTAC',
+                'AATTCGGT', 'TCGGACTT', 'TCGGTAAC', 'CATGTGTG', 'AAGTCGAG',
+                'TGCCTCAA', 'TATCGGTC', 'ATCTGACC',
+                'TATTCGCC', 'CACAGACT', 'GCTGAGAG', 'GCCGCATA', 'GGAGTACC',
+                'CGGGTATC', 'TGTCTAGG', 'AGGCACTG',
+                'GCAAGCAA', 'GGTTCGAG', 'GTCGTCTT', 'GCGGTTAC'],
+            'i5 name': [
+                'iTru5_01_A', 'iTru5_02_A', 'iTru5_03_A', 'iTru5_04_A',
+                'iTru5_05_A', 'iTru5_06_A', 'iTru5_07_A', 'iTru5_08_A',
+                'iTru5_09_A', 'iTru5_10_A', 'iTru5_09_A', 'iTru5_10_A',
+                'iTru5_11_A', 'iTru5_12_A', 'iTru5_01_B', 'iTru5_02_B',
+                'iTru5_03_B', 'iTru5_04_B', 'iTru5_05_B', 'iTru5_08_B',
+                'iTru5_01_A', 'iTru5_02_A', 'iTru5_03_A', 'iTru5_04_A',
+                'iTru5_05_A', 'iTru5_06_A', 'iTru5_07_A', 'iTru5_08_A',
+                'iTru5_09_A', 'iTru5_10_A', 'iTru5_09_A', 'iTru5_10_A',
+                'iTru5_11_A', 'iTru5_12_A', 'iTru5_01_B', 'iTru5_02_B',
+                'iTru5_03_B', 'iTru5_04_B', 'iTru5_05_B', 'iTru5_08_B',
+                'iTru5_01_A', 'iTru5_02_A', 'iTru5_03_A', 'iTru5_04_A',
+                'iTru5_05_A', 'iTru5_06_A', 'iTru5_07_A', 'iTru5_08_A',
+                'iTru5_09_A', 'iTru5_10_A', 'iTru5_09_A', 'iTru5_10_A',
+                'iTru5_11_A', 'iTru5_12_A', 'iTru5_01_B', 'iTru5_02_B',
+                'iTru5_03_B', 'iTru5_04_B', 'iTru5_05_B', 'iTru5_08_B'],
+            'i5 sequence': [
+                'AAGGCTGA', 'CGATCGAT', 'TTACCGAG', 'AAGACACC', 'GTCCTAAG',
+                'CATCTGCT', 'GAAGGTTC', 'CTCTCAGA',
+                'GAAGAGGT', 'TCGTCTGA', 'CTCTCAGA', 'TCGTCTGA', 'CAATAGCC',
+                'CATTCGTC', 'AGTGGCAA', 'GTGGTATG',
+                'TGAGCTGT', 'CGTCAAGA', 'AAGCATCG', 'ACCTCTTC', 'AAGCACTG',
+                'CGTCAAGA', 'CCAAGCAA', 'AAGCATCG',
+                'TGTTCGAG', 'TACTCCAG', 'CTCGTCTT', 'GATACCTG', 'CGAACTGT',
+                'ACCTCTTC', 'ATCTCAGA', 'TGGTCTGA',
+                'CATTAGCC', 'CAGTCGTC', 'AGTCGCAA', 'GTGGAATG', 'TGAGCTGT',
+                'CGTCCAGA', 'AAGAATCG', 'ACCACTTC',
+                'GTATTAGC', 'CACTGAAG', 'AGTCGCTT', 'CACAGGAA', 'TGGCACTA',
+                'CCATGAAC', 'GGTTGTCA', 'GCCAATAC',
+                'AACCTCCT', 'AGCTACCA', 'CTCTCAGA', 'TCGTCTGA', 'CAATAGCC',
+                'CATTCGTC', 'AGTGGCAA', 'GTGGTATG',
+                'TGAGCTGT', 'CGTCAAGA', 'AAGCATCG', 'ACCTCTTC'],
+            'Project Name': [
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661', 'ProjectF_11661',
+                'ProjectF_11661', 'ProjectF_11661',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059', 'ProjectN_13059',
+                'ProjectN_13059', 'ProjectN_13059']}
+        table = pd.DataFrame(data)
+
+        self._help_test_make_sample_sheet_from_metadata(
+            self.sheet_class, metadata, table, self._REP_OUTPUT_COLS)
+
+    def test_MetagenomicSampleSheetv100_load_sample_sheet_w_reps(self):
+        self._help_test_load_sample_sheet(
+            self.sheet_class, self.good_w_reps_sheet_fp, self._REP_OUTPUT_COLS)
+
+    def test_MetagenomicSampleSheetv100_roundtrip_w_reps(self):
+        self._help_test_roundtrip_sample_sheet(
+            self.sheet_class, self.good_w_reps_sheet_fp)
 
 
 class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2597,6 +3056,9 @@ class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_MetagenomicSampleSheetv101_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_MetagenomicSampleSheetv101_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2643,6 +3105,9 @@ class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_AbsQuantSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_AbsQuantSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class AbsQuantSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = AbsQuantSampleSheetv11
@@ -2664,6 +3129,9 @@ class AbsQuantSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_AbsQuantSampleSheetv11_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_AbsQuantSampleSheetv11_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class TellseqMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
@@ -2700,6 +3168,9 @@ class TellseqMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_TellseqMetagSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_TellseqMetagSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
 class TellseqAbsquantMetagSampleSheetv10CreationTests(
@@ -2745,6 +3216,9 @@ class TellseqAbsquantMetagSampleSheetv10CreationTests(
     def test_TellseqAbsquantMetagSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_TellseqAbsquantMetagSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class MetatranscriptomicSampleSheetv10CreationTests(
         SampleSheetLoadMakeAndLoadTests):
@@ -2778,6 +3252,10 @@ class MetatranscriptomicSampleSheetv10CreationTests(
         'Sample_Project', 'total_rna_concentration_ng_ul',
         'vol_extracted_elution_ul', 'Well_description']
 
+    @staticmethod
+    def _make_metadata(a_self):
+        return MetagenomicSampleSheetv90CreationTests._make_metadata(a_self)
+
     def test_MetatranscriptomicSampleSheetv10_instantiate_from_path(self):
         self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
 
@@ -2787,382 +3265,166 @@ class MetatranscriptomicSampleSheetv10CreationTests(
     def test_MetatranscriptomicSampleSheetv10_load_sample_sheet(self):
         self._help_test_load_sample_sheet(self.sheet_class)
 
+    def test_MetatranscriptomicSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
-class KarathoseqEnabledSheetCreationTests(BaseTests):
+
+class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = MetagenomicSampleSheetv102
+    sample_sheet_name = "good_standard_metagv102_wo_katharoseq.csv"
+    kath_sheet_name = "good_standard_metagv102_w_katharoseq.csv"
+
+    _KATH_COLS = [
+        'Kathseq_RackID', TUBECODE_KEY, 'katharo_description',
+        'number_of_cells', 'platemap_generation_date', 'project_abbreviation',
+        'vol_extracted_elution_ul', 'well_id_96']
+
+    _KATH_INPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._INPUT_COLS.copy() + _KATH_COLS.copy()
+
+    _KATH_INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAT',
+         'iTru5_01_A', 'ACCGACAA', 'MyProject_99999',
+         '', '', '', '', '', '', '', ''],
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAC',
+         'iTru5_01_A', 'ACCGACAT', 'MyProject_99999',
+         '', '', '', '', '', '', '', ''],
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'sample_plate_1', 'iTru7_107_07', 'CCGACTAG',
+         'iTru5_01_A', 'ACCGACAG', 'MyProject_99999',
+         '', '', '', '', '', '', '', ''],
+        # added katharoseq control here. apparently katharoseq-specific
+        # columns have to exist but don't have to be filled even for the
+        # katharoseq control?  Seems like an oversight.
+        ['katharo001', 'katharo0001', '4', '1', 'False',
+         'A3', 'sample_plate_1', 'iTru7_107_07', 'CCGACTCT',
+         'iTru5_01_A', 'ACCGACCG', 'MyProject_99999',
+         '', '', '', '', '', '', '', '']
+    ]
+
+    _KATH_OUTPUT_COLS = \
+        SampleSheetLoadMakeAndLoadTests._OUTPUT_COLS.copy() + _KATH_COLS.copy()
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    _MISSING_COLS_ERR_LINES = [
+        "Sample sheet instantiation failed: ",
+        "The Kathseq_RackID column in the Data section is missing\n",
+        "The TubeCode column in the Data section is missing\n",
+        "The katharo_description column in the Data section is missing\n",
+        "The number_of_cells column in the Data section is missing\n",
+        "The platemap_generation_date column in the Data section is missing\n",
+        "The project_abbreviation column in the Data section is missing\n",
+        "The vol_extracted_elution_ul column in the Data section is missing\n",
+        "The well_id_96 column in the Data section is missing"]
+
     def setUp(self):
         self.data_dir = join(dirname(__file__), 'data')
-        self.katharoseq_1 = join(self.data_dir,
-                                 'test_katharoseq_sheet1.csv')
+        self.good_wo_katharoseq_sheet_fp = join(
+            self.data_dir, self.sample_sheet_name)
 
-        self.katharoseq_2 = join(self.data_dir,
-                                 'test_katharoseq_sheet2.csv')
+        self.good_w_katharoseq_sheet_fp = join(
+            self.data_dir, self.kath_sheet_name)
 
-        self.katharoseq_3 = join(self.data_dir,
-                                 'test_katharoseq_sheet3.csv')
+        self.bad_missing_katharoseq_col_sheet_fp = join(
+            self.data_dir, 'test_katharoseq_sheet3.csv')
 
-        self.input_columns = ['sample sheet Sample_ID',
-                              'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
-                              'Project Name', 'Compressed Plate Name', 'Well',
-                              'Plate Position', 'Primer Plate #', 'Plating',
-                              'Extraction Kit Lot', 'Extraction Robot',
-                              'TM1000 8 Tool', 'Primer Date', 'MasterMix Lot',
-                              'Water Lot', 'Processing Robot', 'Sample Plate',
-                              'Project_Name', 'Original Name', 'Plate',
-                              'EMP Primer Plate Well', 'Name',
-                              "Illumina 5' Adapter", 'Golay Barcode',
-                              'Forward Primer Pad', 'Forward Primer Linker',
-                              '515FB Forward Primer (Parada)',
-                              'Primer For PCR', 'syndna_pool_number']
+    def test_MetagenomicSampleSheetv102_instantiate_from_path_wo_kath(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
 
-        self.metadata = {
-            'Bioinformatics': [
-                {
-                    'Sample_Project': 'MyProject_99999',
-                    'QiitaID': '101',
-                    'BarcodesAreRC': 'False',
-                    'ForwardAdapter': 'GATACA',
-                    'ReverseAdapter': 'CATCAT',
-                    'HumanFiltering': 'False',
-                    'library_construction_protocol': 'Knight Lab Kapa HP',
-                    'experiment_design_description': 'some description',
-                    'contains_replicates': 'False'
-                }
-            ],
-            'Contact': [
-                {
-                    'Sample_Project': 'MyProject_99999',
-                    'Email': 'foo@bar.org'
-                }
-            ],
-            'SampleContext': [],
-            'Assay': 'Metagenomic',
-            'SheetType': 'standard_metag',
-            'SheetVersion': '102'
-        }
+    def test_MetagenomicSampleSheetv102_make_sample_sheet_wo_kath(self):
+        self._help_test_make_sample_sheet(self.sheet_class)
 
-        self.data = [
-            ['sample1', 'sample1', 'A', 1, False, 'THDMI_10317_PUK2',
-             'MyProject_99999', 'THDMI_10317_UK2-US6', 'A1', '1', '1',
-             'SF',
-             '166032128', 'Carmen_HOWE_KF3', '109379Z', '2021-08-17',
-             '978215',
-             'RNBJ0628', 'Echo550', 'THDMI_UK_Plate_2', 'THDMI UK', '',
-             '1',
-             'A1', '515rcbc0', 'AATGATACGGCGACCACCGAGATCTACACGCT',
-             'AGCCTTCGTCGC', 'TATGGTAATT', 'GT', 'GTGYCAGCMGCCGCGGTAA',
-             'AATGATACGGCGACCACCGAGATCTACACGCTAGCCTTCGTCGCTATGGTAATTGTGTGYCAG'
-             'CMGCCGCGGTAA', 'pool1']
-        ]
+    def test_MetagenomicSampleSheetv102_load_sample_sheet_wo_kath(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
 
-        self.test_sheet = MetagenomicSampleSheetv102()
-        self.test_sheet.Header['IEMFileVersion'] = 4
-        self.test_sheet.Header['sheetType'] = 'standard_metag'
-        self.test_sheet.Header['sheetVersion'] = '102'
-        self.test_sheet.Header['Investigator Name'] = 'Knight'
-        self.test_sheet.Header['Experiment Name'] = 'RKO_experiment'
-        self.test_sheet.Header['Date'] = '2021-08-17'
-        self.test_sheet.Header['Workflow'] = 'GenerateFASTQ'
-        self.test_sheet.Header['Application'] = 'FASTQ Only'
-        self.test_sheet.Header['Assay'] = 'Metagenomic'
-        self.test_sheet.Header['Description'] = ''
-        self.test_sheet.Header['Chemistry'] = 'Default'
-        self.test_sheet.Reads = [151, 151]
-        self.test_sheet.Settings['ReverseComplement'] = 0
+    def test_MetagenomicSampleSheetv102_roundtrip_wo_kath(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
-        self.test_sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
-                     'contains_replicates', 'library_construction_protocol',
-                     'experiment_design_description'], data=[
-                ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
-                 'False', 'protocol_1', 'a designed experiment']
-            ])
+    def test_MetagenomicSampleSheetv102_instantiate_from_path_w_kath(self):
+        self._help_test_instantiate_sample_sheet_from_path(
+            self.sheet_class, self.good_w_katharoseq_sheet_fp,
+            self._KATH_OUTPUT_COLS)
 
-        self.test_sheet.Contact = pd.DataFrame(
-            columns=['Email', 'Sample_Project'],
-            data=[['c2cowart@ucsd.edu',
-                   'Project1_99999'], ])
+    def test_MetagenomicSampleSheetv102_make_sample_sheet_w_kath(self):
+        self._help_test_make_sample_sheet(
+            self.sheet_class, self._KATH_INPUT_COLS, self._KATH_INPUT_DATA,
+            self._KATH_OUTPUT_COLS)
 
-        self.test_sheet.SampleContext = pd.DataFrame()
+    def test_MetagenomicSampleSheetv102_load_sample_sheet_w_kath(self):
+        self._help_test_load_sample_sheet(
+            self.sheet_class, self.good_w_katharoseq_sheet_fp,
+            self._KATH_OUTPUT_COLS)
 
-    def test_katharoseq_enabled_sheet_load(self):
-        # load metagenomic sample-sheet w/out katharoseq samples in the [Data]
-        # section, and get a list of the columns.
-        sheet1 = load_sample_sheet(self.katharoseq_1)
-        # confirm that the sheet is of the new karathoseq-enabled type.
-        self.assertEqual(type(sheet1), MetagenomicSampleSheetv102)
-        obs = sheet1._get_expected_data_columns()
+    def test_MetagenomicSampleSheetv102_roundtrip_w_kath(self):
+        self._help_test_roundtrip_sample_sheet(
+            self.sheet_class, self.good_w_katharoseq_sheet_fp)
 
-        # because sheet1 does not contain karathoseq samples, it should not
-        # contain additional karathoseq-specific columns.
-        exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-               'Sample_Project',
-               'Well_description')
-        self.assertEqual(obs, exp)
-        self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
-
-        # load metagenomic sample-sheet w/katharoseq samples in the [Data]
-        # section, and perform similar tests.
-        sheet2 = load_sample_sheet(self.katharoseq_2)
-        self.assertEqual(type(sheet2), MetagenomicSampleSheetv102)
-        exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-               'Sample_Project', 'Well_description', 'Kathseq_RackID',
-               TUBECODE_KEY, 'katharo_description', 'number_of_cells',
-               'platemap_generation_date', 'project_abbreviation',
-               'vol_extracted_elution_ul', 'well_id_96')
-        obs = sheet2._get_expected_data_columns()
-
-        self.assertEqual(obs, exp)
-        self.assertTrue(sheet2.validate_and_scrub_sample_sheet())
-
+    def test_katharoseq_enabled_sheet_load_no_state_change(self):
         # confirm that class-wide state is not permanently changed by loading
-        # a karathoseq-enabled file. Reloading sheet1 should continue to have
-        # only the shorter set of columns.
-        sheet1 = load_sample_sheet(self.katharoseq_1)
+        # a karathoseq-enabled file. Loading sheet1 (no katharoseq columns)
+        # after sheet2 (containing katharoseq columns) should yield a sheet1
+        # samplesheet with only the shorter set of columns.
+        sheet2 = load_sample_sheet(self.good_w_katharoseq_sheet_fp)
+        self.assertEqual(type(sheet2), MetagenomicSampleSheetv102)
+
+        sheet1 = load_sample_sheet(self.good_wo_katharoseq_sheet_fp,
+                                   defer_validate=False)
         self.assertEqual(type(sheet1), MetagenomicSampleSheetv102)
-        exp = ('Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-               'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-               'Sample_Project',
-               'Well_description')
         obs = sheet1._get_expected_data_columns()
-        self.assertEqual(obs, exp)
+        self.assertEqual(obs, tuple(self._OUTPUT_COLS))
         self.assertTrue(sheet1.validate_and_scrub_sample_sheet())
 
-        sheet = load_sample_sheet(self.katharoseq_3)
-        obs = sheet.quiet_validate_and_scrub_sample_sheet()
-        self.assertEqual(str(obs[0]), "ErrorMessage: The number_of_cells "
-                                      "column in the Data section is missing")
-
-        # self.katharoseq_3 is a duplicate of self.katharoseq_2, except
-        # number_of_cells has been replaced w/number_of_sells. This is
-        # enough to fail load_sample_sheet(). Confirm specific error by
-        # manually loading the sample-sheet into an SampleSheet object.
-        sheet = MetagenomicSampleSheetv102(self.katharoseq_3)
-
-        # self.katharoseq_3 should load properly into an object, although it
-        # will later fail validation.
-        self.assertIsNotNone(sheet)
-
-        # confirm type is katharoseq-enabled.
-        self.assertEqual(type(sheet), MetagenomicSampleSheetv102)
-
-        # Note: _get_expected_data_columns() returns what columns the data
-        # section of the sample sheet SHOULD have.
-        self.assertIn(
-            'number_of_cells', sheet._get_expected_data_columns())
-
-        # confirm validate_and_scrub_sample_sheet() returns False.
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-
-        msgs = [str(msg) for msg in msgs]
-
-        self.assertIn('ErrorMessage: The number_of_cells column in the'
-                      ' Data section is missing', msgs)
-
-    def test_katharoseq_enabled_sheet_creation_no_kath(self):
-        # create a Metagenomic-type sample-sheet from scratch w/out karathoseq
-        # samples and manually populate the required fields.
-        sheet = MetagenomicSampleSheetv102()
-        sheet.Header['IEMFileVersion'] = 4
-        sheet.Header['SheetType'] = 'standard_metag'
-        sheet.Header['SheetVersion'] = '102'
-        sheet.Header['Investigator Name'] = 'Knight'
-        sheet.Header['Experiment Name'] = 'RKO_experiment'
-        sheet.Header['Date'] = '2021-08-17'
-        sheet.Header['Workflow'] = 'GenerateFASTQ'
-        sheet.Header['Application'] = 'FASTQ Only'
-        sheet.Header['Assay'] = 'Metagenomic'
-        sheet.Header['Description'] = ''
-        sheet.Header['Chemistry'] = 'Default'
-        sheet.Reads = [151, 151]
-        sheet.Settings['ReverseComplement'] = 0
-
-        data = [
-            ['Project1_99999', '99999', 'False', 'AACC', 'GGTT', 'False',
-             'False', 'protocol_1', 'a designed experiment']
-        ]
-
-        sheet.Bioinformatics = pd.DataFrame(
-            columns=['Sample_Project', 'QiitaID', 'BarcodesAreRC',
-                     'ForwardAdapter', 'ReverseAdapter', 'HumanFiltering',
-                     'contains_replicates', 'library_construction_protocol',
-                     'experiment_design_description'], data=data)
-
-        sheet.Contact = pd.DataFrame(columns=['Email', 'Sample_Project'],
-                                     data=[['c2cowart@ucsd.edu',
-                                            'Project1_99999'],])
-        # NB: SampleContext is empty, which is allowed
-        sheet.SampleContext = pd.DataFrame(columns=[
-            'sample_name', 'sample_type', 'primary_qiita_study',
-            'secondary_qiita_studies'])
-
-        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                  'Sample_Project', 'Well_description']
-
-        data = [
-            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
-             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
-            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
-             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
-            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
-             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
-        ]
-
-        for row in data:
-            # Add each row as a Sample() object. Each Sample() object takes
-            # a dict as its initializer.
-            sheet.add_sample(sample_sheet.Sample(dict(zip(header, row))))
-
-        # Once sheet has been manually populated, validate it.
-        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
-        self.assertFalse(sheet.contains_katharoseq_samples())
+    def test_katharoseq_enabled_sheet_err_load_missing_col(self):
+        err = ("Sample sheet instantiation failed: The number_of_cells column"
+               " in the Data section is missing")
+        with self.assertRaisesRegex(ValueError, err):
+            _ = MetagenomicSampleSheetv102(
+                self.bad_missing_katharoseq_col_sheet_fp, defer_validate=False)
 
     def test_katharoseq_enabled_sheet_creation(self):
-        # create a sheet from scratch, this time with karathoseq samples.
-        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                  'Sample_Project', 'Well_description']
-
-        data = [
-            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
-             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc'],
-            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
-             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc'],
-            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
-             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc'],
-            # added katharoseq control here.
-            ['katharo0001', 'katharo0001', 'sample_plate_1', 'A4',
-             'iTru7_107_07', 'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG',
-             'Project1_99999', 'desc']
-        ]
-
-        for row in data:
-            # For all children of Samplesheet() class, the first call to
-            # add_sample() determines the number, name, and ordering of
-            # columns in the [Data] section. Changing the columns in a
-            # subsequent call will raise an Error.
-            #
-            # We can assume that a user creating a katharoseq-enabled
-            # sample-sheet will include the katharoseq-enabled columns, even
-            # for sample-names that don't begin with 'katharo'.
-            #
-            # Hence, as when using load_sample_sheet(), confirmation that
-            # katharoseq columns are present when katharoseq controls are in
-            # the [Data] section and not present otherwise won't be determined
-            # until validation() is called.
-            self.test_sheet.add_sample(sample_sheet.Sample(dict(zip(header,
-                                                                    row))))
-
-        # sheet should not be valid, since we added a katharoseq control w/out
-        # adding the additional columns.
-        self.assertFalse(self.test_sheet.validate_and_scrub_sample_sheet())
-
-        # confirm that a katharoseq control was found among the samples.
-        self.assertTrue(self.test_sheet.contains_katharoseq_samples())
-
-        # validate sheet again, this time get the list of error messages.
-        msgs = self.test_sheet.quiet_validate_and_scrub_sample_sheet()
-        msgs = [str(msg) for msg in msgs]
-
-        # assert this message is present in the results, and assume all of the
-        # other messages one would expect to see are also present.
-        self.assertIn('ErrorMessage: The TubeCode column in the Data section '
-                      'is missing', msgs)
-
-    def test_katharoseq_enabled_sheet_creation_manual(self):
-        # create a sheet manually, this time with the proper type and
-        # number of columns.
-        header = ['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
-                  'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
-                  'Sample_Project', 'Well_description', 'Kathseq_RackID',
-                  TUBECODE_KEY, 'katharo_description', 'number_of_cells',
-                  'platemap_generation_date', 'project_abbreviation',
-                  'vol_extracted_elution_ul', 'well_id_96']
-
-        data = [
-            ['sample_1', 'sample.1', 'sample_plate_1', 'A1', 'iTru7_107_07',
-             'CCGACTAT', 'iTru5_01_A', 'ACCGACAA', 'Project1_99999', 'desc',
-             '', '', '', '', '', '', '', ''],
-            ['sample_2', 'sample.2', 'sample_plate_1', 'A2', 'iTru7_107_07',
-             'CCGACTAC', 'iTru5_01_A', 'ACCGACAT', 'Project1_99999', 'desc',
-             '', '', '', '', '', '', '', ''],
-            ['sample_3', 'sample.3', 'sample_plate_1', 'A3', 'iTru7_107_07',
-             'CCGACTAG', 'iTru5_01_A', 'ACCGACAG', 'Project1_99999', 'desc',
-             '', '', '', '', '', '', '', ''],
-            # added katharoseq control here.
-            ['katharo0001', 'katharo0001', 'sample_plate_1', 'A4',
-             'iTru7_107_07', 'CCGCCTAG', 'iTru5_01_A', 'ACCGTCAG',
-             'Project1_99999', 'desc', '', '', '', '', '', '', '', '']
-        ]
-
-        for row in data:
-            # For all children of Samplesheet() class, the first call to
-            # add_sample() determines the number, name, and ordering of
-            # columns in the [Data] section. Changing the columns in a
-            # subsequent call will raise an Error.
-            #
-            # We can assume that a user creating a katharoseq-enabled
-            # sample-sheet will include the katharoseq-enabled columns, even
-            # for sample-names that don't begin with 'katharo'.
-            #
-            # Hence, as when using load_sample_sheet(), confirmation that
-            # katharoseq columns are present when katharoseq controls are in
-            # the [Data] section and not present otherwise won't be determined
-            # until validation() is called.
-            self.test_sheet.add_sample(sample_sheet.Sample(dict(zip(header,
-                                                                    row))))
-
-        self.assertTrue(self.test_sheet.validate_and_scrub_sample_sheet())
-        self.assertTrue(self.test_sheet.contains_katharoseq_samples())
-        msgs = self.test_sheet.quiet_validate_and_scrub_sample_sheet()
-        self.assertEqual([], msgs)
-
-    def test_katharoseq_make_sample_sheet(self):
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
-
-        # confirm that we get a sample-sheet w/out katharoseq-control-related
-        # columns.
-        self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
-        self.assertFalse(sheet.contains_katharoseq_samples())
-        obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                       'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                       'index2', 'Sample_Project', 'Well_description',
-                       'Lane'}
-        self.assertEqual(obs_columns, exp_columns)
+        data = self._INPUT_DATA.copy()
+        data[-1][0] = data[-1][1] = "katharo0001"
+        table = pd.DataFrame(columns=self._INPUT_COLS, data=data)
+        err = "".join(self._MISSING_COLS_ERR_LINES)
+        with self.assertRaisesRegex(ValueError, err):
+            make_sample_sheet(self._make_metadata(self),
+                              table, 'iSeq', [1], strict=False)
 
     def test_katharoseq_make_sample_sheet_implicit_not_strict(self):
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1])
+        data = self._KATH_INPUT_DATA.copy()
+        data = data[:-1]  # drop the only kath sample
+        table = pd.DataFrame(columns=self._KATH_INPUT_COLS, data=data)
+        sheet = make_sample_sheet(self._make_metadata(self),
+                                  table, 'iSeq', [1])
 
         # confirm that we get a sample-sheet w/out katharoseq-control-related
-        # columns.
+        # columns when we allow implicit table remapping and have no kath
+        # samples in the data
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
         self.assertFalse(sheet.contains_katharoseq_samples())
         obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = {'Sample_ID', 'Sample_Name', 'Sample_Plate',
-                       'well_id_384', 'I7_Index_ID', 'index', 'I5_Index_ID',
-                       'index2', 'Sample_Project', 'Well_description',
-                       'Lane'}
-        self.assertEqual(obs_columns, exp_columns)
+        exp_columns = set(self._OUTPUT_COLS) | {'Lane'}
+        self.assertEqual(exp_columns, obs_columns)
 
-    def test_katharoseq_make_sample_sheet_one_optional_column_ok(self):
-        self.input_columns.append('Kathseq_RackID')
-        self.data[0].append('MyRackID')
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+    def test_katharoseq_make_sample_sheet_kath_cols_wo_kath_sample_ok(self):
+        # input data with katharoseq columns but no katharoseq sample
+        # will have kath columns dropped when the sample sheet is created.
+
+        # first, delete the last item in the self._KATH_INPUT_DATA list
+        # so that the katharoseq control is not present in the data.
+        data = self._KATH_INPUT_DATA.copy()
+        data = data[:-1]
+
+        table = pd.DataFrame(columns=self._KATH_INPUT_COLS, data=data)
+        metadata = self._make_metadata(self)
 
         # sheet will be created but extended columns will not be present
         # and no error is raised. Kathseq_RackID is silently dropped.
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
+        sheet = make_sample_sheet(metadata, table, 'iSeq', [1],
                                   strict=False)
 
         self.assertIsNotNone(sheet)
@@ -3175,66 +3437,23 @@ class KarathoseqEnabledSheetCreationTests(BaseTests):
                        'Lane'}
         self.assertEqual(obs_columns, exp_columns)
 
-    def test_katharoseq_make_sample_sheet_one_optional_column_error(self):
-        # attempt to make a sample-sheet using make_sample_sheet and w/a
-        # dataset that has only one of the optional columns (Kathseq_RackID)
-        # included. This should result in an error raised.
+    def test_katharoseq_make_sample_sheet_kath_sample_wo_kath_cols_err(self):
+        # input data with katharoseq sample but not all katharoseq columns
+        # will throw an error during sample sheet creation.
 
-        # To do this, we will change the name of the sample to begin w/katharo.
-        self.data[0][1] = 'katharo.01'  # changing sample_name
+        table = pd.DataFrame(
+            columns=self._KATH_INPUT_COLS, data=self._KATH_INPUT_DATA)
 
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
+        cols_to_remove = set(self._KATH_COLS) - {'Kathseq_RackID'}
+        table.drop(columns=list(cols_to_remove), inplace=True)
 
-        exp = ("ErrorMessage: The TubeCode column in the Data section is "
-               "missing\nErrorMessage: The katharo_description column in the "
-               "Data section is missing\nErrorMessage: The number_of_cells "
-               "column in the Data section is missing\nErrorMessage: The "
-               "platemap_generation_date column in the Data section is "
-               "missing\nErrorMessage: The project_abbreviation column in the"
-               " Data section is missing\nErrorMessage: The vol_extracted_"
-               "elution_ul column in the Data section is missing\nError"
-               "Message: The well_id_96 column in the Data section is missing")
-
-        with self.assertRaisesRegex(ValueError, exp):
-            make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                              strict=False)
-
-    def test_katharoseq_make_sample_sheet_all_optional_columns(self):
-        # test make_sample_sheet() w/katharoseq data. To do this, change the
-        # name of the sample to begin w/katharo.
-        self.data[0][1] = 'katharo.01'  # changing sample_name
-
-        # add missing columns to the data and populate them with 'junk value'.
-        optional_columns = ['Kathseq_RackID', TUBECODE_KEY,
-                            'katharo_description', 'number_of_cells',
-                            'platemap_generation_date', 'project_abbreviation',
-                            'vol_extracted_elution_ul', 'well_id_96']
-
-        for column in optional_columns:
-            self.input_columns.append(column)
-            self.data[0].append('junk_value')
-
-        table = pd.DataFrame(columns=self.input_columns, data=self.data)
-
-        sheet = make_sample_sheet(self.metadata, table, 'iSeq', [1],
-                                  strict=False)
-
-        # confirm that a sheet was created w/all the extended columns
-        # required for katharoseq-controls.
-        self.assertIsNotNone(sheet)
-        self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
-        self.assertTrue(sheet.contains_katharoseq_samples())
-        obs_columns = set(sheet.samples[0].to_json().keys())
-        exp_columns = {'Sample_Project', 'Sample_ID', TUBECODE_KEY, 'index2',
-                       'index', 'Kathseq_RackID', 'well_id_384',
-                       'katharo_description', 'Well_description',
-                       'platemap_generation_date', 'Sample_Plate',
-                       'I5_Index_ID', 'well_id_96', 'number_of_cells',
-                       'project_abbreviation', 'Sample_Name', 'I7_Index_ID',
-                       'vol_extracted_elution_ul', 'Lane'}
-
-        self.assertEqual(obs_columns, exp_columns)
-        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+        err_lines = self._MISSING_COLS_ERR_LINES.copy()
+        err_lines.remove(
+            "The Kathseq_RackID column in the Data section is missing\n")
+        err = "".join(err_lines)
+        with self.assertRaisesRegex(ValueError, err):
+            make_sample_sheet(self._make_metadata(self),
+                              table, 'iSeq', [1], strict=False)
 
 
 if __name__ == '__main__':

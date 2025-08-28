@@ -1,4 +1,4 @@
-Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	well_id_96	Well	Sample DNA Concentration	Diluted	Library Well	original_sample_name	replicate	contains_replicates
+Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	well_id_96	Well	Sample DNA Concentration	Diluted	Library Well	orig_name	replicate	contains_replicates
 42.1_Control_Human_Colon.A1	A	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A1	A1	1.514		A1	42.1_Control_Human_Colon	1	True
 42.2_Control_Human_Colon.C1	C	1	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	B1	C1	1.1069	True	C1	42.2_Control_Human_Colon	1	True
 42.3_Control_Human_Colon.E1	E	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C1	E1	4.256		E1	42.3_Control_Human_Colon	1	True

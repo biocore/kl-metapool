@@ -1,0 +1,97 @@
+	Sample	Row	Col	Blank	Project Plate	Project Name	Compressed Plate Name	well_id_96	Well	Sample DNA Concentration	Diluted	Library Well	orig_name	replicate	contains_replicates
+192	42.1_Control_Human_Colon.B1	A	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A1	A1	1.514		B1	42.1_Control_Human_Colon	3	True
+193	42.2_Control_Human_Colon.D1	C	1	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	B1	C1	1.1069	True	D1	42.2_Control_Human_Colon	3	True
+194	42.3_Control_Human_Colon.F1	E	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C1	E1	4.256		F1	42.3_Control_Human_Colon	3	True
+195	42.4_Control_Human_Colon.H1	G	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D1	G1	2.533		H1	42.4_Control_Human_Colon	3	True
+196	42.5_Control_Human_Colon.J1	I	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E1	I1	9.381		J1	42.5_Control_Human_Colon	3	True
+197	42.6_Control_Human_Colon.L1	K	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F1	K1	1.395		L1	42.6_Control_Human_Colon	3	True
+198	42.7_Control_Human_Colon.N1	M	1	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	G1	M1	1.0429	True	N1	42.7_Control_Human_Colon	3	True
+199	42.8_Control_Human_Colon.P1	O	1	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H1	O1	3.299		P1	42.8_Control_Human_Colon	3	True
+200	42.9_Control_Human_Colon.B3	A	3	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	A2	A3	3.1206	True	B3	42.9_Control_Human_Colon	3	True
+201	42.10_Control_Human_Colon.D3	C	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B2	C3	2.123		D3	42.10_Control_Human_Colon	3	True
+202	42.1_ChIP_Human_Colon.F3	E	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C2	E3	0.727		F3	42.1_ChIP_Human_Colon	3	True
+203	42.2_ChIP_Human_Colon.H3	G	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D2	G3	0.795		H3	42.2_ChIP_Human_Colon	3	True
+204	42.3_ChIP_Human_Colon.J3	I	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E2	I3	0.794		J3	42.3_ChIP_Human_Colon	3	True
+205	42.4_ChIP_Human_Colon.L3	K	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F2	K3	0.744		L3	42.4_ChIP_Human_Colon	3	True
+206	42.5_ChIP_Human_Colon.N3	M	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G2	M3	0.824		N3	42.5_ChIP_Human_Colon	3	True
+207	42.6_ChIP_Human_Colon.P3	O	3	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H2	O3	0.727		P3	42.6_ChIP_Human_Colon	3	True
+208	42.7_ChIP_Human_Colon.B5	A	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A3	A5	1.085		B5	42.7_ChIP_Human_Colon	3	True
+209	42.8_ChIP_Human_Colon.D5	C	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B3	C5	0.828		D5	42.8_ChIP_Human_Colon	3	True
+210	42.9_ChIP_Human_Colon.F5	E	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C3	E5	0.879		F5	42.9_ChIP_Human_Colon	3	True
+211	42.10_ChIP_Human_Colon.H5	G	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D3	G5	0.852		H5	42.10_ChIP_Human_Colon	3	True
+212	42.1_MChIP_Human_Colon.J5	I	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E3	I5	0.722		J5	42.1_MChIP_Human_Colon	3	True
+213	42.2_MChIP_Human_Colon.L5	K	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F3	K5	0.72		L5	42.2_MChIP_Human_Colon	3	True
+214	42.3_MChIP_Human_Colon.N5	M	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G3	M5	0.718		N5	42.3_MChIP_Human_Colon	3	True
+215	42.4_MChIP_Human_Colon.P5	O	5	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H3	O5	0.719		P5	42.4_MChIP_Human_Colon	3	True
+216	42.5_MChIP_Human_Colon.B7	A	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A4	A7	0.725		B7	42.5_MChIP_Human_Colon	3	True
+217	42.6_MChIP_Human_Colon.D7	C	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B4	C7	0.719		D7	42.6_MChIP_Human_Colon	3	True
+218	42.7_MChIP_Human_Colon.F7	E	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C4	E7	0.725		F7	42.7_MChIP_Human_Colon	3	True
+219	42.8_MChIP_Human_Colon.H7	G	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D4	G7	0.719		H7	42.8_MChIP_Human_Colon	3	True
+220	42.9_MChIP_Human_Colon.J7	I	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E4	I7	0.719		J7	42.9_MChIP_Human_Colon	3	True
+221	42.10_MChIP_Human_Colon.L7	K	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F4	K7	0.722		L7	42.10_MChIP_Human_Colon	3	True
+222	42.1_MOL_Human_Colon.N7	M	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G4	M7	0.718		N7	42.1_MOL_Human_Colon	3	True
+223	42.2_MOL_Human_Colon.P7	O	7	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H4	O7	0.72		P7	42.2_MOL_Human_Colon	3	True
+224	42.3_MOL_Human_Colon.B9	A	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A5	A9	0.722		B9	42.3_MOL_Human_Colon	3	True
+225	42.4_MOL_Human_Colon.D9	C	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B5	C9	0.722		D9	42.4_MOL_Human_Colon	3	True
+226	42.5_MOL_Human_Colon.F9	E	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C5	E9	0.719		F9	42.5_MOL_Human_Colon	3	True
+227	42.6_MOL_Human_Colon.H9	G	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D5	G9	0.721		H9	42.6_MOL_Human_Colon	3	True
+228	42.7_MOL_Human_Colon.J9	I	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E5	I9	0.72		J9	42.7_MOL_Human_Colon	3	True
+229	42.8_MOL_Human_Colon.L9	K	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F5	K9	0.723		L9	42.8_MOL_Human_Colon	3	True
+230	42.9_MOL_Human_Colon.N9	M	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G5	M9	0.721		N9	42.9_MOL_Human_Colon	3	True
+231	42.10_MOL_Human_Colon.P9	O	9	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H5	O9	0.722		P9	42.10_MOL_Human_Colon	3	True
+232	42.1_QIA_Human_Colon.B11	A	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A6	A11	0.73		B11	42.1_QIA_Human_Colon	3	True
+233	42.2_QIA_Human_Colon.D11	C	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B6	C11	0.726		D11	42.2_QIA_Human_Colon	3	True
+234	42.3_QIA_Human_Colon.F11	E	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C6	E11	0.725		F11	42.3_QIA_Human_Colon	3	True
+235	42.4_QIA_Human_Colon.H11	G	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D6	G11	0.723		H11	42.4_QIA_Human_Colon	3	True
+236	42.5_QIA_Human_Colon.J11	I	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E6	I11	0.725		J11	42.5_QIA_Human_Colon	3	True
+237	42.6_QIA_Human_Colon.L11	K	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F6	K11	0.724		L11	42.6_QIA_Human_Colon	3	True
+238	42.7_QIA_Human_Colon.N11	M	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G6	M11	0.753		N11	42.7_QIA_Human_Colon	3	True
+239	42.8_QIA_Human_Colon.P11	O	11	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H6	O11	0.726		P11	42.8_QIA_Human_Colon	3	True
+240	42.9_QIA_Human_Colon.B13	A	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A7	A13	0.751		B13	42.9_QIA_Human_Colon	3	True
+241	42.10_QIA_Human_Colon.D13	C	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B7	C13	0.73		D13	42.10_QIA_Human_Colon	3	True
+242	42.1_ZYM_Human_Colon.F13	E	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C7	E13	0.722		F13	42.1_ZYM_Human_Colon	3	True
+243	42.2_ZYM_Human_Colon.H13	G	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D7	G13	0.724		H13	42.2_ZYM_Human_Colon	3	True
+244	42.3_ZYM_Human_Colon.J13	I	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E7	I13	0.721		J13	42.3_ZYM_Human_Colon	3	True
+245	42.4_ZYM_Human_Colon.L13	K	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F7	K13	0.72		L13	42.4_ZYM_Human_Colon	3	True
+246	42.5_ZYM_Human_Colon.N13	M	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G7	M13	0.719		N13	42.5_ZYM_Human_Colon	3	True
+247	42.6_ZYM_Human_Colon.P13	O	13	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H7	O13	0.72		P13	42.6_ZYM_Human_Colon	3	True
+248	42.7_ZYM_Human_Colon.B15	A	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A8	A15	0.727		B15	42.7_ZYM_Human_Colon	3	True
+249	42.8_ZYM_Human_Colon.D15	C	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B8	C15	0.723		D15	42.8_ZYM_Human_Colon	3	True
+250	42.9_ZYM_Human_Colon.F15	E	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C8	E15	0.732		F15	42.9_ZYM_Human_Colon	3	True
+251	42.10_ZYM_Human_Colon.H15	G	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D8	G15	0.725		H15	42.10_ZYM_Human_Colon	3	True
+252	42.1_NEB_Human_Colon.J15	I	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E8	I15	0.809		J15	42.1_NEB_Human_Colon	3	True
+253	42.2_NEB_Human_Colon.L15	K	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F8	K15	0.966		L15	42.2_NEB_Human_Colon	3	True
+254	42.3_NEB_Human_Colon.N15	M	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G8	M15	0.829		N15	42.3_NEB_Human_Colon	3	True
+255	42.4_NEB_Human_Colon.P15	O	15	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H8	O15	0.819		P15	42.4_NEB_Human_Colon	3	True
+256	42.5_NEB_Human_Colon.B17	A	17	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A9	A17	1.208		B17	42.5_NEB_Human_Colon	3	True
+257	42.6_NEB_Human_Colon.D17	C	17	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B9	C17	0.764		D17	42.6_NEB_Human_Colon	3	True
+258	42.7_NEB_Human_Colon.F17	E	17	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C9	E17	1.879		F17	42.7_NEB_Human_Colon	3	True
+259	42.8_NEB_Human_Colon.H17	G	17	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D9	G17	0.966		H17	42.8_NEB_Human_Colon	3	True
+260	42.9_NEB_Human_Colon.J17	I	17	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E9	I17	0.937		J17	42.9_NEB_Human_Colon	3	True
+261	42.10_NEB_Human_Colon.L17	K	17	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F9	K17	0.81		L17	42.10_NEB_Human_Colon	3	True
+262	HEK_ZBGMS_Control1.N17	M	17	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	G9	M17	7.0884	True	N17	HEK_ZBGMS_Control1	3	True
+263	HEK_ZBGMS_Control2.P17	O	17	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	H9	O17	6.5839	True	P17	HEK_ZBGMS_Control2	3	True
+264	HEK_ZBGMS_Control3.B19	A	19	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	A10	A19	7.1762	True	B19	HEK_ZBGMS_Control3	3	True
+265	HEK_ZBGMS_ChIP1.D19	C	19	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B10	C19	9.31		D19	HEK_ZBGMS_ChIP1	3	True
+266	HEK_ZBGMS_ChIP2.F19	E	19	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	C10	E19	1.0356	True	F19	HEK_ZBGMS_ChIP2	3	True
+267	HEK_ZBGMS_ChIP3.H19	G	19	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	D10	G19	1.091	True	H19	HEK_ZBGMS_ChIP3	3	True
+268	HEK_ZBGMS_mChIP1.J19	I	19	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E10	I19	1.024		J19	HEK_ZBGMS_mChIP1	3	True
+269	HEK_ZBGMS_mChIP2.L19	K	19	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F10	K19	0.995		L19	HEK_ZBGMS_mChIP2	3	True
+270	HEK_ZBGMS_mChIP3.N19	M	19	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G10	M19	1.009		N19	HEK_ZBGMS_mChIP3	3	True
+271	HEK_BBC_Control1.P19	O	19	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	H10	O19	4.0652	True	P19	HEK_BBC_Control1	3	True
+272	HEK_BBC_Control2.B21	A	21	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	A11	A21	4.6361	True	B21	HEK_BBC_Control2	3	True
+273	HEK_BBC_Control3.D21	C	21	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	B11	C21	2.9873000000000003	True	D21	HEK_BBC_Control3	3	True
+274	HEK_BBC_ChIP1.F21	E	21	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C11	E21	1.386		F21	HEK_BBC_ChIP1	3	True
+275	HEK_BBC_ChIP2.H21	G	21	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D11	G21	1.197		H21	HEK_BBC_ChIP2	3	True
+276	HEK_BBC_ChIP3.J21	I	21	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E11	I21	1.199		J21	HEK_BBC_ChIP3	3	True
+277	HEK_ZBGMS_MOL1.L21	K	21	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F11	K21	0.724		L21	HEK_ZBGMS_MOL1	3	True
+278	HEK_ZBGMS_MOL2.N21	M	21	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	G11	M21	0.721		N21	HEK_ZBGMS_MOL2	3	True
+279	HEK_ZBGMS_MOL3.P21	O	21	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	H11	O21	1.662		P21	HEK_ZBGMS_MOL3	3	True
+280	HEK_ZBGMS_QIA1.B23	A	23	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	A12	A23	0.812		B23	HEK_ZBGMS_QIA1	3	True
+281	HEK_ZBGMS_QIA2.D23	C	23	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	B12	C23	0.747		D23	HEK_ZBGMS_QIA2	3	True
+282	HEK_ZBGMS_QIA3.F23	E	23	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	C12	E23	0.83		F23	HEK_ZBGMS_QIA3	3	True
+283	HEK_ZBGMS_ZYM1.H23	G	23	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	D12	G23	0.724		H23	HEK_ZBGMS_ZYM1	3	True
+284	HEK_ZBGMS_ZYM2.J23	I	23	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	E12	I23	0.728		J23	HEK_ZBGMS_ZYM2	3	True
+285	HEK_ZBGMS_ZYM3.L23	K	23	False	CMI_pig_host_depletion_14778_P1	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4	F12	K23	0.745		L23	HEK_ZBGMS_ZYM3	3	True
+286	HEK_ZBGMS_NEB1.N23	M	23	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	G12	M23	6.5739	True	N23	HEK_ZBGMS_NEB1	3	True
+287	HEK_ZBGMS_NEB2.P23	O	23	False	CMI_pig_host_depletion_14778_P1_diluted	CMI_pig_host_depletion_14778	Mixed_project_plates,1,2,3,4_dilution	H12	O23	4.7177	True	P23	HEK_ZBGMS_NEB2	3	True

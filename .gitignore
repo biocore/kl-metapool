@@ -106,3 +106,6 @@ ENV/
 *~
 *.local
 .DS_Store
+
+# vs code 
+.vscode/settings.json

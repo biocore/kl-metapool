@@ -6,17 +6,13 @@ import string
 import seaborn as sns
 import matplotlib.pyplot as plt
 import warnings
-from random import choices
-from configparser import ConfigParser
-from qiita_client import QiitaClient
 from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, PM_BLANK_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
     EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, PM_WELL_ID_96_KEY, \
     NORMALIZED_WATER_VOL_KEY, CONTROLS_DESCRIPTION_KEY, \
-    get_qiita_id_from_project_name, get_plate_num_from_plate_name, \
-    get_main_project_from_plate_name
+    get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
     merge_plate_dfs
 from .sequencers import is_i5_revcomp_sequencer
@@ -254,7 +250,7 @@ def sanitize_plate_map_sample_names(plate_df):
     return plate_df
 
 
-def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
+def read_plate_map_csv(f, sep="\t"):
     """
     reads tab-delimited plate map into a Pandas dataframe and if
     qiita_oauth2_conf_fp is passed the code will also check for Sample
@@ -276,29 +272,10 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
     ------
     UserWarning
         If there are wells with no sample names associated with them.
-        If qiita_oauth2_conf_fp is None, no Qiita sample name validation.
     ValueError
         If plate_map doesn't have a 'Project Name' column.
         If there are repeated sample names.
-        If the sample(s) in the plate_map are not a subset of Qiita samples.
     """
-
-    qiita_validate = False
-    if qiita_oauth2_conf_fp is not None:
-        parser = ConfigParser()
-        with open(qiita_oauth2_conf_fp, "r") as qfp:
-            parser.read_file(qfp)
-        url = parser.get("qiita-oauth2", "URL")
-        client_id = parser.get("qiita-oauth2", "CLIENT_ID")
-        client_secret = parser.get("qiita-oauth2", "CLIENT_SECRET")
-        server_cert = parser.get("qiita-oauth2", "SERVER_CERT")
-        qclient = QiitaClient(url, client_id, client_secret, server_cert)
-        qiita_validate = True
-    else:
-        warnings.warn(
-            "No qiita_oauth2_conf_fp set so not checking plate_map "
-            "and Qiita study overlap"
-        )
 
     plate_df = pd.read_csv(f, sep=sep, dtype={"Sample": str})
     if PM_PROJECT_NAME_KEY not in plate_df.columns:
@@ -349,62 +326,6 @@ def read_plate_map_csv(f, sep="\t", qiita_oauth2_conf_fp=None):
             "The following sample names are duplicated %s"
             % ", ".join(sorted(duplicated_samples))
         )
-
-    if qiita_validate:
-        errors = []
-        for project, _df in plate_df.groupby([PM_PROJECT_NAME_KEY]):
-            # if project is a tuple, force to string
-            if isinstance(project, tuple):
-                project = project[0]
-
-            qiita_id = get_qiita_id_from_project_name(project)
-            qurl = f"/api/v1/study/{qiita_id}/samples"
-
-            not_blank_samples = ~_df[PM_BLANK_KEY]
-            plate_map_samples = \
-                {s for s in _df.loc[not_blank_samples, "Sample"]}
-            qsamples = {s.replace(f"{qiita_id}.", "")
-                        for s in qclient.get(qurl)}
-            sample_name_diff = plate_map_samples - set(qsamples)
-            if sample_name_diff:
-                # before we report as an error, check tube_id
-                error_tube_id = "No tube_id column in Qiita."
-                if "tube_id" in qclient.get(f"{qurl}/info")["categories"]:
-                    tids = qclient.get(f"{qurl}/categories=tube_id")["samples"]
-                    tids = {tid[0] for _, tid in tids.items()}
-                    tube_id_diff = plate_map_samples - tids
-                    if not tube_id_diff:
-                        continue
-                    len_tube_id_overlap = len(tube_id_diff)
-
-                    tids = list(tids)
-                    if len(tids) > 5:
-                        # select five samples at random to display to the user.
-                        tids_example = ", ".join(choices(tids, k=5))
-                    else:
-                        tids_example = ", ".join(tids)
-
-                    error_tube_id = (
-                        f"tube_id in Qiita but {len_tube_id_overlap} missing "
-                        f"samples. Some samples from tube_id: {tids_example}."
-                    )
-                len_overlap = len(sample_name_diff)
-
-                qsamples = list(qsamples)
-                if len(qsamples) > 5:
-                    # select five samples at random to display to the user.
-                    samples_example = ", ".join(choices(qsamples, k=5))
-                else:
-                    samples_example = ", ".join(qsamples)
-
-                missing = ", ".join(sorted(sample_name_diff)[:4])
-                errors.append(
-                    f"{project} has {len_overlap} missing samples (i.e. "
-                    f"{missing}). Some samples from Qiita: {samples_example}. "
-                    f"{error_tube_id}"
-                )
-        if errors:
-            raise ValueError("\n".join(errors))
 
     return plate_df
 

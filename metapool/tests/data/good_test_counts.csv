@@ -26,8 +26,8 @@ Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_ID,ind
 359180426,359180426,NPH_15288_P1,C1,iTru7_206_09,CACTGACA,iTru5_02_A,CTTCGCAA,NPH_15288,124.168,70,NPH_15288_P1.359180426.C1,7
 ,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,
-NPH_15288,15288,False,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,shotgun sequencing,False,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,
+NPH_15288,15288,False,GATCGGAAGAGCACACGTCTGAACTCCAGTCAC,GATCGGAAGAGCGTCGTGTAGGGAAAGGAGTGT,True,Knight Lab Kapa HyperPlus,shotgun sequencing,,,,,
 ,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,
 Sample_Project,Email,,,,,,,,,,,

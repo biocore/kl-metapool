@@ -32,8 +32,8 @@ Lane,Sample_ID,Sample_Name,Sample_Plate,well_id_384,I7_Index_ID,index,I5_Index_I
 1,katharo_960_0_F1,katharo.960.0.F1,MyProject_99999_P40,E2,iTru7_107_14,GCTATGCA,iTru5_05_A,CCGGTTAA,MyProject_99999,3,3,positive_control,98765432,2/10/24,ADAPT,38,F3,this is a description
 ,,,,,,,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,,,,,,,
-Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,,,,,,,,,,,
-MyProject_99999,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,description1,,,,,,,,,,,
+Sample_Project,QiitaID,BarcodesAreRC,ForwardAdapter,ReverseAdapter,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,,,,,,,
+MyProject_99999,11661,False,AACC,GGTT,False,Knight Lab Kapa HP,description1,false,,,,,,,,,,
 ,,,,,,,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,,,,,,,
 Email,Sample_Project,,,,,,,,,,,,,,,,,
