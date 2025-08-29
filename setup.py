@@ -67,7 +67,5 @@ setup(
         'console_scripts': [
             'seqpro=metapool.scripts.seqpro:format_preparation_files',
             ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
-            'files_mf'),
-        ],
-
+            'files_mf')],
     })
