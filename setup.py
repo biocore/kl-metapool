@@ -19,7 +19,8 @@ base = [
     'numpy >= 2.0.2',
     'openpyxl >= 3.1.5',
     'pandas >= 2.2.3',
-    'seqtk >= 1.4',
+    # seems seqtk cannot be installed through the setup mechanism?
+    # 'seqtk >= 1.4',
     'seaborn >= 0.13.2',
     'scikit-learn >= 1.5.2',
     # below can't be installed by conda
