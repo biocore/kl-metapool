@@ -1,3 +1,5 @@
+# NOTE: if you change this file,
+# ALSO change the setup.py file
 name: metapool
 channels:
   - bioconda
@@ -5,28 +7,31 @@ channels:
   - anaconda
   - defaults
 dependencies:
-  - notebook
-  - jupyter
-  - pep8
-  - seaborn[version='>=0.7.1']
+  # base requirements
+  - biom-format
   - matplotlib
+  - numpy
   - openpyxl
   - pandas
-  - numpy
   - pip
   - python=3.9
+  - seaborn[version='>=0.13.2']
   - seqtk[version='>=1.4']
-  - nose
   - scikit-learn
-  - biom-format
+  # testing requirements
   - flake8
+  - nose
   - papermill
+  - pep8
+  # notebook requirements
+  - jupyter
+  - notebook
   - watermark
   - pip:
-      - click
+      # base requirements
+      - sample-sheet
+      # coverage requirements
       - coverage
       - coveralls
+      # notebook requirements
       - ipykernel
-      - sample-sheet
-      # install the metapool package as editable
-      - -e .
