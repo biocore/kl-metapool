@@ -66,6 +66,6 @@ setup(
     entry_points={
         'console_scripts': [
             'seqpro=metapool.scripts.seqpro:format_preparation_files',
-            ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
-            'files_mf')],
+            ('seqpro_mf=metapool.scripts.seqpro_mf:'
+                'format_preparation_files_mf')],
     })
