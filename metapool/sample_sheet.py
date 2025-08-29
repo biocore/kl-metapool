@@ -46,11 +46,14 @@ _HUMAN_FILTERING_KEY = 'HumanFiltering'
 _SHEET_TYPE_KEY = 'SheetType'
 _SHEET_VERSION_KEY = 'SheetVersion'
 _LANE_KEY = 'Lane'
+_BARCODES_ARE_RC_KEY = 'BarcodesAreRC'
 
 STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 STANDARD_METAT_SHEET_TYPE = 'standard_metat'
 TELLSEQ_METAG_SHEET_TYPE = 'tellseq_metag'
 TELLSEQ_ABSQUANT_SHEET_TYPE = 'tellseq_absquant'
+PACBIO_METAG_SHEET_TYPE = 'pacbio_metag'
+PACBIO_ABSQUANT_SHEET_TYPE = 'pacbio_absquant'
 ABSQUANT_SHEET_TYPE = 'abs_quant_metag'
 _AMPLICON = 'TruSeq HT'
 _DUMMY_SHEET_TYPE = 'dummy_amp'
@@ -80,7 +83,11 @@ SAMPLE_SHEETS_BY_PROTOCOL = {
         ABSQUANT_SHEET_TYPE],
     PROTOCOL_NAME_TELLSEQ: [
         TELLSEQ_METAG_SHEET_TYPE,
-        TELLSEQ_ABSQUANT_SHEET_TYPE]}
+        TELLSEQ_ABSQUANT_SHEET_TYPE],
+    PROTOCOL_NAME_PACBIO_SMRT: [
+        PACBIO_METAG_SHEET_TYPE,
+        PACBIO_ABSQUANT_SHEET_TYPE]
+}
 
 
 # MappingProxyType is used to make the dictionary immutable.
@@ -90,7 +97,7 @@ SAMPLE_SHEETS_BY_PROTOCOL = {
 _BASE_BIOINFORMATICS_COLS = MappingProxyType(
     {_SS_SAMPLE_PROJECT_KEY: str,
      _SS_QIITA_ID_KEY: str,
-     'BarcodesAreRC': bool,
+     _BARCODES_ARE_RC_KEY: bool,
      'ForwardAdapter': str,
      'ReverseAdapter': str,
      _HUMAN_FILTERING_KEY: bool,
@@ -181,12 +188,12 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         'OverrideCycles': 'Y151;I8N2;I8N2;Y151'
     })
 
-    _ALL_METADATA = MappingProxyType({
-        **_HEADER, **_SETTINGS, **_READS, **_BIOINFORMATICS_AND_CONTACT})
+    _ALL_METADATA_KEYS = tuple(_HEADER.keys()) + tuple(_SETTINGS.keys()) + \
+        tuple(_READS.keys()) + tuple(_BIOINFORMATICS_AND_CONTACT.keys())
 
-    _ILLUMINA_METADATA_KEYS = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY)
-    _section_keys = (*_ILLUMINA_METADATA_KEYS, _DATA_KEY,
-                     _BIOINFORMATICS_KEY, _CONTACT_KEY)
+    _ILLUMINA_NONDATA_KEYS = (_HEADER_KEY, _READS_KEY, _SETTINGS_KEY)
+    _ordered_section_keys = (*_ILLUMINA_NONDATA_KEYS, _DATA_KEY,
+                             _BIOINFORMATICS_KEY, _CONTACT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = False
     _ALLOW_MISSING_COLS = False
@@ -196,10 +203,6 @@ class KLSampleSheet(sample_sheet.SampleSheet):
     # So it is required in the sense that it has to be present in the sample
     # sheet, but it is not required in the sense that it has to be provided
     # by a user when they create a sample sheet through this module.
-    _data_columns = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                     _SS_SAMPLE_WELL_KEY, 'I7_Index_ID', 'index',
-                     'I5_Index_ID', 'index2', _SS_SAMPLE_PROJECT_KEY,
-                     'Well_description')
 
     _column_alts = MappingProxyType({'well_description': 'Well_description',
                                      'description': 'prep_description',
@@ -213,10 +216,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                              'sample_project', 'well_description',
                              _SS_SAMPLE_WELL_KEY, _LANE_KEY)
 
-    _GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
-                               'instrument_model', 'lane', 'platform',
-                               'run_center', 'run_date', 'run_prefix', 'runid',
-                               'sequencing_meth')
+    _GENERATED_PREP_COLUMNS = _BASE_GENERATED_PREP_COLUMNS
 
     @property
     def CARRIED_PREP_COLUMNS(self):
@@ -270,6 +270,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # the data.
         super().__init__()
         self._remapper = None
+        # NB: this is the difference between this column list and
+        # _BASE_DATA_COLUMNS--the latter has well_id_384
+        self._data_columns = (
+            SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+            _SS_SAMPLE_WELL_KEY, 
+            'I7_Index_ID', 'index', 'I5_Index_ID', 'index2') + \
+                _SUFFIX_PLATE_COLUMNS 
 
         self.Bioinformatics = None
         self.Contact = None
@@ -348,7 +355,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     section_name, *_ = header_match.groups()
                     if (
                         section_name not in self._sections
-                        and section_name not in type(self)._section_keys
+                        and section_name not in type(self)._ordered_section_keys
                     ):
                         self.add_section(section_name)
 
@@ -479,7 +486,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 writer.writerow(pad_iterable(row.values.tolist(),
                                              csv_width))
 
-        for title in self._section_keys:
+        for title in self._ordered_section_keys:
             writer.writerow(pad_iterable([f'[{title}]'], csv_width))
 
             # Data is not a section in this class
@@ -559,8 +566,15 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             return from_self, from_sheet
 
         for number, sheet in enumerate(sheets):
-            for section_key in self._ILLUMINA_METADATA_KEYS:
-                this, that = get_section_pair(section_key)
+            if not isinstance(sheet, type(self)):
+                raise ValueError(
+                    f"Incompatible sample sheet types for "
+                    f"merging: {type(self)} vs {type(sheet)}")
+
+            for section_key in self._ILLUMINA_NONDATA_KEYS:
+                if section_key in self._ordered_section_keys and \
+                        section_key in sheet._ordered_section_keys:
+                    this, that = get_section_pair(section_key)
 
                 # For the Header section we'll ignore the Date field since that
                 # is likely to be different but shouldn't be a condition to
@@ -665,8 +679,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 table['index2'] = \
                     sequencer_i5_index(sequencer, table['index2'])
 
-            self.Bioinformatics['BarcodesAreRC'] = str(
-                is_i5_revcomp_sequencer(sequencer))
+            if _BIOINFORMATICS_KEY in self._KL_ADDTL_DF_SECTIONS and \
+                    _BARCODES_ARE_RC_KEY in \
+                    self._KL_ADDTL_DF_SECTIONS[_BIOINFORMATICS_KEY]:
+                self.Bioinformatics[_BARCODES_ARE_RC_KEY] = str(
+                    is_i5_revcomp_sequencer(sequencer))
 
         for lane in lanes:
             for sample in table.to_dict(orient='records'):
@@ -717,10 +734,10 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             """
         # set the default to avoid index errors if only one of the two is
         # provided.
-        self.Reads = [self._READS[_READ_1_KEY],
-                      self._READS[_READ_2_KEY]]
+        if _READS_KEY in self._ordered_section_keys:
+            self.Reads = [self._READS[_READ_1_KEY], self._READS[_READ_2_KEY]]
 
-        for metadata_key in self._ALL_METADATA:
+        for metadata_key in self._ALL_METADATA_KEYS:
             if metadata_key in self._READS:
                 if metadata_key == _READ_1_KEY:
                     self.Reads[0] = metadata.get(metadata_key, self.Reads[0])
@@ -842,11 +859,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # validate it; yes, this is round-about, but I judge it better than
         # having the section validation implemented in two places
         metadata_df = {}
-        for curr_section_key in self._section_keys:
+        for curr_section_key in self._ordered_section_keys:
             if not curr_section_key == _DATA_KEY:
                 section = self._get_section(curr_section_key)
                 if section is not None:
-                    if curr_section_key in self._ILLUMINA_METADATA_KEYS:
+                    if curr_section_key in self._ILLUMINA_NONDATA_KEYS:
                         # Ugh, I hate the reads, they are represented in three
                         # different ways depending on the part of the code we
                         # are in.  The self._READS is a dict with the keys
@@ -898,19 +915,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             return msgs
         return msgs
 
-    def _validate_extra_sections_not_none(self):
+    def _validate_nondata_sections_not_none(self):
         msgs = []
-        # All children of sample_sheet.SampleSheet will have the following four
-        # sections defined: ['Header', 'Reads', 'Settings', 'Data']. All
-        # children of KLSampleSheet will have their expected sections defined
-        # in `sections`. Test only the difference between these two sets.
-        default_sections = {_HEADER_KEY, _READS_KEY, _SETTINGS_KEY, _DATA_KEY}
-        extra_sections = (
-            set(type(self)._section_keys).difference(default_sections))
-        for section in extra_sections:
-            if self._get_section(section) is None:
-                msgs.append(ErrorMessage(f'The {section} section cannot be '
-                                         'missing'))
+        for curr_section_key in self._ordered_section_keys:
+            if curr_section_key != _DATA_KEY and \
+                    self._get_section(curr_section_key) is None:
+                msgs.append(
+                    ErrorMessage(
+                        f'The {curr_section_key} section cannot be missing'))
         return msgs
 
     def quiet_validate_and_scrub_sample_sheet(self):
@@ -927,7 +939,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         msgs = []
 
         msgs += self._validate_data_columns()
-        msgs += self._validate_extra_sections_not_none()
+        msgs += self._validate_nondata_sections_not_none()
         msgs += self._validate_header_info()
 
         # if any errors are found up to this point then we can't continue with
@@ -1387,8 +1399,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                                      f"supported {_ASSAY_KEY}"))
 
         keys = set(metadata.keys())
-        if not keys.issubset(self._ALL_METADATA):
-            extra = sorted(keys - set(self._ALL_METADATA))
+        if not keys.issubset(self._ALL_METADATA_KEYS):
+            extra = sorted(keys - set(self._ALL_METADATA_KEYS))
             msgs.append(
                 ErrorMessage('These metadata keys are not supported: %s'
                              % ', '.join(extra)))
@@ -1464,11 +1476,12 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
         _SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
     })
 
-    _ALL_METADATA = MappingProxyType(
-        KLSampleSheet._ALL_METADATA | {_SAMPLE_CONTEXT_KEY: None})
+    _ALL_METADATA_KEYS = \
+        tuple(KLSampleSheet._ALL_METADATA_KEYS) + (_SAMPLE_CONTEXT_KEY,)
 
-    _section_keys = (*KLSampleSheet._ILLUMINA_METADATA_KEYS, _DATA_KEY,
-                     _BIOINFORMATICS_KEY, _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
+    _ordered_section_keys = (
+        *KLSampleSheet._ILLUMINA_NONDATA_KEYS, _DATA_KEY,_BIOINFORMATICS_KEY, 
+        _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = True
 
@@ -1503,8 +1516,8 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
         # it is defined here first.
         self.SampleContext = None
         super().__init__(path=path, defer_validate=True)
-        self._remapper = _BASE_METAG_REMAPPER
-        self._data_columns = _BASE_DATA_COLUMNS
+        # self._remapper = _BASE_METAG_REMAPPER
+        # self._data_columns = _BASE_DATA_COLUMNS
         self._CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
         self._validate_on_load(path, defer_validate)
 
@@ -1699,6 +1712,89 @@ class AmpliconSampleSheet(KLSampleSheet):
         }
 
 
+class PacBioSampleSheet(KLSampleSheetWithSampleContext):
+    # No IEMFileVersion, Workflow, Application, or Chemistry entries
+    _HEADER = MappingProxyType({
+        _SHEET_TYPE_KEY: None,
+        _SHEET_VERSION_KEY: None,
+        'Investigator Name': 'Knight',
+        _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
+        'Date': None,
+        _ASSAY_KEY: None,
+        'Description': '',
+    })
+
+    # No BarcodesAreRC, ForwardAdapter, ReverseAdapter
+    # in Bioinformatics section columns
+    _KL_ADDTL_DF_SECTIONS = MappingProxyType({
+        _BIOINFORMATICS_KEY: MappingProxyType(
+            {_SS_SAMPLE_PROJECT_KEY: str,
+            _SS_QIITA_ID_KEY: str,
+            _HUMAN_FILTERING_KEY: bool,
+            'library_construction_protocol': str,
+            EXPT_DESIGN_DESC_KEY: str,
+            CONTAINS_REPLICATES_KEY: bool
+            }),
+        _CONTACT_KEY: _CONTACT_COLS,
+        _SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
+    })
+
+    _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 
+                             'library_construction_protocol',
+                             SAMPLE_NAME_KEY, 'sample_plate',
+                             'sample_project', 'well_description',
+                             _SS_SAMPLE_WELL_KEY, _LANE_KEY)
+
+    # No Settings or Reads sections
+    _ordered_section_keys = (_HEADER_KEY, _DATA_KEY, _BIOINFORMATICS_KEY, 
+                             _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
+
+    _ALL_METADATA_KEYS = tuple(_HEADER.keys()) + \
+        tuple(KLSampleSheetWithSampleContext._KL_ADDTL_DF_SECTIONS)
+
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override so that base class cannot be instantiated.
+        """
+        if cls is PacBioSampleSheet:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(PacBioSampleSheet, cls).__new__(
+            cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path=None, defer_validate=False):
+        """Knight Lab's SampleSheet subclass to support PacBio sequencing
+
+        Trims Header section, removes Settings and Reads entirely, and 
+        deleted index-related columns from Data section.
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+        """
+
+        # NB: it matters that this come *before* the __init__ call;
+        # __init__ calls _parse, which will automatically populate the
+        # SampleContext section if it is present in the file--but only if
+        # it is defined here first.
+        self.SampleContext = None
+        super().__init__(path=path, defer_validate=True)
+        # No index columns in the remapper
+        self._remapper = _BASE_PLATE_REMAPPER
+        # No index or barcode columns in Data section
+        self._data_columns = _PREFIX_PLATE_COLUMNS + _SUFFIX_PLATE_COLUMNS
+        self._validate_on_load(path, defer_validate)
+
+
+class PacBioMetagSampleSheetv10(PacBioSampleSheet):
+    _HEADER = PacBioSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = PACBIO_METAG_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
 class MetagenomicSampleSheetv102(
         KatharoseqMixin, KLSampleSheetWithSampleContext):
     # Adds support for optional KATHAROSEQ columns in [Data] section.
@@ -1781,7 +1877,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
         self._validate_on_load(path, defer_validate)
 
 
-class AbsQuantSampleSheetv10(KLSampleSheet):
+class AbsQuantSampleSheetv10(AbsQuantMixin, KLSampleSheetWithReplicates):
     _HEADER = {
         'IEMFileVersion': '4',
         _SHEET_TYPE_KEY: ABSQUANT_SHEET_TYPE,
@@ -1795,23 +1891,6 @@ class AbsQuantSampleSheetv10(KLSampleSheet):
         'Description': '',
         'Chemistry': 'Default',
     }
-
-    _data_columns = \
-        _BASE_DATA_COLUMNS + AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS
-
-    _KL_ADDTL_DF_SECTIONS = MappingProxyType({
-        _BIOINFORMATICS_KEY: _BIOINFORMATICS_COLS_W_REP_SUPPORT,
-        _CONTACT_KEY: _CONTACT_COLS,
-    })
-
-    _CARRIED_PREP_COLUMNS = \
-        _BASE_CARRIED_PREP_COLUMNS + AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS
-
-    def __init__(self, path=None, defer_validate=False):
-        super().__init__(path=path, defer_validate=True)
-        self._remapper = MappingProxyType(
-            _BASE_METAG_REMAPPER | AbsQuantMixin._ABSQUANT_REMAPPER)
-        self._validate_on_load(path, defer_validate)
 
 
 class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
@@ -1835,8 +1914,6 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
-    _data_columns = _BASE_DATA_COLUMNS
-
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
         _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
         _CONTACT_KEY: _CONTACT_COLS,
@@ -1847,6 +1924,7 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
+        self._data_columns = _BASE_DATA_COLUMNS
         self._validate_on_load(path, defer_validate)
 
 
@@ -1870,12 +1948,6 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
     # (Sample_Plate + Sample_Name + well_id_384) vs. just the sample_name
     # in previous iterations.
 
-    _data_columns = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-                     PM_WELL_ID_384_KEY, 'I7_Index_ID', 'index', 'I5_Index_ID',
-                     'index2', _SS_SAMPLE_PROJECT_KEY,
-                     'total_rna_concentration_ng_ul',
-                     ELUTION_VOL_KEY, 'Well_description')
-
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
         _BIOINFORMATICS_KEY: _BASE_BIOINFORMATICS_COLS,
         _CONTACT_KEY: _CONTACT_COLS,
@@ -1893,6 +1965,10 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
                 'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
                 ELUTION_VOL_KEY: ELUTION_VOL_KEY
             }
+        self._data_columns = _PREFIX_PLATE_COLUMNS + \
+            ('I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
+             _SS_SAMPLE_PROJECT_KEY, 'total_rna_concentration_ng_ul',
+             ELUTION_VOL_KEY, 'Well_description')
         self._validate_on_load(path, defer_validate)
 
 
@@ -1983,73 +2059,86 @@ def _id_sample_sheet_class_from_dict(dict_w_header_info):
 
 
 def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
-    def _make_version_err_msg(sheet_type, sheet_version):
-        return f"'{sheet_version}' is an unrecognized SheetVersion for " \
-               f"'{sheet_type}'"
+    SAMPLE_SHEETS_BY_SHEET_TYPE = {
+        STANDARD_METAG_SHEET_TYPE: {
+            _METAGENOMIC: {
+                '102': MetagenomicSampleSheetv102,
+                '101': MetagenomicSampleSheetv101,
+                '100': MetagenomicSampleSheetv100,
+                '99': MetagenomicSampleSheetv100,
+                '95': MetagenomicSampleSheetv100,
+                '90': MetagenomicSampleSheetv90,
+            },
+            # NB: this really shouldn't be here under metag, but 
+            # things were a little confused in the early days ...
+            _METATRANSCRIPTOMIC: {
+                '0': MetatranscriptomicSampleSheetv0,
+            }
+        },
+        STANDARD_METAT_SHEET_TYPE: {
+            _METATRANSCRIPTOMIC: {
+                '10': MetatranscriptomicSampleSheetv10,
+                '0': MetatranscriptomicSampleSheetv0,
+            }
+        },
+        ABSQUANT_SHEET_TYPE: {
+            _METAGENOMIC: {
+                '11': AbsQuantSampleSheetv11,
+                '10': AbsQuantSampleSheetv10,
+            }, 
+        },
+        TELLSEQ_METAG_SHEET_TYPE: {
+            _METAGENOMIC: {
+                '10': TellseqMetagSampleSheetv10,
+            }, 
+        },
+        TELLSEQ_ABSQUANT_SHEET_TYPE: {
+            _METAGENOMIC: {
+                '10': TellseqAbsquantMetagSampleSheetv10,
+            },
+        },
+        PACBIO_METAG_SHEET_TYPE: {
+            _METAGENOMIC: {
+                '10': PacBioMetagSampleSheetv10,
+            },
+        },
+        # PACBIO_ABSQUANT_SHEET_TYPE: {
+        #     _METAGENOMIC: {
+        #         '10': PacBioAbsquantSampleSheetv10,
+        #     },
+        # }
+    }
 
-    def _make_assay_err_msg(assay_type):
-        return f"'{assay_type}' is an unrecognized Assay type"
-
-    def check_metag_assay_type(assay_type):
-        if assay_type != _METAGENOMIC:
-            raise ValueError(_make_assay_err_msg(assay_type))
-
-    if sheet_type == STANDARD_METAG_SHEET_TYPE:
-        if assay_type == _METAGENOMIC:
-            if sheet_version == '102':
-                sheet_class = MetagenomicSampleSheetv102
-            elif sheet_version == '101':
-                sheet_class = MetagenomicSampleSheetv101
-            elif sheet_version == '90':
-                sheet_class = MetagenomicSampleSheetv90
-            elif sheet_version in ['95', '99', '100']:
-                # 95, 99, and v100 are functionally the same type.
-                sheet_class = MetagenomicSampleSheetv100
-            else:
-                raise ValueError(
-                    _make_version_err_msg(sheet_type, sheet_version))
-        elif assay_type == _METATRANSCRIPTOMIC:
-            sheet_class = MetatranscriptomicSampleSheetv0
-        else:
-            raise ValueError(_make_assay_err_msg(assay_type))
-    elif sheet_type == STANDARD_METAT_SHEET_TYPE:
-        if assay_type == _METATRANSCRIPTOMIC:
-            if sheet_version == '0':
-                sheet_class = MetatranscriptomicSampleSheetv0
-            elif sheet_version == '10':
-                sheet_class = MetatranscriptomicSampleSheetv10
-            else:
-                raise ValueError(
-                    _make_version_err_msg(sheet_type, sheet_version))
-        else:
-            raise ValueError(_make_assay_err_msg(assay_type))
-    elif sheet_type == ABSQUANT_SHEET_TYPE:
-        check_metag_assay_type(assay_type)
-
-        if sheet_version == '11':
-            sheet_class = AbsQuantSampleSheetv11
-        elif sheet_version == '10':
-            sheet_class = AbsQuantSampleSheetv10
-        else:
-            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
-    elif sheet_type == TELLSEQ_METAG_SHEET_TYPE:
-        check_metag_assay_type(assay_type)
-
-        if sheet_version == '10':
-            sheet_class = TellseqMetagSampleSheetv10
-        else:
-            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
-    elif sheet_type == TELLSEQ_ABSQUANT_SHEET_TYPE:
-        check_metag_assay_type(assay_type)
-
-        if sheet_version == '10':
-            sheet_class = TellseqAbsquantMetagSampleSheetv10
-        else:
-            raise ValueError(_make_version_err_msg(sheet_type, sheet_version))
-    elif sheet_type == _DUMMY_SHEET_TYPE:
+    sheet_class = None
+    if sheet_type == _DUMMY_SHEET_TYPE:
         sheet_class = AmpliconSampleSheet
     else:
-        raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
+        if sheet_type in SAMPLE_SHEETS_BY_SHEET_TYPE:
+            curr_type_assay_types = \
+                SAMPLE_SHEETS_BY_SHEET_TYPE[sheet_type]
+            if assay_type in curr_type_assay_types:
+                curr_type_versions = \
+                    curr_type_assay_types[assay_type]
+                if sheet_version in curr_type_versions:
+                    sheet_class = curr_type_versions[sheet_version]
+                else:
+                    raise ValueError(
+                        f"'{sheet_version}' is an unrecognized SheetVersion "
+                        f"for '{sheet_type}'")
+                # endif sheet version is/isn't found
+            else:
+                raise ValueError(
+                    f"'{assay_type}' is an unrecognized Assay type")
+            # end if assay type is/isn't found
+        else:
+            raise ValueError("'%s' is an unrecognized SheetType" % sheet_type)
+        # end if sheet type is/isn't found
+    # end if sheet_type is amplicon or other
+
+    if sheet_class is None:
+        raise ValueError(f"Unable to identify SheetClass for sheet type = "
+                         f"'{sheet_type}', sheet version = '{sheet_version}', "
+                         f"and assay type = '{assay_type}'")
 
     return sheet_class
 
@@ -2299,12 +2388,12 @@ def demux_sample_sheet(sheet):
             sheet.Header[_SHEET_TYPE_KEY], sheet.Header[_SHEET_VERSION_KEY],
             sheet.Header[_ASSAY_KEY])
         new_sheet = new_sheet_class()
-        new_sheet.Header = sheet.Header
-        new_sheet.Reads = sheet.Reads
-        new_sheet.Settings = sheet.Settings
+        for curr_section in sheet._ILLUMINA_NONDATA_KEYS:
+            if curr_section in sheet._ordered_section_keys:
+                setattr(new_sheet, curr_section, getattr(sheet, curr_section))
 
         # Add the SampleContext section to the new sheet. This is per-sample.
-        if _SAMPLE_CONTEXT_KEY in sheet._section_keys:
+        if _SAMPLE_CONTEXT_KEY in sheet._ordered_section_keys:
             new_context_df = _get_demuxed_sample_context(sheet, df)
             new_sheet.SampleContext = new_context_df
             ctx_projects = \

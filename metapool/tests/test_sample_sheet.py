@@ -25,6 +25,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    AbsQuantSampleSheetv11,
                                    TellseqMetagSampleSheetv10,
                                    TellseqAbsquantMetagSampleSheetv10,
+                                   PacBioMetagSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
@@ -2112,7 +2113,7 @@ class ProfileTests(BaseTests):
         self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
         self.assertEqual(sheet._HEADER['SheetVersion'], '10')
         self.assertIn('mass_syndna_input_ng', sheet._data_columns)
-        self.assertNotIn('SampleContext', sheet._section_keys)
+        self.assertNotIn('SampleContext', sheet._ordered_section_keys)
 
     def test_profile_absquant_11(self):
         sheet = AbsQuantSampleSheetv11()
@@ -2123,7 +2124,7 @@ class ProfileTests(BaseTests):
         self.assertEqual(sheet._HEADER['SheetType'], 'abs_quant_metag')
         self.assertEqual(sheet._HEADER['SheetVersion'], '11')
         self.assertIn('mass_syndna_input_ng', sheet._data_columns)
-        self.assertIn('SampleContext', sheet._section_keys)
+        self.assertIn('SampleContext', sheet._ordered_section_keys)
 
 
 class DemuxReplicatesTests(BaseTests):
@@ -2651,25 +2652,33 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
 
     def _help_test_make_sample_sheet(
             self, sheet_class, input_cols=None, input_data=None,
-            output_cols=None):
+            output_cols=None, sequencer=None):
         if input_cols is None:
             input_cols = self._INPUT_COLS
         if input_data is None:
             input_data = self._INPUT_DATA
         if output_cols is None:
             output_cols = self._OUTPUT_COLS
+        if sequencer is None:
+            sequencer = 'iSeq'
 
         table = pd.DataFrame(columns=input_cols, data=input_data)
 
         metadata = self._make_metadata(self)
         self._help_test_make_sample_sheet_from_metadata(
-            sheet_class, metadata, table, output_cols)
+            sheet_class, metadata, table, output_cols, sequencer)
 
     def _help_test_make_sample_sheet_from_metadata(
-            self, sheet_class, metadata, table, output_cols):
+            self, sheet_class, metadata, table, output_cols, sequencer):
 
         sheet = make_sample_sheet(
-            metadata, table, 'iSeq', [1], strict=False)
+            metadata, table, sequencer, [1], strict=False)
+
+
+        # # TODO: remove
+        # with open("/Users/amanda/Work/Repositories/fork-kl-metapool/metapool/tests/data/good_pacbio_metagv10.csv", "w") as f:
+        #     sheet.write(f)
+        #     f.flush()
 
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, sheet_class)
@@ -3025,7 +3034,7 @@ class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
         table = pd.DataFrame(data)
 
         self._help_test_make_sample_sheet_from_metadata(
-            self.sheet_class, metadata, table, self._REP_OUTPUT_COLS)
+            self.sheet_class, metadata, table, self._REP_OUTPUT_COLS, 'iSeq')
 
     def test_MetagenomicSampleSheetv100_load_sample_sheet_w_reps(self):
         self._help_test_load_sample_sheet(
@@ -3060,6 +3069,64 @@ class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_MetagenomicSampleSheetv101_roundtrip(self):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
+class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = PacBioMetagSampleSheetv10
+    sample_sheet_name = "good_pacbio_metagv10.csv"
+
+    _INPUT_COLS = [
+        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'Project Plate', 'Project Name']
+
+    _INPUT_DATA = [
+        ['bc3011', 'sample.1', '1', '1', 'False',
+         'A1', 'sample_plate_1', 'MyProject_99999'],
+        ['bc0112', 'sample.2', '2', '1', 'False',
+         'A2', 'sample_plate_1', 'MyProject_99999'],
+        ['bc9992', 'sample.3', '3', '1', 'False',
+         'A3', 'sample_plate_1', 'MyProject_99999'],
+    ]
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'Sample_Project', 'Well_description']
+
+    _BIOINFORMATICS = [
+            {
+                'Sample_Project': 'MyProject_99999',
+                'QiitaID': '99999',
+                'HumanFiltering': 'False',
+                'library_construction_protocol': 'some protocol',
+                'experiment_design_description': 'some description',
+                'contains_replicates': 'False'
+            }
+        ]
+
+    _CONTACTS = [
+            {
+                'Sample_Project': 'MyProject_99999',
+                'Email': 'foo@bar.org'
+            }
+    ]
+
+    _SAMPLE_CONTEXT = [
+        {'sample_name': 'sample.3',
+         'sample_type': 'control blank',
+         'primary_qiita_study': '99999',
+         'secondary_qiita_studies': ''
+         }
+    ]
+
+    def test_PacBioMetagSampleSheetv10_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_PacBioMetagSampleSheetv10_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class, sequencer="Revio")
+
+    def test_PacBioMetagSampleSheetv10_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_PacBioMetagSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = AbsQuantSampleSheetv10
