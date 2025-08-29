@@ -50,24 +50,24 @@ for fp in glob('notebooks/*.ipynb'):
 
 setup(
     name='metapool',
-      version=versioneer.get_version(),
-      cmdclass=versioneer.get_cmdclass(),
-      test_suite='nose.collector',
-      packages=find_packages(),
-      package_data={
-          'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
-      include_package_data=True,
-      # adding all the notebooks fps
-      data_files=notebooks_fp,
-      install_requires=base,
-      extras_require={'test': test,
-                      'coverage': coverage,
-                      'all': all_deps},
-      entry_points={
-          'console_scripts': [
-              'seqpro=metapool.scripts.seqpro:format_preparation_files',
-              ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
-               'files_mf'),
-          ],
+    version=versioneer.get_version(),
+    cmdclass=versioneer.get_cmdclass(),
+    test_suite='nose.collector',
+    packages=find_packages(),
+    package_data={
+        'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},
+    include_package_data=True,
+    # adding all the notebooks fps
+    data_files=notebooks_fp,
+    install_requires=base,
+    extras_require={'test': test,
+                    'coverage': coverage,
+                    'all': all_deps},
+    entry_points={
+        'console_scripts': [
+            'seqpro=metapool.scripts.seqpro:format_preparation_files',
+            ('seqpro_mf=metapool.scripts.seqpro_mf:format_preparation_'
+            'files_mf'),
+        ],
 
-      })
+    })
