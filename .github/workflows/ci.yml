@@ -33,6 +33,7 @@ jobs:
         run: |
           conda env create --file environment.yml
           conda activate metapool
+          pip install ".[all]"
 
       - name: Run tests and measure coverage
         shell: bash -l {0}
