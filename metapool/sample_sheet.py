@@ -1908,7 +1908,7 @@ class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
 class MetatranscriptomicSampleSheetv0(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        _SHEET_TYPE_KEY: STANDARD_METAG_SHEET_TYPE,
+        _SHEET_TYPE_KEY: STANDARD_METAT_SHEET_TYPE,
         _SHEET_VERSION_KEY: '0',
         'Investigator Name': 'Knight',
         _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
