@@ -2331,7 +2331,7 @@ class AdditionalSampleSheetCreationTests(BaseTests):
         # manually populate the required fields.
         sheet = MetatranscriptomicSampleSheetv0()
         sheet.Header['IEMFileVersion'] = 4
-        sheet.Header['SheetType'] = 'standard_metat'
+        sheet.Header['SheetType'] = 'standard_metag'
         sheet.Header['SheetVersion'] = '0'
         sheet.Header['Investigator Name'] = 'Knight'
         sheet.Header['Experiment Name'] = 'RKO_experiment'
