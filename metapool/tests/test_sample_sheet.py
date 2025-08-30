@@ -26,6 +26,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    TellseqMetagSampleSheetv10,
                                    TellseqAbsquantMetagSampleSheetv10,
                                    PacBioMetagSampleSheetv10,
+                                   PacBioAbsquantSampleSheetv10,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
@@ -2674,12 +2675,6 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
         sheet = make_sample_sheet(
             metadata, table, sequencer, [1], strict=False)
 
-
-        # # TODO: remove
-        # with open("/Users/amanda/Work/Repositories/fork-kl-metapool/metapool/tests/data/good_pacbio_metagv10.csv", "w") as f:
-        #     sheet.write(f)
-        #     f.flush()
-
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, sheet_class)
         obs_columns = set(sheet.samples[0].to_json().keys())
@@ -3101,20 +3096,7 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
             }
         ]
 
-    _CONTACTS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'Email': 'foo@bar.org'
-            }
-    ]
-
-    _SAMPLE_CONTEXT = [
-        {'sample_name': 'sample.3',
-         'sample_type': 'control blank',
-         'primary_qiita_study': '99999',
-         'secondary_qiita_studies': ''
-         }
-    ]
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
 
     def test_PacBioMetagSampleSheetv10_instantiate_from_path(self):
         self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
@@ -3127,6 +3109,49 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     def test_PacBioMetagSampleSheetv10_roundtrip(self):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
+
+class PacBioAbsquantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = PacBioAbsquantSampleSheetv10
+    sample_sheet_name = "good_pacbio_absquantv10.csv"
+
+    _INPUT_COLS = PacBioMetagSampleSheetv10CreationTests._INPUT_COLS.copy() + \
+        ['mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+         'vol_extracted_elution_ul', 'syndna_pool_number']
+
+    _INPUT_DATA = [
+        ['bc3011', 'sample.1', '1', '1', 'False',
+         'A1', 'sample_plate_1', 'MyProject_99999',
+         '0.2', '1.0', '1.1', '1'],
+        ['bc0112', 'sample.2', '2', '1', 'False',
+         'A2', 'sample_plate_1', 'MyProject_99999',
+         '0.22', '1.0', '1.1', '1'],
+        ['bc9992', 'sample.3', '3', '1', 'False',
+         'A3', 'sample_plate_1', 'MyProject_99999',
+         '0.25', '1.0', '1.1', '1'],
+    ]
+
+    _OUTPUT_COLS = \
+        PacBioMetagSampleSheetv10CreationTests._OUTPUT_COLS.copy() + \
+        ['mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+         'vol_extracted_elution_ul', 'syndna_pool_number']
+
+    _BIOINFORMATICS = PacBioMetagSampleSheetv10CreationTests._BIOINFORMATICS
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    def test_PacBioAbsquantSampleSheetv10_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_PacBioAbsquantSampleSheetv10_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class, sequencer="Revio")
+
+    def test_PacBioAbsquantSampleSheetv10_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_PacBioAbsquantSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
 
 class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = AbsQuantSampleSheetv10

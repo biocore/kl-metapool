@@ -1795,6 +1795,13 @@ class PacBioMetagSampleSheetv10(PacBioSampleSheet):
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
+
+class PacBioAbsquantSampleSheetv10(AbsQuantMixin, PacBioSampleSheet):
+    _HEADER = PacBioSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
 class MetagenomicSampleSheetv102(
         KatharoseqMixin, KLSampleSheetWithSampleContext):
     # Adds support for optional KATHAROSEQ columns in [Data] section.
@@ -2102,11 +2109,11 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
                 '10': PacBioMetagSampleSheetv10,
             },
         },
-        # PACBIO_ABSQUANT_SHEET_TYPE: {
-        #     _METAGENOMIC: {
-        #         '10': PacBioAbsquantSampleSheetv10,
-        #     },
-        # }
+        PACBIO_ABSQUANT_SHEET_TYPE: {
+            _METAGENOMIC: {
+                '10': PacBioAbsquantSampleSheetv10,
+            },
+        }
     }
 
     sheet_class = None
