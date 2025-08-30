@@ -3064,6 +3064,7 @@ class MetagenomicSampleSheetv101CreationTests(SampleSheetLoadMakeAndLoadTests):
     def test_MetagenomicSampleSheetv101_roundtrip(self):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
+
 class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     sheet_class = PacBioMetagSampleSheetv10
     sample_sheet_name = "good_pacbio_metagv10.csv"
@@ -3111,7 +3112,8 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
-class PacBioAbsquantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
+class PacBioAbsquantSampleSheetv10CreationTests(
+        SampleSheetLoadMakeAndLoadTests):
     sheet_class = PacBioAbsquantSampleSheetv10
     sample_sheet_name = "good_pacbio_absquantv10.csv"
 

@@ -274,9 +274,9 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # _BASE_DATA_COLUMNS--the latter has well_id_384
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-            _SS_SAMPLE_WELL_KEY, 
-            'I7_Index_ID', 'index', 'I5_Index_ID', 'index2') + \
-                _SUFFIX_PLATE_COLUMNS 
+            _SS_SAMPLE_WELL_KEY,
+            'I7_Index_ID', 'index', 'I5_Index_ID', 'index2'
+        ) + _SUFFIX_PLATE_COLUMNS
 
         self.Bioinformatics = None
         self.Contact = None
@@ -354,8 +354,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 if header_match:
                     section_name, *_ = header_match.groups()
                     if (
-                        section_name not in self._sections
-                        and section_name not in type(self)._ordered_section_keys
+                        section_name not in self._sections and
+                        section_name not in type(self)._ordered_section_keys
                     ):
                         self.add_section(section_name)
 
@@ -1480,7 +1480,7 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
         tuple(KLSampleSheet._ALL_METADATA_KEYS) + (_SAMPLE_CONTEXT_KEY,)
 
     _ordered_section_keys = (
-        *KLSampleSheet._ILLUMINA_NONDATA_KEYS, _DATA_KEY,_BIOINFORMATICS_KEY, 
+        *KLSampleSheet._ILLUMINA_NONDATA_KEYS, _DATA_KEY, _BIOINFORMATICS_KEY,
         _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = True
@@ -1727,30 +1727,30 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
     # No BarcodesAreRC, ForwardAdapter, ReverseAdapter
     # in Bioinformatics section columns
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
-        _BIOINFORMATICS_KEY: MappingProxyType(
-            {_SS_SAMPLE_PROJECT_KEY: str,
+        _BIOINFORMATICS_KEY: MappingProxyType({
+            _SS_SAMPLE_PROJECT_KEY: str,
             _SS_QIITA_ID_KEY: str,
             _HUMAN_FILTERING_KEY: bool,
             'library_construction_protocol': str,
             EXPT_DESIGN_DESC_KEY: str,
             CONTAINS_REPLICATES_KEY: bool
-            }),
+        }),
         _CONTACT_KEY: _CONTACT_COLS,
         _SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
     })
 
-    _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY, 
+    _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,
                              'library_construction_protocol',
                              SAMPLE_NAME_KEY, 'sample_plate',
                              'sample_project', 'well_description',
                              _SS_SAMPLE_WELL_KEY, _LANE_KEY)
 
     # No Settings or Reads sections
-    _ordered_section_keys = (_HEADER_KEY, _DATA_KEY, _BIOINFORMATICS_KEY, 
+    _ordered_section_keys = (_HEADER_KEY, _DATA_KEY, _BIOINFORMATICS_KEY,
                              _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
 
     _ALL_METADATA_KEYS = tuple(_HEADER.keys()) + \
-        tuple(KLSampleSheetWithSampleContext._KL_ADDTL_DF_SECTIONS)
+        tuple(KLSampleSheetWithSampleContext._KL_ADDTL_DF_SECTIONS.keys())
 
     def __new__(cls, path=None, *args, **kwargs):
         """
@@ -1767,7 +1767,7 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
     def __init__(self, path=None, defer_validate=False):
         """Knight Lab's SampleSheet subclass to support PacBio sequencing
 
-        Trims Header section, removes Settings and Reads entirely, and 
+        Trims Header section, removes Settings and Reads entirely, and
         deleted index-related columns from Data section.
 
         Parameters
@@ -1801,6 +1801,7 @@ class PacBioAbsquantSampleSheetv10(AbsQuantMixin, PacBioSampleSheet):
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
 
 class MetagenomicSampleSheetv102(
         KatharoseqMixin, KLSampleSheetWithSampleContext):
@@ -2076,7 +2077,7 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
                 '95': MetagenomicSampleSheetv100,
                 '90': MetagenomicSampleSheetv90,
             },
-            # NB: this really shouldn't be here under metag, but 
+            # NB: this really shouldn't be here under metag, but
             # things were a little confused in the early days ...
             _METATRANSCRIPTOMIC: {
                 '0': MetatranscriptomicSampleSheetv0,
@@ -2092,12 +2093,12 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
             _METAGENOMIC: {
                 '11': AbsQuantSampleSheetv11,
                 '10': AbsQuantSampleSheetv10,
-            }, 
+            },
         },
         TELLSEQ_METAG_SHEET_TYPE: {
             _METAGENOMIC: {
                 '10': TellseqMetagSampleSheetv10,
-            }, 
+            },
         },
         TELLSEQ_ABSQUANT_SHEET_TYPE: {
             _METAGENOMIC: {
