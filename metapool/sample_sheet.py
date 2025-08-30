@@ -1516,8 +1516,6 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
         # it is defined here first.
         self.SampleContext = None
         super().__init__(path=path, defer_validate=True)
-        # self._remapper = _BASE_METAG_REMAPPER
-        # self._data_columns = _BASE_DATA_COLUMNS
         self._CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
         self._validate_on_load(path, defer_validate)
 
@@ -2077,11 +2075,6 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
                 '95': MetagenomicSampleSheetv100,
                 '90': MetagenomicSampleSheetv90,
             },
-            # NB: this really shouldn't be here under metag, but
-            # things were a little confused in the early days ...
-            _METATRANSCRIPTOMIC: {
-                '0': MetatranscriptomicSampleSheetv0,
-            }
         },
         STANDARD_METAT_SHEET_TYPE: {
             _METATRANSCRIPTOMIC: {
