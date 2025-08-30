@@ -1908,7 +1908,7 @@ class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
 class MetatranscriptomicSampleSheetv0(KLSampleSheet):
     _HEADER = {
         'IEMFileVersion': '4',
-        _SHEET_TYPE_KEY: STANDARD_METAT_SHEET_TYPE,
+        _SHEET_TYPE_KEY: STANDARD_METAG_SHEET_TYPE,
         _SHEET_VERSION_KEY: '0',
         'Investigator Name': 'Knight',
         _EXPERIMENT_NAME_KEY: _PLACEHOLDER_EXPT_NAME,
@@ -2075,11 +2075,17 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
                 '95': MetagenomicSampleSheetv100,
                 '90': MetagenomicSampleSheetv90,
             },
+            # The original "metatranscriptomic" sheet version
+            # (a) is coded as a standard_metag sheet type (?) and
+            # (b) doesn't contain any of the rna-specific columns introduced
+            # in later versions.
+            _METATRANSCRIPTOMIC: {
+                '0': MetatranscriptomicSampleSheetv0,
+            }
         },
         STANDARD_METAT_SHEET_TYPE: {
             _METATRANSCRIPTOMIC: {
                 '10': MetatranscriptomicSampleSheetv10,
-                '0': MetatranscriptomicSampleSheetv0,
             }
         },
         ABSQUANT_SHEET_TYPE: {
