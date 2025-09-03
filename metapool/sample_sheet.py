@@ -114,7 +114,8 @@ _PREFIX_PLATE_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                          PM_WELL_ID_384_KEY)
 _SUFFIX_PLATE_COLUMNS = (_SS_SAMPLE_PROJECT_KEY, 'Well_description')
 _ILLUMINA_INDEX_COLUMNS = ('I7_Index_ID', 'index', 'I5_Index_ID', 'index2')
-_LC_ILLUMINA_INDEX_COLUMNS = tuple([x.lower()for x in _ILLUMINA_INDEX_COLUMNS])
+_LC_ILLUMINA_INDEX_COLUMNS = tuple(
+    [x.lower() for x in _ILLUMINA_INDEX_COLUMNS])
 
 # Note that there doesn't appear to be a difference between 95, 99, and 100
 # beyond the value observed in 'Well_description' column. The real
@@ -1430,16 +1431,6 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
 
     _optional_replicate_columns = (ORIG_NAME_KEY, DESTINATION_WELL_384_KEY)
 
-    # _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
-    #     _LC_ILLUMINA_INDEX_COLUMNS + (
-    #         LIB_CONSTRUCT_PROTOCOL_KEY,
-    #         SAMPLE_NAME_KEY,
-    #         'sample_plate',
-    #         'sample_project',
-    #         'well_description',
-    #         PM_WELL_ID_384_KEY
-    #     )
-
     def __new__(cls, path=None, *args, **kwargs):
         """
             Override so that base class cannot be instantiated.
@@ -1528,7 +1519,7 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
         # it is defined here first.
         self.SampleContext = None
         super().__init__(path=path, defer_validate=True)
-        # self._CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
+        # NB: inherits CARRIED_PREP_COLUMNS from KLSampleSheetWithReplicates
         self._validate_on_load(path, defer_validate)
 
 
