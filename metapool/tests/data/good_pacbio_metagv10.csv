@@ -8,7 +8,7 @@ Assay,Metagenomic,,,,,
 Description,,,,,,
 ,,,,,,
 [Data],,,,,,
-Sample_ID,Sample_Name,Sample_Plate,well_id_384,Sample_Project,Well_description,Lane
+Sample_ID,Sample_Name,Sample_Plate,Sample_Well,Sample_Project,Well_description,Lane
 bc3011,sample.1,sample_plate_1,A1,MyProject_99999,sample_plate_1.sample.1.A1,1
 bc0112,sample.2,sample_plate_1,A2,MyProject_99999,sample_plate_1.sample.2.A2,1
 bc9992,sample.3,sample_plate_1,A3,MyProject_99999,sample_plate_1.sample.3.A3,1

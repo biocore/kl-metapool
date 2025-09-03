@@ -3083,7 +3083,7 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     ]
 
     _OUTPUT_COLS = [
-        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
         'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
