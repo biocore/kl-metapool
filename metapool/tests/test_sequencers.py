@@ -1,4 +1,4 @@
-from metapool.sequencers import _deep_freeze, _get_machine_code, \
+from metapool.sequencers import _deep_freeze, _get_machine_prefix, \
     get_model_and_center, get_sequencers_w_key_value, get_sequencer_type, \
     get_i5_index_sequencers, is_i5_revcomp_sequencer, \
     get_model_by_instrument_id, PROFILE_NAME_KEY
@@ -8,20 +8,20 @@ from unittest import TestCase, main
 
 class TestSequencers(TestCase):
     def test__get_machine_code(self):
-        obs = _get_machine_code('K00180')
+        obs = _get_machine_prefix('K00180')
         self.assertEqual(obs, 'K')
 
-        obs = _get_machine_code('D00611')
+        obs = _get_machine_prefix('D00611')
         self.assertEqual(obs, 'D')
 
-        obs = _get_machine_code('MN01225')
+        obs = _get_machine_prefix('MN01225')
         self.assertEqual(obs, 'MN')
 
     def test__get_machine_code_err(self):
         err = ("Cannot find a machine code; the instrument model "
                "'8675309' is malformed.")
         with self.assertRaisesRegex(ValueError, err):
-            _get_machine_code('8675309')
+            _get_machine_prefix('8675309')
 
     def test_get_model_by_instrument_id(self):
         """Test getting model by machine prefix."""
