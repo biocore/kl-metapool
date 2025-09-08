@@ -228,7 +228,7 @@ def _check_invalid_names(sample_names):
 
 
 def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
-                   project_name, instrument_model, run_id, lane, platform, 
+                   project_name, instrument_model, run_id, lane, platform,
                    sequencing_method):
     # initialize result
     result = {c: '' for c in prep_columns}
@@ -320,7 +320,7 @@ def preparations_for_run(run_path, sheet_data_df, generated_prep_columns,
     sequencer_type_name, run_center = \
         get_sequencer_type_name_and_run_center_by_instrument_code(
             instrument_code)
-    if run_center is None: # use default
+    if run_center is None:  # use default
         run_center = _LAB_RUN_CENTER
 
     instrument_model = get_key_value_by_sequencer_type_name(

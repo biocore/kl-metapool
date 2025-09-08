@@ -64,7 +64,7 @@ class TestSequencers(TestCase):
             get_model_by_instrument_id(
                 'LH1118920', sequencer_types=external_mapping)
 
-    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_model_prefix(self):
+    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_model_prefix(self):  # noqa
         obs = get_sequencer_type_name_and_run_center_by_instrument_code(
             'D32611_0365_G00DHB5YXX')
         self.assertEqual(obs, ('HiSeq2500', None))
@@ -73,7 +73,7 @@ class TestSequencers(TestCase):
             'A86753_0365_G00DHB5YXX')
         self.assertEqual(obs, ('NovaSeq6000', None))
 
-    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_instrument_id(self):
+    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_instrument_id(self):  # noqa
         obs = get_sequencer_type_name_and_run_center_by_instrument_code(
             'A00953_0032_AHWMGJDDXX')
         self.assertEqual(obs, ('NovaSeq6000', 'IGM'))
@@ -98,7 +98,7 @@ class TestSequencers(TestCase):
             'MN01225_0002_A000H2W3FY')
         self.assertEqual(obs, ('MiniSeq', 'CMI'))
 
-    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_model_prefix_err_no_match(self):
+    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_model_prefix_err_no_match(self):  # noqa
         err = "Unrecognized machine_prefix 'MQ'."
         with self.assertRaisesRegex(ValueError, err):
             get_sequencer_type_name_and_run_center_by_instrument_code(

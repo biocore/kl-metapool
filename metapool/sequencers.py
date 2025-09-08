@@ -198,8 +198,8 @@ def _get_sequencer_type_name_by_machine_prefix(
     return sequencer_type_name
 
 
-def get_key_value_by_sequencer_type_name(input_key,
-        sequencer_type_name, sequencer_types=None):
+def get_key_value_by_sequencer_type_name(
+        input_key, sequencer_type_name, sequencer_types=None):
     """Get the value associated with the input key by its sequencer type name.
 
     Parameters
@@ -307,7 +307,7 @@ def get_model_by_instrument_id(
 
 def get_sequencer_type_name_and_run_center_by_instrument_code(
         instrument_code, available_sequencer_types=None):
-    
+
     run_center = None
     available_sequencer_types = _load_sequencer_types(
         available_sequencer_types)
