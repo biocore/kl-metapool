@@ -110,5 +110,4 @@ Revio:
     # NB: *no* revcomp_samplesheet_i5_index entry because that isn't
     # relevant to this technology
     platform: "PacBio"
-    # TODO: get appropriate sequencing method text
-    sequencing_method: "TODO: get from Gail?"
+    sequencing_method: "single molecule real-time (SMRT) long read sequencing"
