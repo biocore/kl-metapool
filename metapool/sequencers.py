@@ -124,7 +124,7 @@ def _load_sequencer_types(existing_types=None, test_only_fp=None):
 
 
 def _get_machine_prefix(instrument_model):
-    """Get the machine code for an instrument's model string
+    """Get the machine prefix for an instrument's model string
 
     Parameters
     ----------
@@ -134,16 +134,16 @@ def _get_machine_prefix(instrument_model):
     Returns
     -------
     str
-        The machine code, which is the first 1 or 2 letters of the instrument
+        The machine prefix, which is the first 1 or 2 letters of the instrument
         model.
 
     Raises
     ------
     ValueError
         If the instrument model is malformed and does not contain a valid
-        machine code.
+        machine prefix.
     """
-    # the machine code is everything before the first number
+    # the machine prefix is everything before the first number
     # (we expect these to be letters, so pattern could be improved ...)
     matches = re.match(r"^(.*?)\d.*", instrument_model)
 
@@ -152,7 +152,7 @@ def _get_machine_prefix(instrument_model):
         if machine_code != "":
             return machine_code
 
-    raise ValueError(f"Cannot find a machine code; the instrument "
+    raise ValueError(f"Cannot find a machine prefix; the instrument "
                      f"model '{instrument_model}' is malformed.")
 
 

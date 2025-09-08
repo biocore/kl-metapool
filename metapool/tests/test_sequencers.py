@@ -9,7 +9,7 @@ from unittest import TestCase, main
 
 
 class TestSequencers(TestCase):
-    def test__get_machine_code(self):
+    def test__get_machine_prefix(self):
         obs = _get_machine_prefix('K00180')
         self.assertEqual(obs, 'K')
 
@@ -19,8 +19,8 @@ class TestSequencers(TestCase):
         obs = _get_machine_prefix('MN01225')
         self.assertEqual(obs, 'MN')
 
-    def test__get_machine_code_err(self):
-        err = ("Cannot find a machine code; the instrument model "
+    def test__get_machine_prefix_err(self):
+        err = ("Cannot find a machine prefix; the instrument model "
                "'8675309' is malformed.")
         with self.assertRaisesRegex(ValueError, err):
             _get_machine_prefix('8675309')
@@ -38,7 +38,7 @@ class TestSequencers(TestCase):
 
     def test_get_model_by_instrument_id_err_none(self):
         """Test error when no model found for machine prefix."""
-        err = "Cannot find a machine code"
+        err = "Cannot find a machine prefix"
         with self.assertRaisesRegex(ValueError, err):
             get_model_by_instrument_id('MQ')
 
