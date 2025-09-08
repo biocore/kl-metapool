@@ -1,6 +1,8 @@
 from metapool.sequencers import _deep_freeze, _get_machine_prefix, \
-    get_model_and_center, get_sequencers_w_key_value, get_sequencer_type, \
+    get_sequencers_w_key_value, get_sequencer_type, \
     get_i5_index_sequencers, is_i5_revcomp_sequencer, \
+    get_sequencer_type_name_and_run_center_by_instrument_code, \
+    get_key_value_by_sequencer_type_name, \
     get_model_by_instrument_id, PROFILE_NAME_KEY
 from types import MappingProxyType
 from unittest import TestCase, main
@@ -62,36 +64,74 @@ class TestSequencers(TestCase):
             get_model_by_instrument_id(
                 'LH1118920', sequencer_types=external_mapping)
 
-    def test_get_model_and_center_by_model_prefix(self):
-        obs = get_model_and_center('D32611_0365_G00DHB5YXX')
-        self.assertEqual(obs, ('Illumina HiSeq 2500', 'UCSDMI'))
+    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_model_prefix(self):
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'D32611_0365_G00DHB5YXX')
+        self.assertEqual(obs, ('HiSeq2500', None))
 
-        obs = get_model_and_center('A86753_0365_G00DHB5YXX')
-        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'UCSDMI'))
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'A86753_0365_G00DHB5YXX')
+        self.assertEqual(obs, ('NovaSeq6000', None))
 
-    def test_get_model_and_center_by_instrument_id(self):
-        obs = get_model_and_center('A00953_0032_AHWMGJDDXX')
-        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'IGM'))
+    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_instrument_id(self):
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'A00953_0032_AHWMGJDDXX')
+        self.assertEqual(obs, ('NovaSeq6000', 'IGM'))
 
-        obs = get_model_and_center('A00169_8131_AHKXYNDHXX')
-        self.assertEqual(obs, ('Illumina NovaSeq 6000', 'LJI'))
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'A00169_8131_AHKXYNDHXX')
+        self.assertEqual(obs, ('NovaSeq6000', 'LJI'))
 
-        obs = get_model_and_center('M05314_0255_000000000-J46T9')
-        self.assertEqual(obs, ('Illumina MiSeq', 'KLM'))
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'M05314_0255_000000000-J46T9')
+        self.assertEqual(obs, ('MiSeq', 'KLM'))
 
-        obs = get_model_and_center('K00180_0957_AHCYKKBBXY')
-        self.assertEqual(obs, ('Illumina HiSeq 4000', 'IGM'))
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'K00180_0957_AHCYKKBBXY')
+        self.assertEqual(obs, ('HiSeq4000', 'IGM'))
 
-        obs = get_model_and_center('D00611_0712_BH37W2BCX3_RKL0040')
-        self.assertEqual(obs, ('Illumina HiSeq 2500', 'IGM'))
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'D00611_0712_BH37W2BCX3_RKL0040')
+        self.assertEqual(obs, ('HiSeq2500', 'IGM'))
 
-        obs = get_model_and_center('MN01225_0002_A000H2W3FY')
-        self.assertEqual(obs, ('Illumina MiniSeq', 'CMI'))
+        obs = get_sequencer_type_name_and_run_center_by_instrument_code(
+            'MN01225_0002_A000H2W3FY')
+        self.assertEqual(obs, ('MiniSeq', 'CMI'))
 
-    def test_get_model_and_center_by_model_prefix_err_no_match(self):
-        err = ""
+    def test_get_sequencer_type_name_and_run_center_by_instrument_code_by_model_prefix_err_no_match(self):
+        err = "Unrecognized machine_prefix 'MQ'."
         with self.assertRaisesRegex(ValueError, err):
-            get_model_and_center('MQ01225_0002_A000H2W3FY')
+            get_sequencer_type_name_and_run_center_by_instrument_code(
+                'MQ01225_0002_A000H2W3FY')
+
+    def test_get_key_value_by_sequencer_type_name(self):
+        """Test getting key value by sequencer type name."""
+        obs = get_key_value_by_sequencer_type_name(
+            'model_name', 'MiniSeq')
+        self.assertEqual(obs, 'Illumina MiniSeq')
+
+        obs = get_key_value_by_sequencer_type_name(
+            'platform', 'NovaSeq6000')
+        self.assertEqual(obs, 'Illumina')
+
+    def test_get_key_value_by_sequencer_type_name_input_dict(self):
+        """Test getting key value by sequencer type name from input dict."""
+        external_mapping = MappingProxyType({
+            "MiniSeq": {
+                'machine_prefix': 'MN',
+                'model_name': 'Illumina MiniMe',
+                'revcomp_samplesheet_i5_index': False
+            },
+            "HiSeq2500": {
+                'machine_prefix': 'D',
+                'model_name': 'Illumina HiSeq 2500',
+                'revcomp_samplesheet_i5_index': False
+            }
+        })
+
+        obs = get_key_value_by_sequencer_type_name(
+            'model_name', 'MiniSeq', sequencer_types=external_mapping)
+        self.assertEqual(obs, 'Illumina MiniMe')
 
     def test_get_sequencers_w_key_value(self):
         """Test get sequencers with given key-value pair in default config."""

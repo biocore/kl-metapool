@@ -4,7 +4,10 @@ from glob import glob
 from metapool.mp_strings import get_short_name_and_id, \
     PM_WELL_ID_384_KEY
 from metapool.plate import PlateReplication
-from metapool.sequencers import get_model_and_center
+from metapool.sequencers import\
+     get_sequencer_type_name_and_run_center_by_instrument_code, \
+     get_key_value_by_sequencer_type_name, MODEL_NAME_KEY, PLATFORM_KEY, \
+     SEQUENCING_METH_KEY
 from os import sep, listdir
 from os.path import (basename, isdir, join, split, abspath, exists,
                      normpath)
@@ -61,21 +64,24 @@ AMPLICON_PREP_COLUMN_RENAMER = {
     'sample sheet Sample_ID': 'well_description'
 }
 
+_LAB_RUN_CENTER = "UCSDMI"
 
-def parse_illumina_run_id(run_id):
-    """Parse a run identifier
+
+def parse_run_id(run_id):
+    """Parse a run identifier to get run date and instrument code
 
     Parameters
     ----------
     run_id: str
-        The name of a run
+        The name of a run, such as '161004_D00611_0365_AH2HJ5BCXY',
+        '20220303_FS10001773_6_BRB11606-1914' or 'r84137_20250428_213201'
 
     Returns
     -------
     str:
         When the run happened (YYYY-MM-DD)
     str:
-        Instrument code
+        Instrument code, like 'D00611_0365_AH2HJ5BCXY' or 'r84137'
     """
 
     # Format should be YYMMDD_machinename_XXXX_FC
@@ -90,31 +96,38 @@ def parse_illumina_run_id(run_id):
     # the trailing -XXXX piece
     matches8 = re.search(r'^(\d{8})_([\w-]*)', run_id)
 
-    if matches6 is None and matches8 is None:
-        raise ValueError('Unrecognized run identifier format "%s". The '
-                         'expected format is either '
-                         'YYMMDD_machinename_XXXX_FC or '
-                         'YYYYMMDD_machinename_XXXX-XXXX' %
-                         run_id)
+    matches_pacbio = re.search(r'^(r\d{5})_(\d{8})_\d{6}', run_id)
 
+    err_msg = 'Unrecognized run identifier format "%s". The ' \
+              'expected format is either ' \
+              'YYMMDD_machinename_XXXX_FC ,  ' \
+              'YYYYMMDD_machinename_XXXX-XXXX, or ' \
+              'rXXXXX_YYYYMMDD_XXXXXX' % run_id
+
+    if matches6 is None and matches8 is None and matches_pacbio is None:
+        raise ValueError(err_msg)
+
+    inst_code_index = 2
+    date_index = 1
     if matches6 is None:
-        matches = matches8
         fmt = "%Y%m%d"
+        if matches_pacbio is not None:
+            matches = matches_pacbio
+            inst_code_index = 1
+            date_index = 2
+        else:
+            matches = matches8
     else:
         matches = matches6
         fmt = "%y%m%d"
 
     if len(matches.groups()) != 2:
-        raise ValueError('Unrecognized run identifier format "%s". The '
-                         'expected format is either '
-                         'YYMMDD_machinename_XXXX_FC or '
-                         'YYYYMMDD_machinename_XXXX-XXXX' %
-                         run_id)
+        raise ValueError(err_msg)
 
-    # convert illumina's format to qiita's format
-    run_date = datetime.strptime(matches[1], fmt).strftime('%Y-%m-%d')
+    # convert run id's date format to qiita's format
+    run_date = datetime.strptime(matches[date_index], fmt).strftime('%Y-%m-%d')
 
-    return run_date, matches[2]
+    return run_date, matches[inst_code_index]
 
 
 def remove_qiita_id(project_name):
@@ -215,13 +228,14 @@ def _check_invalid_names(sample_names):
 
 
 def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
-                   project_name, instrument_model, run_id, lane):
+                   project_name, instrument_model, run_id, lane, platform, 
+                   sequencing_method):
     # initialize result
     result = {c: '' for c in prep_columns}
 
     # hard-coded columns
-    result["platform"] = "Illumina"
-    result["sequencing_meth"] = "sequencing by synthesis"
+    result["platform"] = platform
+    result["sequencing_meth"] = sequencing_method
     result["center_name"] = "UCSD"
 
     # manually generated columns
@@ -302,8 +316,19 @@ def preparations_for_run(run_path, sheet_data_df, generated_prep_columns,
         not be mapped to a file. it is similarly organized.
     """
     _, run_id = split(normpath(run_path))
-    run_date, instrument_code = parse_illumina_run_id(run_id)
-    instrument_model, run_center = get_model_and_center(instrument_code)
+    run_date, instrument_code = parse_run_id(run_id)
+    sequencer_type_name, run_center = \
+        get_sequencer_type_name_and_run_center_by_instrument_code(
+            instrument_code)
+    if run_center is None: # use default
+        run_center = _LAB_RUN_CENTER
+
+    instrument_model = get_key_value_by_sequencer_type_name(
+        MODEL_NAME_KEY, sequencer_type_name)
+    platform = get_key_value_by_sequencer_type_name(
+        PLATFORM_KEY, sequencer_type_name)
+    sequencing_method = get_key_value_by_sequencer_type_name(
+        SEQUENCING_METH_KEY, sequencer_type_name)
 
     # NB: For now it is safe to use the working directory as the search
     # root, but in the future it would be better to give the path to the
@@ -414,7 +439,8 @@ def preparations_for_run(run_path, sheet_data_df, generated_prep_columns,
                     data.append(process_sample(sample, all_columns,
                                                run_center, run_date,
                                                run_prefix, project_name,
-                                               instrument_model, run_id, lane))
+                                               instrument_model, run_id, lane,
+                                               platform, sequencing_method))
 
             if not data:
                 warnings.warn('Project %s and Lane %s have no data' %

@@ -9,7 +9,7 @@ from metapool.sample_sheet import (MetagenomicSampleSheetv90,
                                    sample_sheet_to_dataframe)
 from metapool.prep import (preparations_for_run, remove_qiita_id,
                            get_run_prefix,
-                           parse_illumina_run_id,
+                           parse_run_id,
                            _check_invalid_names, agp_transform, parse_prep,
                            generate_qiita_prep_file, qiita_scrub_name,
                            preparations_for_run_mapping_file, demux_pre_prep,
@@ -338,24 +338,28 @@ class TestPrep(TestCase):
         self.assertEqual(obs, 'project_')
 
     def test_parse_illumina_run_id(self):
-        date, rid = parse_illumina_run_id('161004_D00611_0365_AH2HJ5BCXY')
+        date, rid = parse_run_id('161004_D00611_0365_AH2HJ5BCXY')
         self.assertEqual(date, '2016-10-04')
         self.assertEqual(rid, 'D00611_0365_AH2HJ5BCXY')
 
-        date, rid = parse_illumina_run_id('160909_K00180_0244_BH7VNKBBXX')
+        date, rid = parse_run_id('160909_K00180_0244_BH7VNKBBXX')
         self.assertEqual(date, '2016-09-09')
         self.assertEqual(rid, 'K00180_0244_BH7VNKBBXX')
 
-        date, rid = parse_illumina_run_id('20220303_FS10001773_6_BRB11606-1914')  # noqa
+        date, rid = parse_run_id('20220303_FS10001773_6_BRB11606-1914')  # noqa
         self.assertEqual(date, '2022-03-03')
         self.assertEqual(rid, 'FS10001773_6_BRB11606-1914')
+
+        date, rid = parse_run_id('r84137_20250428_213201')
+        self.assertEqual(date, '2025-04-28')
+        self.assertEqual(rid, 'r84137')
 
     def test_parse_illumina_run_id_malformed(self):
         bad_entries = ['0220303_FS10001773_6_BRB11606-1914',
                        'verybad', '123456-bad', '12345678-bad']
         for bad in bad_entries:
             with self.assertRaises(ValueError):
-                parse_illumina_run_id(bad)
+                parse_run_id(bad)
 
     def test_agp_transform(self):
         columns = ['sample_name', 'experiment_design_description',
