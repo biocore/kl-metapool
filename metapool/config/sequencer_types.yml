@@ -4,19 +4,27 @@
 HiSeq1500:
     model_name: 'Illumina HiSeq 1500'
     revcomp_samplesheet_i5_index: false
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 HiSeq2500:
     model_name: 'Illumina HiSeq 2500'
     revcomp_samplesheet_i5_index: false
     machine_prefix: 'D'
     profile_name: 'HiSeq 2500'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 HiSeq3000:
     model_name: 'Illumina HiSeq 3000'
     revcomp_samplesheet_i5_index: true
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 HiSeq4000:
     model_name: 'Illumina HiSeq 4000'
     revcomp_samplesheet_i5_index: true
     machine_prefix: 'K'
     profile_name: 'HiSeq 4000'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 iSeq:
     model_name: 'Illumina iSeq'
     revcomp_samplesheet_i5_index: true
@@ -25,6 +33,8 @@ iSeq:
         - "MaskShortReads"
         - "OverrideCycles"
     profile_name: 'iSeq'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 MiniSeq:
     model_name: 'Illumina MiniSeq'
     # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
@@ -35,11 +45,15 @@ MiniSeq:
     revcomp_samplesheet_i5_index: true
     machine_prefix: 'MN'
     profile_name: 'MiniSeq'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 MiSeq:
     model_name: 'Illumina MiSeq'
     revcomp_samplesheet_i5_index: false
     machine_prefix: 'M'
     profile_name: 'MiSeq'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 MiSeqi100:
     model_name: 'Illumina MiSeq i100'
     machine_prefix: 'SH'
@@ -50,14 +64,20 @@ MiSeqi100:
     # are using standalone BCL convert.  If we ever change how we are doing
     # FASTQ generation, we may need to change this.
     profile_name: 'MiSeq i100'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 NextSeq:
     model_name: 'Illumina NextSeq 500/550'
     revcomp_samplesheet_i5_index: true
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 NovaSeq6000:
     model_name: 'Illumina NovaSeq 6000'
     revcomp_samplesheet_i5_index: true
     machine_prefix: 'A'
     profile_name: 'NovaSeq 6000'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 NovaSeqX:
     model_name: 'Illumina NovaSeq X'
     # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
@@ -70,10 +90,14 @@ NovaSeqX:
     revcomp_samplesheet_i5_index: false
     machine_prefix: 'LH'
     profile_name: 'NovaSeq X'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 NovaSeqXPlus:
     model_name: 'Illumina NovaSeq X Plus'
     # See above comment for NovaSeqX re: revcomp_samplesheet_i5_index
     revcomp_samplesheet_i5_index: false
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
 # NB: InstrumentUtils class in qp-klp used to define
 # an 'SN': 'RapidRun' machine prefix, but as of 20250703,
 # we don't seem to have any data with that prefix.  The
@@ -85,3 +109,5 @@ Revio:
     profile_name: 'Revio'
     # NB: *no* revcomp_samplesheet_i5_index entry because that isn't
     # relevant to this technology
+    platform: "PacBio"
+    sequencing_method: "single molecule real-time (SMRT) long read sequencing"
