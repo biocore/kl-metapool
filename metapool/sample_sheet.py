@@ -15,7 +15,8 @@ from metapool.mp_strings import parse_project_name, \
     PM_PROJECT_NAME_KEY, PM_PROJECT_PLATE_KEY, PM_BLANK_KEY, QIITA_ID_KEY, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
-    LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY
+    LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
+    BARCODE_ID_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -1599,8 +1600,6 @@ class KatharoseqMixin(object):
 
 
 class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
-    BARCODE_ID_KEY = 'barcode_id'
-
     def __new__(cls, path=None, *args, **kwargs):
         """
             Override so that base class cannot be instantiated.
@@ -1633,13 +1632,13 @@ class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
         self.SampleContext = None
         super().__init__(path=path, defer_validate=True)
         self._remapper = MappingProxyType(
-            _BASE_PLATE_REMAPPER | {self.BARCODE_ID_KEY: self.BARCODE_ID_KEY})
+            _BASE_PLATE_REMAPPER | {BARCODE_ID_KEY: BARCODE_ID_KEY})
 
         # Note: do NOT remove the comma after barcode id key below--that is
         # what makes this a tuple with one item ... otherwise, python
         # "simplifies" it to a string, which can't be added to tuples.
         self._data_columns = \
-            _PREFIX_PLATE_COLUMNS + (self.BARCODE_ID_KEY, ) + \
+            _PREFIX_PLATE_COLUMNS + (BARCODE_ID_KEY, ) + \
             _SUFFIX_PLATE_COLUMNS
         self._validate_on_load(path, defer_validate)
 
@@ -1750,6 +1749,7 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
                              'sample_project',
                              'well_description',
                              _SS_SAMPLE_WELL_KEY,
+                             BARCODE_ID_KEY,
                              _LANE_KEY)
 
     # No Settings or Reads sections
@@ -1794,11 +1794,12 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
         self._remapper = _BASE_PLATE_REMAPPER
         self._remapper = self._extend_mapping_type(
             {"Well": _SS_SAMPLE_WELL_KEY})
+        self._CARRIED_PREP_COLUMNS = PacBioSampleSheet._CARRIED_PREP_COLUMNS
         # No index or barcode columns in Data section, and well column is
         # "Sample_Well" instead of "well_id_384"
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
-            _SS_SAMPLE_WELL_KEY) + _SUFFIX_PLATE_COLUMNS
+            _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY) + _SUFFIX_PLATE_COLUMNS
         self._validate_on_load(path, defer_validate)
 
 
