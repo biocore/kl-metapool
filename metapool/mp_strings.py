@@ -65,6 +65,7 @@ SYNDNA_POOL_MASS_NG_KEY = "mass_syndna_input_ng"
 TUBECODE_KEY = "TubeCode"
 ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
 EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
+BARCODE_ID_KEY = 'barcode_id'
 
 
 def parse_project_name(project_name):

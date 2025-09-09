@@ -3071,20 +3071,20 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     _INPUT_COLS = [
         'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
-        'Well', 'Project Plate', 'Project Name']
+        'Well', 'barcode_id', 'Project Plate', 'Project Name']
 
     _INPUT_DATA = [
-        ['bc3011', 'sample.1', '1', '1', 'False',
-         'A1', 'sample_plate_1', 'MyProject_99999'],
-        ['bc0112', 'sample.2', '2', '1', 'False',
-         'A2', 'sample_plate_1', 'MyProject_99999'],
-        ['bc9992', 'sample.3', '3', '1', 'False',
-         'A3', 'sample_plate_1', 'MyProject_99999'],
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'bc3011', 'sample_plate_1', 'MyProject_99999'],
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'bc0112', 'sample_plate_1', 'MyProject_99999'],
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'bc9992', 'sample_plate_1', 'MyProject_99999'],
     ]
 
     _OUTPUT_COLS = [
         'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
-        'Sample_Project', 'Well_description']
+        'barcode_id', 'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
             {
@@ -3122,14 +3122,14 @@ class PacBioAbsquantSampleSheetv10CreationTests(
          'vol_extracted_elution_ul', 'syndna_pool_number']
 
     _INPUT_DATA = [
-        ['bc3011', 'sample.1', '1', '1', 'False',
-         'A1', 'sample_plate_1', 'MyProject_99999',
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'bc3011', 'sample_plate_1', 'MyProject_99999',
          '0.2', '1.0', '1.1', '1'],
-        ['bc0112', 'sample.2', '2', '1', 'False',
-         'A2', 'sample_plate_1', 'MyProject_99999',
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'bc0112', 'sample_plate_1', 'MyProject_99999',
          '0.22', '1.0', '1.1', '1'],
-        ['bc9992', 'sample.3', '3', '1', 'False',
-         'A3', 'sample_plate_1', 'MyProject_99999',
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'bc9992', 'sample_plate_1', 'MyProject_99999',
          '0.25', '1.0', '1.1', '1'],
     ]
 
