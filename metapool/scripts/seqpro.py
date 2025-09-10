@@ -5,7 +5,6 @@ import os
 import re
 from os.path import abspath
 from json import dumps
-import numpy as np
 
 from metapool import (preparations_for_run, load_sample_sheet,
                       sample_sheet_to_dataframe, run_counts,
@@ -82,12 +81,6 @@ def format_preparation_files(run_dir, sample_sheet, output_dir, verbose):
         # center_project_name is a legacy column that should mirror
         # the values for sample_project.
         df['center_project_name'] = df['sample_project']
-
-        # TODO: this is a temporary fix and should be replaced once we
-        #  debug why these problem columns are appearing
-        # remove duplicated columns and empty columns
-        df = df.loc[:, ~df.columns.duplicated()].copy()
-        df = df.replace('', np.nan).dropna(how='all', axis=1)
 
         df.to_csv(fp, sep='\t', index=False)
 

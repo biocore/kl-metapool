@@ -1749,8 +1749,7 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
                              'sample_project',
                              'well_description',
                              _SS_SAMPLE_WELL_KEY,
-                             BARCODE_ID_KEY,
-                             _LANE_KEY)
+                             BARCODE_ID_KEY)
 
     # No Settings or Reads sections
     _ordered_section_keys = (_HEADER_KEY, _DATA_KEY, _BIOINFORMATICS_KEY,

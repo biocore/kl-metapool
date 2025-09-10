@@ -260,8 +260,8 @@ def process_sample(sample, prep_columns, run_center, run_date, run_prefix,
                           "sample_name", "experiment_design_description",
                           "library_construction_protocol", "sample_plate",
                           "i7_index_id", "index", "i5_index_id", "index2",
-                          "sample_project", 'well_id_384', 'sample_well'
-                          ]
+                          "sample_project", 'well_id_384', 'sample_well',
+                          "barcode_id"]
 
     for attribute in additional_columns:
         if attribute in sample:
