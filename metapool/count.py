@@ -298,7 +298,9 @@ def direct_sequence_counts(run_dir, metadata):
         # dataframe.
         for sample in samples:
             smpl = samples[sample]
-            if smpl['R1'] == 0 or smpl['R2'] == 0:
+            # TODO: at some point we need to fully dig out the deeply rooted
+            #  assumption that we'll always be processing paired-end data :(
+            if smpl['R1'] == 0:  # or smpl['R2'] == 0:
                 raise ValueError(f"{smpl['name']} has bad counts")
 
             sample_ids.append(smpl['name'])
