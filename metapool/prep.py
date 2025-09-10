@@ -887,12 +887,12 @@ def _map_files_to_sample_ids(sample_ids, sample_files):
     unmatched_sample_ids = set(sample_ids) - set(list(results.keys()))
 
     # after all possible sample_files have been matched to sample_ids, ensure
-    # that the number of matching files for each sample_id is 2 and only 2,
-    # _assuming_ that one is an R1 file and the other is an R2 file.
+    # that the number of matching files for each sample_id is either 1 or 2
+    # (two is if one is an R1 file and the other is an R2 file).
     msgs = []
     for sample_id in results:
         count = len(results[sample_id])
-        if count != 2:
+        if count != 1 and count != 2:
             msg = sorted(results[sample_id])
             msgs.append(f"{sample_id} matched an unexpected number of samples "
                         f"({msg})")
