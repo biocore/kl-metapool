@@ -56,14 +56,28 @@ MiSeq:
     sequencing_method: "sequencing by synthesis"
 MiSeqi100:
     model_name: 'Illumina MiSeq i100'
+    machine_prefix: 'SL'
+    # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
+    # i5 sequences for demultiplexing”,
+    # https://knowledge.illumina.com/software/general/software-general-reference_material-list/000001800
+    # no revcomping of i5 index sequences is required for MiSeq i100 series *IF* we
+    # are using standalone BCL convert.  If we ever change how we are doing
+    # FASTQ generation, we may need to change this.
+    profile_name: 'MiSeq i100'
+    platform: "Illumina"
+    sequencing_method: "sequencing by synthesis"
+MiSeqi100Plus:
+    model_name: 'Illumina MiSeq i100 Plus'
     machine_prefix: 'SH'
     # Per the Illumina Knowledge Base's “Guidelines for reverse complementing
     # i5 sequences for demultiplexing”,
     # https://knowledge.illumina.com/software/general/software-general-reference_material-list/000001800
-    # no revcomping of i5 index sequences is required for MiSeq i100 *IF* we
+    # no revcomping of i5 index sequences is required for MiSeq i100 series
+    # (which I am going to anticipate includes the i100 Plus, since it is not listed 
+    # separately in the documentation, unlike the NovaSeqX/X Plus) *IF* we
     # are using standalone BCL convert.  If we ever change how we are doing
     # FASTQ generation, we may need to change this.
-    profile_name: 'MiSeq i100'
+    profile_name: 'MiSeq i100 Plus'
     platform: "Illumina"
     sequencing_method: "sequencing by synthesis"
 NextSeq:
