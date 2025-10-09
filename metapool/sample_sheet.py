@@ -1792,7 +1792,7 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
         # "well_id_384" because these are only done in 96-well plates
         self._remapper = _BASE_PLATE_REMAPPER
         self._remapper = self._extend_mapping_type(
-            {"Well": _SS_SAMPLE_WELL_KEY})
+            {"Well": _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY: BARCODE_ID_KEY})
         self._CARRIED_PREP_COLUMNS = PacBioSampleSheet._CARRIED_PREP_COLUMNS
         # No index or barcode columns in Data section, and well column is
         # "Sample_Well" instead of "well_id_384"
