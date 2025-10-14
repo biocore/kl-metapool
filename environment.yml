@@ -20,7 +20,8 @@ dependencies:
   - scikit-learn
   # testing requirements
   - flake8
-  - nose
+  - pytest
+  - pytest-cov
   - papermill
   - pep8
   # notebook requirements

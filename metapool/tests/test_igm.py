@@ -1,3 +1,5 @@
+from io import StringIO
+from contextlib import redirect_stdout
 import unittest
 import tempfile
 import sys
@@ -73,41 +75,44 @@ class IGMManifestTests(unittest.TestCase):
         m.pools = ['TMI_AGP_300_302_304_308', 'OTHER']
 
         with tempfile.NamedTemporaryFile('w+', suffix='.xlsx') as tmp:
-            m.write(tmp.name)
-            exp_name = tmp.name
+            buffer = StringIO()
+            with redirect_stdout(buffer):
+                m.write(tmp.name)
+                exp_name = tmp.name
 
-            sheet = load_workbook(tmp.name)['Sample Information']
+                sheet = load_workbook(tmp.name)['Sample Information']
 
-            self.assertEqual(sheet['B2'].value, '01/01/00')
-            self.assertEqual(sheet['B3'].value, 'Knight Lab')
-            self.assertEqual(sheet['B4'].value, 'Dr. Knight')
-            self.assertEqual(sheet['B5'].value, 'mackenzie.m.bryant@gmail.com')
-            self.assertEqual(sheet['B6'].value, 'MacKenzie Bryant')
-            self.assertEqual(sheet['B7'].value, 'mackenzie.m.bryant@gmail.com')
-            self.assertEqual(sheet['B12'].value, 1000)
-            self.assertEqual(sheet['B13'].value, 3)
-            self.assertEqual(sheet['B18'].value, 'NovaSeq S4')
-            self.assertEqual(sheet['B19'].value, 'PE150')
-            self.assertEqual(sheet['B20'].value,
-                             'No-Standard Illumina Primers are fine')
-            self.assertEqual(sheet['B22'].value, 384)
-            self.assertEqual(sheet['B23'].value, 1)
+                self.assertEqual(sheet['B2'].value, '01/01/00')
+                self.assertEqual(sheet['B3'].value, 'Knight Lab')
+                self.assertEqual(sheet['B4'].value, 'Dr. Knight')
+                self.assertEqual(sheet['B5'].value, 'mackenzie.m.bryant@gmail.com')
+                self.assertEqual(sheet['B6'].value, 'MacKenzie Bryant')
+                self.assertEqual(sheet['B7'].value, 'mackenzie.m.bryant@gmail.com')
+                self.assertEqual(sheet['B12'].value, 1000)
+                self.assertEqual(sheet['B13'].value, 3)
+                self.assertEqual(sheet['B18'].value, 'NovaSeq S4')
+                self.assertEqual(sheet['B19'].value, 'PE150')
+                self.assertEqual(sheet['B20'].value,
+                                'No-Standard Illumina Primers are fine')
+                self.assertEqual(sheet['B22'].value, 384)
+                self.assertEqual(sheet['B23'].value, 1)
 
-            self.assertEqual(sheet['D1'].value, '150x8x8x150')
-            self.assertEqual(sheet['D1'].fill,
-                             PatternFill(fill_type='solid', fgColor='FFFF00'))
+                self.assertEqual(sheet['D1'].value, '150x8x8x150')
+                self.assertEqual(sheet['D1'].fill,
+                                PatternFill(fill_type='solid', fgColor='FFFF00'))
 
-            self.assertEqual(sheet['A25'].value, 'TMI_AGP_300_302_304_308')
-            self.assertEqual(sheet['B25'].value, 'TMI_AGP_300_302_304_308')
-            self.assertEqual(sheet['C25'].value, 500)
-            self.assertEqual(sheet['D25'].value, 'KHP')
+                self.assertEqual(sheet['A25'].value, 'TMI_AGP_300_302_304_308')
+                self.assertEqual(sheet['B25'].value, 'TMI_AGP_300_302_304_308')
+                self.assertEqual(sheet['C25'].value, 500)
+                self.assertEqual(sheet['D25'].value, 'KHP')
 
-            self.assertEqual(sheet['A26'].value, 'OTHER')
-            self.assertEqual(sheet['B26'].value, 'OTHER')
-            self.assertEqual(sheet['C26'].value, 500)
-            self.assertEqual(sheet['D26'].value, 'KHP')
+                self.assertEqual(sheet['A26'].value, 'OTHER')
+                self.assertEqual(sheet['B26'].value, 'OTHER')
+                self.assertEqual(sheet['C26'].value, 500)
+                self.assertEqual(sheet['D26'].value, 'KHP')
 
-        observed = sys.stdout.getvalue().strip()
+        observed = buffer.getvalue().strip()
+
         self.maxDiff = None
         self.assertEqual(
             observed, ('Saving manifest to %s\n' % exp_name) + BASE_MANIFEST)
