@@ -14,7 +14,7 @@ from metapool.mp_strings import (
     QIITA_ID_KEY, PROJECT_SHORT_NAME_KEY, PROJECT_FULL_NAME_KEY,
     CONTAINS_REPLICATES_KEY, SAMPLES_DETAILS_KEY, SAMPLE_PROJECT_KEY,
     ORIG_NAME_KEY, SAMPLE_NAME_KEY, SAMPLE_TYPE_KEY, PRIMARY_STUDY_KEY,
-    SECONDARY_STUDIES_KEY, DESTINATION_WELL_384_KEY)
+    SECONDARY_STUDIES_KEY, DESTINATION_WELL_384_KEY, SS_SAMPLE_ID_KEY)
 from metapool.metapool import TUBECODE_KEY
 from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    MetagenomicSampleSheetv102,
@@ -33,7 +33,7 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
-                                   make_sections_dict, SS_SAMPLE_ID_KEY,
+                                   make_sections_dict,
                                    _ASSAY_KEY, _SHEET_VERSION_KEY,
                                    _SHEET_TYPE_KEY, _BIOINFORMATICS_KEY,
                                    _CONTACT_KEY, _SAMPLE_CONTEXT_KEY)
@@ -988,7 +988,7 @@ class SampleSheetWorkflow(BaseTests):
         ]
 
         self.table = pd.DataFrame(
-            columns=['sample sheet Sample_ID',
+            columns=[SS_SAMPLE_ID_KEY,
                      'Sample', 'Row', 'Col', 'Blank', 'Project Plate',
                      'Project Name', 'Compressed Plate Name', 'Well',
                      'Plate Position', 'Primer Plate #', 'Plating',
@@ -1174,6 +1174,8 @@ class SampleSheetWorkflow(BaseTests):
     def _help_make_test_column_alternatives_table(self):
         table2 = self.table.copy(deep=True)
 
+        # delete the "sample "
+
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
 
         table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
@@ -1313,7 +1315,7 @@ class SampleSheetWorkflow(BaseTests):
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
                    'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID', 'syndna_pool_number',
+                   'i7 plate', SS_SAMPLE_ID_KEY, 'syndna_pool_number',
                    'Well_description']
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
@@ -1363,7 +1365,7 @@ class SampleSheetWorkflow(BaseTests):
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
                    'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID',
+                   'i7 plate', SS_SAMPLE_ID_KEY,
                    'Well_description']
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
@@ -1416,7 +1418,7 @@ class SampleSheetWorkflow(BaseTests):
         columns = ['Sample', 'Row', 'Col', 'Blank', 'Well', 'index',
                    'index combo', 'index combo seq', 'i5 name', 'i5 sequence',
                    'i5 well', 'i5 plate', 'i7 name', 'i7 sequence', 'i7 well',
-                   'i7 plate', 'sample sheet Sample_ID', 'Well_description',
+                   'i7 plate', SS_SAMPLE_ID_KEY, 'Well_description',
                    'vol_extracted_elution_ul', 'total_rna_concentration_ng_ul']
         self.table = pd.DataFrame(data=data, columns=columns)
         self.table['Project Name'] = 'Tst_project_1234'
@@ -2613,7 +2615,7 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
     sample_sheet_name = ""
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'Project Plate', 'i7 name', 'i7 sequence',
         'i5 name', 'i5 sequence', 'Project Name']
 
@@ -2870,7 +2872,7 @@ class MetagenomicSampleSheetv100CreationTests(SampleSheetLoadMakeAndLoadTests):
                 'EP256645B01', 'EP112567B02', 'EP337425B01', 'LP127890A01',
                 'EP159692B04', 'EP987683A01', 'AP959450A03', 'SP464350A04',
                 'EP121011B01'],
-            'sample sheet Sample_ID': [
+            SS_SAMPLE_ID_KEY: [
                 'BLANK_43_12G_A1', 'BLANK_43_12H_A3',
                 'RMA_KHP_rpoS_Mage_Q97D_A5', 'RMA_KHP_rpoS_Mage_Q97L_A7',
                 'RMA_KHP_rpoS_Mage_Q97N_A9', 'RMA_KHP_rpoS_Mage_Q97E_A11',
@@ -3115,7 +3117,7 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     sample_sheet_name = "good_pacbio_metagv10.csv"
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'barcode_id', 'Project Plate', 'Project Name']
 
     _INPUT_DATA = [
@@ -3162,7 +3164,7 @@ class PacBioMetagSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
     sample_sheet_name = "good_pacbio_metagv11.csv"
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'barcode_id_pacbio', 'barcode_id_twist',
         'Project Plate', 'Project Name']
 
@@ -3257,7 +3259,7 @@ class AbsQuantSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     sample_sheet_name = "good_abs_quant_metagv10.csv"
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'Project Plate', 'i7 name', 'i7 sequence',
         'i5 name', 'i5 sequence', 'Project Name',
         'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
@@ -3330,7 +3332,7 @@ class TellseqMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
     sample_sheet_name = "tellseq_metag_dummy_sample_sheet_2.csv"
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'Project Plate', 'barcode_id', 'Project Name'
     ]
 
@@ -3370,7 +3372,7 @@ class TellseqAbsquantMetagSampleSheetv10CreationTests(
     sample_sheet_name = "tellseq_absquant_dummy_sample_sheet_2.csv"
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'Project Plate', 'barcode_id', 'Project Name',
         'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
         'vol_extracted_elution_ul', 'syndna_pool_number'
@@ -3417,7 +3419,7 @@ class MetatranscriptomicSampleSheetv10CreationTests(
     sample_sheet_name = "good_standard_metatv10.csv"
 
     _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
         'Well', 'Project Plate', 'i7 name', 'i7 sequence',
         'i5 name', 'i5 sequence', 'Project Name',
         'total_rna_concentration_ng_ul', 'vol_extracted_elution_ul']

@@ -38,7 +38,7 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                _assign_compressed_wells_for_96_well_plate)
 from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, \
-    NORMALIZED_DNA_VOL_KEY, NORMALIZED_WATER_VOL_KEY
+    NORMALIZED_DNA_VOL_KEY, NORMALIZED_WATER_VOL_KEY, SS_SAMPLE_ID_KEY
 from xml.etree.ElementTree import ParseError
 
 
@@ -1507,7 +1507,7 @@ class Tests(TestCase):
 
         # Testing merge of Raw Reads from prep-file
         columns_raw = ['Sample', 'Project Name', 'Project Plate',
-                       'sample sheet Sample_ID', 'Raw Reads']
+                       SS_SAMPLE_ID_KEY, 'Raw Reads']
         data_raw = [['333333331', 'Project_1', 'Plate_1', '333333331', 1001],
                     ['333333332', 'Project_1', 'Plate_2', '333333332', 1002],
                     ['333333333', 'Project_1', 'Plate_3', '333333333', 1003],
@@ -1523,7 +1523,7 @@ class Tests(TestCase):
 
         # Testing merge of Filtered Reads from prep-file
         columns_filt = ['Sample', 'Project Name', 'Project Plate',
-                        'sample sheet Sample_ID', 'Filtered Reads']
+                        SS_SAMPLE_ID_KEY, 'Filtered Reads']
         data_filt = [['333333331', 'Project_1', 'Plate_1', '333333331', 901],
                      ['333333332', 'Project_1', 'Plate_2', '333333332', 902],
                      ['333333333', 'Project_1', 'Plate_3', '333333333', 903],
