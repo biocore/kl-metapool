@@ -1803,11 +1803,11 @@ class ValidateSampleSheetTests(BaseTests):
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        
+
         # no errors
         self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [])
@@ -1815,11 +1815,11 @@ class ValidateSampleSheetTests(BaseTests):
     def test_quiet_validate_and_scrub_sample_sheet_w_context(self):
         sheet = MetagenomicSampleSheetv101(
             self.good_metag_ss_w_context, defer_validate=False)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        
+
         # no errors
         self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [])
@@ -1827,7 +1827,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
             self.no_project_ss, defer_validate=True)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1839,7 +1839,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
             self.no_project_ss, defer_validate=True)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
@@ -1852,7 +1852,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1864,7 +1864,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
@@ -1878,14 +1878,13 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Contact = None
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertEqual(buffer.getvalue().strip(),
-                        'ErrorMessage: The Contact section '
-                        'cannot be missing')
+                         'ErrorMessage: The Contact section cannot be missing')
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = MetagenomicSampleSheetv90(
@@ -1922,7 +1921,7 @@ class ValidateSampleSheetTests(BaseTests):
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertTrue(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
@@ -1956,11 +1955,11 @@ class ValidateSampleSheetTests(BaseTests):
 
         sheet = MetagenomicSampleSheetv90(
             self.scrubbable_ss, defer_validate=False)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        
+
         self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [message])
 
@@ -1988,11 +1987,11 @@ class ValidateSampleSheetTests(BaseTests):
             'automatically scrubbed too:\n'
             "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
         )
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             sheet.validate_and_scrub_sample_sheet()
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
         scrubbed = {
@@ -2022,7 +2021,7 @@ class ValidateSampleSheetTests(BaseTests):
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
@@ -2035,11 +2034,11 @@ class ValidateSampleSheetTests(BaseTests):
 
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: ProjectF_11661')
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_validate_and_scrub_sample_sheet_missing_project_names(self):
@@ -2054,11 +2053,11 @@ class ValidateSampleSheetTests(BaseTests):
                    "the SampleContext section: 123456. Projects need to be "
                    "listed in the Data and Bioinformatics section in order to "
                    "be included in the SampleContext section.")
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_sample_sheet_to_dataframe(self):

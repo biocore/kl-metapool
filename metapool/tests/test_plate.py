@@ -390,11 +390,11 @@ class PlateValidationTests(TestCase):
     def test_validate_plate_metadata_returns_None(self):
         # add a repeated plate position
         self.metadata[1]['Plate Position'] = '1'
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertIsNone(validate_plate_metadata(self.metadata))
-        
+
         output = buffer.getvalue().strip()
         self.assertEqual(output, 'Messages for Plate 1 \n'
                          'ErrorMessage: The plate position "1" is repeated')
