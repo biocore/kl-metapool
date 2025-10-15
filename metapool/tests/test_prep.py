@@ -15,7 +15,7 @@ from metapool.prep import (preparations_for_run, remove_qiita_id,
                            preparations_for_run_mapping_file, demux_pre_prep,
                            pre_prep_needs_demuxing,
                            _map_files_to_sample_ids, _find_filtered_files)
-from metapool.mp_strings import CONTROLS_DESCRIPTION_KEY
+from metapool.mp_strings import CONTROLS_DESCRIPTION_KEY, SS_SAMPLE_ID_KEY
 
 
 class TestPrep(TestCase):
@@ -562,7 +562,7 @@ class TestPrep(TestCase):
             "Forward Primer Linker",
             "515FB Forward Primer (Parada)",
             "Primer For PCR",
-            "sample sheet Sample_ID",]
+            SS_SAMPLE_ID_KEY,]
 
         data1 = [
             [
@@ -672,7 +672,7 @@ class TestPrep(TestCase):
             "Forward Primer Linker",
             "515FB Forward Primer (Parada)",
             "Primer For PCR",
-            "sample sheet Sample_ID",
+            SS_SAMPLE_ID_KEY,
             "description",]
         columns2 = [
             "Sample",
@@ -704,7 +704,7 @@ class TestPrep(TestCase):
             "Reverse Primer Linker",
             "Reverse primer (EukBr)",
             "Primer For PCR",
-            "sample sheet Sample_ID",]
+            SS_SAMPLE_ID_KEY,]
         columns3 = [
             "Sample",
             "Row",
@@ -735,7 +735,7 @@ class TestPrep(TestCase):
             "Reverse Primer Linker",
             "ITS2 Reverse Primer",
             "Primer For PCR",
-            "sample sheet Sample_ID",]
+            SS_SAMPLE_ID_KEY,]
 
         data1 = [
             [
@@ -996,7 +996,7 @@ class TestPrep(TestCase):
             "center_project_name",
             "instrument_model",
             "runid",
-            "sample sheet Sample_ID",]
+            SS_SAMPLE_ID_KEY,]
 
         exp_columns2 = [
             "sample_name",
@@ -1036,7 +1036,7 @@ class TestPrep(TestCase):
             "runid",
             "Reverse Primer Pad",
             "Reverse primer (EukBr)",
-            "sample sheet Sample_ID",]
+            SS_SAMPLE_ID_KEY,]
 
         exp_columns3 = [
             "sample_name",
@@ -1076,7 +1076,7 @@ class TestPrep(TestCase):
             "runid",
             "ITS2 Reverse Primer",
             "Reverse Primer Pad",
-            "sample sheet Sample_ID",]
+            SS_SAMPLE_ID_KEY,]
 
         exp1 = pd.DataFrame(
             columns=exp_columns1,

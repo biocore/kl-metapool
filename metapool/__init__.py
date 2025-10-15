@@ -11,9 +11,8 @@ from .mp_strings import (SAMPLE_NAME_KEY, QIITA_ID_KEY, SAMPLES_DETAILS_KEY,
                          SYNDNA_POOL_NUM_KEY, SAMPLE_DNA_CONC_KEY,
                          NORMALIZED_DNA_VOL_KEY,
                          SYNDNA_POOL_MASS_NG_KEY, ELUTION_VOL_KEY,
-                         EXTRACTED_GDNA_CONC_KEY)
-from .sample_sheet import (SS_SAMPLE_ID_KEY,
-                           sample_sheet_to_dataframe, make_sample_sheet,
+                         EXTRACTED_GDNA_CONC_KEY, SS_SAMPLE_ID_KEY)
+from .sample_sheet import (sample_sheet_to_dataframe, make_sample_sheet,
                            AmpliconSampleSheet, MetagenomicSampleSheetv90,
                            MetagenomicSampleSheetv100,
                            MetagenomicSampleSheetv101, AbsQuantSampleSheetv10,

@@ -49,6 +49,8 @@ PLATE_NAME_DELIMITER = "_"
 PM_WELL_ID_96_KEY = "well_id_96"
 PM_WELL_ID_384_KEY = "well_id_384"
 
+SS_SAMPLE_ID_KEY = 'Sample_ID'
+
 # Currently used to describe sample context (only)
 SAMPLE_TYPE_KEY = "sample_type"
 PRIMARY_STUDY_KEY = "primary_qiita_study"
