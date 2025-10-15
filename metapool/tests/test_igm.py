@@ -85,21 +85,24 @@ class IGMManifestTests(unittest.TestCase):
                 self.assertEqual(sheet['B2'].value, '01/01/00')
                 self.assertEqual(sheet['B3'].value, 'Knight Lab')
                 self.assertEqual(sheet['B4'].value, 'Dr. Knight')
-                self.assertEqual(sheet['B5'].value, 'mackenzie.m.bryant@gmail.com')
+                self.assertEqual(
+                    sheet['B5'].value, 'mackenzie.m.bryant@gmail.com')
                 self.assertEqual(sheet['B6'].value, 'MacKenzie Bryant')
-                self.assertEqual(sheet['B7'].value, 'mackenzie.m.bryant@gmail.com')
+                self.assertEqual(
+                    sheet['B7'].value, 'mackenzie.m.bryant@gmail.com')
                 self.assertEqual(sheet['B12'].value, 1000)
                 self.assertEqual(sheet['B13'].value, 3)
                 self.assertEqual(sheet['B18'].value, 'NovaSeq S4')
                 self.assertEqual(sheet['B19'].value, 'PE150')
                 self.assertEqual(sheet['B20'].value,
-                                'No-Standard Illumina Primers are fine')
+                                 'No-Standard Illumina Primers are fine')
                 self.assertEqual(sheet['B22'].value, 384)
                 self.assertEqual(sheet['B23'].value, 1)
 
                 self.assertEqual(sheet['D1'].value, '150x8x8x150')
                 self.assertEqual(sheet['D1'].fill,
-                                PatternFill(fill_type='solid', fgColor='FFFF00'))
+                                 PatternFill(
+                                     fill_type='solid', fgColor='FFFF00'))
 
                 self.assertEqual(sheet['A25'].value, 'TMI_AGP_300_302_304_308')
                 self.assertEqual(sheet['B25'].value, 'TMI_AGP_300_302_304_308')

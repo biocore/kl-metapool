@@ -1883,8 +1883,7 @@ class ValidateSampleSheetTests(BaseTests):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertEqual(buffer.getvalue().strip(),
-                        'ErrorMessage: The Contact section '
-                        'cannot be missing')
+                         'ErrorMessage: The Contact section cannot be missing')
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = MetagenomicSampleSheetv90(
