@@ -86,35 +86,35 @@ class BaseTests(unittest.TestCase):
 
         bfx = [
             {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': False,
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': False,
-             'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
+                'Sample_Project': 'Koening_ITS_101',
+                'QiitaID': '101',
+                'BarcodesAreRC': False,
+                'ForwardAdapter': 'GATACA',
+                'ReverseAdapter': 'CATCAT',
+                'HumanFiltering': False,
+                'library_construction_protocol': 'Knight Lab Kapa HP',
+                'experiment_design_description': 'Eqiiperiment'
             },
             {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
-             'BarcodesAreRC': False,
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': False,
-             'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
+                'Sample_Project': 'Yanomani_2008_10052',
+                'QiitaID': '10052',
+                'BarcodesAreRC': False,
+                'ForwardAdapter': 'GATACA',
+                'ReverseAdapter': 'CATCAT',
+                'HumanFiltering': False,
+                'library_construction_protocol': 'Knight Lab Kapa HP',
+                'experiment_design_description': 'Eqiiperiment'
             }
         ]
 
         contact = [
             {
-             'Sample_Project': 'Koening_ITS_101',
-             'Email': 'yoshiki@compy.com,ilike@turtles.com'
+                'Sample_Project': 'Koening_ITS_101',
+                'Email': 'yoshiki@compy.com,ilike@turtles.com'
             },
             {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
+                'Sample_Project': 'Yanomani_2008_10052',
+                'Email': 'mgdb@gmail.com'
             }
         ]
 
@@ -138,7 +138,7 @@ class BaseTests(unittest.TestCase):
 
     def _help_test_csv_files_exact_text_match(self, file_1, file_2):
         with open(file_1, 'r', encoding='utf-8') as f1, \
-             open(file_2, 'r', encoding='utf-8') as f2:
+                open(file_2, 'r', encoding='utf-8') as f2:
             text1 = f1.read()
             text2 = f2.read()
         self.assertMultiLineEqual(text1, text2)
@@ -472,10 +472,10 @@ class KLSampleSheetTests(BaseTests):
         luis = MetagenomicSampleSheetv100()
         luis.Reads = [151, 151]
         luis.add_sample(sample_sheet.Sample({
-                'Sample_ID': 'c',
-                'index': 'GATATA',
-                'index2': 'GCCTCC',
-                'Sample_Name': 'c.sample'}))
+            'Sample_ID': 'c',
+            'index': 'GATATA',
+            'index2': 'GCCTCC',
+            'Sample_Name': 'c.sample'}))
 
         base.merge([hugo, paco, luis])
 
@@ -546,7 +546,7 @@ class KLSampleSheetTests(BaseTests):
         }))
         paco.Bioinformatics = pd.DataFrame(self.md_metag['Bioinformatics'])
         paco.Bioinformatics['Sample_Project'] = (
-                'paco_' + paco.Bioinformatics['Sample_Project'])
+            'paco_' + paco.Bioinformatics['Sample_Project'])
 
         base.merge([hugo, paco])
 
@@ -1832,8 +1832,8 @@ class ValidateSampleSheetTests(BaseTests):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
         self.assertEqual(buffer.getvalue().strip(),
-                        'ErrorMessage: The Sample_Project column in the'
-                        ' Data section is missing')
+                         'ErrorMessage: The Sample_Project column in the'
+                         ' Data section is missing')
 
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
@@ -1856,9 +1856,9 @@ class ValidateSampleSheetTests(BaseTests):
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
-        self.assertEqual(buffer.getvalue().strip(),
-                        'ErrorMessage: The Bioinformatics section '
-                        'cannot be missing')
+        self.assertEqual(
+            buffer.getvalue().strip(),
+            'ErrorMessage: The Bioinformatics section cannot be missing')
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
@@ -2634,24 +2634,24 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
         'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'QiitaID': '99999',
-                'BarcodesAreRC': 'False',
-                'ForwardAdapter': 'AACC',
-                'ReverseAdapter': 'GGTT',
-                'HumanFiltering': 'False',
-                'library_construction_protocol': 'some protocol',
-                'experiment_design_description': 'some description',
-                'contains_replicates': 'False'
-            }
-        ]
+        {
+            'Sample_Project': 'MyProject_99999',
+            'QiitaID': '99999',
+            'BarcodesAreRC': 'False',
+            'ForwardAdapter': 'AACC',
+            'ReverseAdapter': 'GGTT',
+            'HumanFiltering': 'False',
+            'library_construction_protocol': 'some protocol',
+            'experiment_design_description': 'some description',
+            'contains_replicates': 'False'
+        }
+    ]
 
     _CONTACTS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'Email': 'foo@bar.org'
-            }
+        {
+            'Sample_Project': 'MyProject_99999',
+            'Email': 'foo@bar.org'
+        }
     ]
 
     _SAMPLE_CONTEXT = None
@@ -3131,15 +3131,15 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
         'barcode_id', 'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'QiitaID': '99999',
-                'HumanFiltering': 'False',
-                'library_construction_protocol': 'some protocol',
-                'experiment_design_description': 'some description',
-                'contains_replicates': 'False'
-            }
-        ]
+        {
+            'Sample_Project': 'MyProject_99999',
+            'QiitaID': '99999',
+            'HumanFiltering': 'False',
+            'library_construction_protocol': 'some protocol',
+            'experiment_design_description': 'some description',
+            'contains_replicates': 'False'
+        }
+    ]
 
     _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
 
