@@ -120,8 +120,8 @@ _LC_ILLUMINA_INDEX_COLUMNS = tuple(
 # beyond the value observed in 'Well_description' column. The real
 # difference is between standard_metag and abs_quant_metag.
 _BASE_DATA_COLUMNS = _PREFIX_PLATE_COLUMNS + \
-                     _ILLUMINA_INDEX_COLUMNS + \
-                     _SUFFIX_PLATE_COLUMNS
+    _ILLUMINA_INDEX_COLUMNS + \
+    _SUFFIX_PLATE_COLUMNS
 
 _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
     _LC_ILLUMINA_INDEX_COLUMNS + (
@@ -131,7 +131,7 @@ _BASE_CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
         "sample_project",
         "well_description",
         PM_WELL_ID_384_KEY
-    )
+)
 
 _BASE_GENERATED_PREP_COLUMNS = ('center_name', 'center_project_name',
                                 'instrument_model', 'lane', 'platform',
@@ -149,11 +149,11 @@ _BASE_PLATE_REMAPPER = MappingProxyType({
 
 _BASE_METAG_REMAPPER = MappingProxyType(
     _BASE_PLATE_REMAPPER | {
-            'i7 name': 'I7_Index_ID',
-            'i7 sequence': 'index',
-            'i5 name': 'I5_Index_ID',
-            'i5 sequence': 'index2'
-        })
+        'i7 name': 'I7_Index_ID',
+        'i7 sequence': 'index',
+        'i5 name': 'I5_Index_ID',
+        'i5 sequence': 'index2'
+    })
 
 
 class KLSampleSheet(sample_sheet.SampleSheet):
@@ -223,7 +223,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             "well_description",
             _SS_SAMPLE_WELL_KEY,
             _LANE_KEY,
-        )
+    )
 
     _GENERATED_PREP_COLUMNS = _BASE_GENERATED_PREP_COLUMNS
 
@@ -284,7 +284,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
             _SS_SAMPLE_WELL_KEY
-            ) + _ILLUMINA_INDEX_COLUMNS + _SUFFIX_PLATE_COLUMNS
+        ) + _ILLUMINA_INDEX_COLUMNS + _SUFFIX_PLATE_COLUMNS
 
         self.Bioinformatics = None
         self.Contact = None
@@ -513,7 +513,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     # are columns other than the expected ones, put them at the
                     # end in alphabetical order.
                     extra_cols = set(self.all_sample_keys) - \
-                                 set(self._get_expected_data_columns())
+                        set(self._get_expected_data_columns())
                     expected_cols = set(self.all_sample_keys) - extra_cols
                     col_order = \
                         [x for x in self._get_expected_data_columns()
@@ -1425,8 +1425,8 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
     })
 
     _REPLICATES_REMAPPER = MappingProxyType({
-            "Library Well": DESTINATION_WELL_384_KEY,
-        })
+        "Library Well": DESTINATION_WELL_384_KEY,
+    })
 
     _optional_replicate_columns = (ORIG_NAME_KEY, DESTINATION_WELL_384_KEY)
 
@@ -1528,11 +1528,11 @@ class AbsQuantMixin(object):
         ELUTION_VOL_KEY, SYNDNA_POOL_NUM_KEY)
 
     _ABSQUANT_REMAPPER = MappingProxyType({
-            SYNDNA_POOL_NUM_KEY: SYNDNA_POOL_NUM_KEY,
-            SYNDNA_POOL_MASS_NG_KEY: SYNDNA_POOL_MASS_NG_KEY,
-            EXTRACTED_GDNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY,
-            ELUTION_VOL_KEY: ELUTION_VOL_KEY
-        })
+        SYNDNA_POOL_NUM_KEY: SYNDNA_POOL_NUM_KEY,
+        SYNDNA_POOL_MASS_NG_KEY: SYNDNA_POOL_MASS_NG_KEY,
+        EXTRACTED_GDNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY,
+        ELUTION_VOL_KEY: ELUTION_VOL_KEY
+    })
 
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
@@ -1669,7 +1669,7 @@ class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
     def CARRIED_PREP_COLUMNS(self):
         return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
                 _LC_ILLUMINA_INDEX_COLUMNS] + \
-                list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
+            list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -1696,7 +1696,7 @@ class AmpliconSampleSheet(KLSampleSheet):
             'sample_project',
             'well_description',
             _SS_SAMPLE_WELL_KEY
-        )
+    )
 
     _ALLOW_MISSING_COLS = True
 
@@ -1881,7 +1881,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
             "sample_project",
             "well_description",
             _SS_SAMPLE_WELL_KEY,
-        )
+    )
 
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
@@ -1976,21 +1976,21 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
     })
 
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
-                            'total_rna_concentration_ng_ul',
-                            ELUTION_VOL_KEY)
+        'total_rna_concentration_ng_ul',
+        ELUTION_VOL_KEY)
 
     _ORDERED_BY_DATA_COLUMNS = True
 
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER | {
-                'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
-                ELUTION_VOL_KEY: ELUTION_VOL_KEY
-            }
+            'Sample RNA Concentration': 'total_rna_concentration_ng_ul',
+            ELUTION_VOL_KEY: ELUTION_VOL_KEY
+        }
         self._data_columns = \
             _PREFIX_PLATE_COLUMNS + _ILLUMINA_INDEX_COLUMNS + (
-             _SS_SAMPLE_PROJECT_KEY, 'total_rna_concentration_ng_ul',
-             ELUTION_VOL_KEY, 'Well_description')
+                _SS_SAMPLE_PROJECT_KEY, 'total_rna_concentration_ng_ul',
+                ELUTION_VOL_KEY, 'Well_description')
         self._validate_on_load(path, defer_validate)
 
 
