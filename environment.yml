@@ -14,7 +14,7 @@ dependencies:
   - openpyxl
   - pandas
   - pip
-  - python=3.9
+  - python=3.10
   - seaborn[version='>=0.13.2']
   - seqtk[version='>=1.4']
   - scikit-learn
