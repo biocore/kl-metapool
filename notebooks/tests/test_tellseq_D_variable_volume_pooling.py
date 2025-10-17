@@ -8,12 +8,12 @@ NOTEBOOK = "tellseq_D_variable_volume_pooling.ipynb"
 PICKLIST_FNAME = "Tellseq_iSeqnormpool_set_col19to24.txt"
 
 
-class TestTellseqD(unittest.TestCase):
+class TestTellseqDNotebook(unittest.TestCase):
     def setUp(self):
         self.notebooks_dir = os.path.dirname(os.path.dirname(__file__))
         self.test_output_dir = os.path.join(self.notebooks_dir, 'test_output')
 
-    def test_iseqnorm_picklist(self):
+    def test_tellseq_d_main_path(self):
         """Verify notebook produces expected output for iSeqnormed picklist."""
 
         with tempfile.TemporaryDirectory() as tmp_dir:
