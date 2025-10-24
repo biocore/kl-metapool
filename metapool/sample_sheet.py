@@ -627,38 +627,37 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         result = table.copy(deep=True)
 
         if strict:
-            # All columns not defined in _remapper will be removed from result.
-            result = table[self._remapper.keys()].copy()
-            result.rename(self._remapper, axis=1, inplace=True)
-        else:
-            # if a column named 'index' is present in table, assume it is a
-            # numeric index and not a sequence of bases, which is required in
-            # the output. Assume the column that will become 'index' is
-            # defined in _remapper.
-            if 'index' in set(result.columns):
-                result.drop(columns=['index'], inplace=True)
+            warnings.warn("strict=True is no longer supported. Proceeding "
+                          "with strict=False behavior.")
 
-            _remapper = KLSampleSheet._column_alts | self._remapper
-            result.rename(_remapper, axis=1, inplace=True)
+        # if a column named 'index' is present in table, assume it is a
+        # numeric index and not a sequence of bases, which is required in
+        # the output. Assume the column that will become 'index' is
+        # defined in _remapper.
+        if 'index' in set(result.columns):
+            result.drop(columns=['index'], inplace=True)
 
-            if len(result.columns) != len(result.columns.unique()):
-                raise ValueError(
-                    f"The remapped sample sheet column names contain "
-                    f"duplicates: {sorted(result.columns.tolist())}")
+        _remapper = KLSampleSheet._column_alts | self._remapper
+        result.rename(_remapper, axis=1, inplace=True)
 
-            # result may contain additional columns that aren't allowed in the
-            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
-            # There may also be required columns that aren't defined in result.
+        if len(result.columns) != len(result.columns.unique()):
+            raise ValueError(
+                f"The remapped sample sheet column names contain "
+                f"duplicates: {sorted(result.columns.tolist())}")
 
-            # once all columns have been renamed to their preferred names, we
-            # must determine the proper set of column names for this sample-
-            # sheet. For legacy classes this is simply the list of columns
-            # defined in each sample-sheet version. For newer classes, this is
-            # defined at run-time and requires examining the metadata that
-            # will define the [Data] section.
-            required_columns = self._get_expected_data_columns(table=result)
-            subset = list(set(required_columns) & set(result.columns))
-            result = result[subset]
+        # result may contain additional columns that aren't allowed in the
+        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+        # There may also be required columns that aren't defined in result.
+
+        # once all columns have been renamed to their preferred names, we
+        # must determine the proper set of column names for this sample-
+        # sheet. For legacy classes this is simply the list of columns
+        # defined in each sample-sheet version. For newer classes, this is
+        # defined at run-time and requires examining the metadata that
+        # will define the [Data] section.
+        required_columns = self._get_expected_data_columns(table=result)
+        subset = list(set(required_columns) & set(result.columns))
+        result = result[subset]
 
         return result
 
