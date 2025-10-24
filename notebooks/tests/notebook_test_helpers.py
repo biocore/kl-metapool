@@ -1,18 +1,20 @@
 import unittest
-from matplotlib.pyplot import text
 import papermill as pm
 import tempfile
 from pathlib import Path
 import os
 import re
 
+SAVE_DIR = "/Users/amandabirmingham/Desktop"
 
 class TestNotebook(unittest.TestCase):
     NOTEBOOK = "amplicon_pre_prep_file_generator.ipynb"
-    _OUT_PARAM_NAME_KEY = "param_name"  # key for output param names
     _OUT_PARAM_VARIABLE_KEY = "param_variable"  # key for output param variables
     _FILE_PATH_KEY = "is_filepath"  # key for file path parameters
     _ZERO_DATES_FUNC_KEY = "zero_dates_func"  # func to replace for dates
+
+    # TODO: turn off before committing
+    _SAVE_UNMATCHED_OUTPUTS = False  # whether to save unmatched outputs
 
     def setUp(self):
         self.notebooks_dir = os.path.dirname(os.path.dirname(__file__))
@@ -25,7 +27,7 @@ class TestNotebook(unittest.TestCase):
 
         filename = filename if not filename else f"{filename} "
         msg = f"{filename}files do not match exactly."
-        selfmaxDiff = None
+        self.maxDiff = None
         with open(file_1, 'r', encoding='utf-8') as f1, \
                 open(file_2, 'r', encoding='utf-8') as f2:
             text1 = f1.read()
@@ -33,7 +35,21 @@ class TestNotebook(unittest.TestCase):
             if zero_dates_func:
                 text1 = zero_dates_func(text1)
                 text2 = zero_dates_func(text2)
-        self.assertMultiLineEqual(text1, text2, msg=msg)
+            try:
+                self.assertMultiLineEqual(text1, text2, msg=msg)
+            except AssertionError as e:
+                if self._SAVE_UNMATCHED_OUTPUTS:
+                    # save the unmatched output files for inspection
+                    file_info = [(file_1, text1), (file_2, text2)]
+                    for curr_index in range(len(file_info)):
+                        curr_file, curr_text = file_info[curr_index]
+                        base_name = os.path.basename(curr_file)
+                        save_fp = os.path.join(
+                            SAVE_DIR, f"UNMATCHED_{curr_index+1}_{base_name}")
+                        with open(save_fp, 'w', encoding='utf-8') as sf:
+                            sf.write(curr_text)
+
+                raise e
 
     def _replace_illumina_date(self, text):
         """Helper function to replace illumina date strings in text."""
@@ -43,19 +59,25 @@ class TestNotebook(unittest.TestCase):
         return re.sub(date_pattern, replacement, text)
 
     def _run_notebook_test(self, run_params, out_param_details):
-        """Verify notebook produces expected output files."""
+        """Verify notebook produces expected output files.
+
+        Expects out_param_details to be a dict mapping output parameter name
+        to a details dict containing at least `_OUT_PARAM_VARIABLE_KEY` and
+        optionally `_FILE_PATH_KEY` and `_ZERO_DATES_FUNC_KEY`.
+        """
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_path = Path(tmp_dir)
 
-            for curr_param_details in out_param_details:
-                curr_param_name = curr_param_details[self._OUT_PARAM_NAME_KEY]
+            # Populate run_params with formatted output paths and ensure
+            # directories exist for any file path outputs.
+            for curr_param_name, curr_details in out_param_details.items():
                 curr_param_variable = \
-                    curr_param_details[self._OUT_PARAM_VARIABLE_KEY]
+                    curr_details[self._OUT_PARAM_VARIABLE_KEY]
                 run_params[curr_param_name] = \
                     curr_param_variable.format(path=tmp_path)
 
-                if curr_param_details.get(self._FILE_PATH_KEY, False):
+                if curr_details.get(self._FILE_PATH_KEY, False):
                     # extract directory path by removing {path}/ and filename
                     dir_path = os.path.dirname(
                         curr_param_variable.replace("{path}/", ""))
@@ -72,14 +94,14 @@ class TestNotebook(unittest.TestCase):
                 log_output=True,
             )
 
-            for curr_param_details in out_param_details:
-                if not curr_param_details.get(self._FILE_PATH_KEY, False):
+            # Validate that expected files were produced and contents match
+            for curr_param_name, curr_details in out_param_details.items():
+                if not curr_details.get(self._FILE_PATH_KEY, False):
                     continue
-                curr_param_name = curr_param_details[self._OUT_PARAM_NAME_KEY]
                 curr_param_variable = \
-                    curr_param_details[self._OUT_PARAM_VARIABLE_KEY]
+                    curr_details[self._OUT_PARAM_VARIABLE_KEY]
                 curr_param_zero_dates = \
-                    curr_param_details.get(self._ZERO_DATES_FUNC_KEY, None)
+                    curr_details.get(self._ZERO_DATES_FUNC_KEY, None)
                 curr_generated_fp = curr_param_variable.format(path=tmp_path)
                 self.assertTrue(
                     os.path.exists(curr_generated_fp),
@@ -94,5 +116,5 @@ class TestNotebook(unittest.TestCase):
 
                 # confirm that the written file matches the original
                 self._help_test_files_exact_text_match(
-                    curr_generated_fp, curr_expected_fp, curr_param_name,
+                    curr_expected_fp, curr_generated_fp, curr_param_name,
                     zero_dates_func=curr_param_zero_dates)
