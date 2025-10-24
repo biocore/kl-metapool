@@ -1,13 +1,10 @@
 import unittest
 from notebooks.tests.notebook_test_helpers import TestNotebook
 
-
 class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
     NOTEBOOK = "matrix_tube_pipeline_seqcount_norm.ipynb"
 
-    def test_matrix_tube_pipeline_main_path(self):
-        """Verify notebook produces expected output files."""
-
+    def _make_params(self):
         run_params = {
             # Part 1 Step 0 inputs
             'expt_name': 'RKL4982',
@@ -125,55 +122,42 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
             'dynamic_range': 5
         }
 
-        output_params = [
-            # Part 1 Step 7 output (optional syndna)
-            #{
-            #    self._OUT_PARAM_NAME_KEY: 'syndna_picklist_fp',
-            #    self._OUT_PARAM_VARIABLE_KEY:
-            #        '{path}/Input_Norm/YYYY_MM_DD_Celeste_Adaptation_16-21_matrix_syndna_absquant.txt',
-            #    self._FILE_PATH_KEY: True
-            #},
+        output_params = {
             # Part 1 Step 8 output
-            {
-                self._OUT_PARAM_NAME_KEY: 'norm_picklist_fp',
+            'norm_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/Input_Norm/YYYY_MM_DD_Celeste_Adaptation_16-21_inputnorm.txt',
                 self._FILE_PATH_KEY: True
             },
             # Part 2 Step 3 output
-            {
-                self._OUT_PARAM_NAME_KEY: 'index_picklist_fp',
+            'index_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/Indices/YYYY_MM_DD_Celeste_Adaptation_16-21_indices_matrix.txt',
                 self._FILE_PATH_KEY: True
             },
 
             # Part 3 Step 5 output
-            {
-                self._OUT_PARAM_NAME_KEY: 'evp_picklist_fp',
+            'evp_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/Pooling/YYYY_MM_DD_Celeste_Adaptation_evp.csv',
                 self._FILE_PATH_KEY: True
             },
 
             # Part 3 Step 6 output
-            {
-                self._OUT_PARAM_NAME_KEY: 'plate_df_fp',
+            'plate_df_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/QC/YYYY_MM_DD_Celeste_Adaptation_matrix_df.txt',
                 self._FILE_PATH_KEY: True
             },
 
             # Part 3 Step 7 outputs
-            {
-                self._OUT_PARAM_NAME_KEY: 'iseq_sample_sheet_fp',
+            'iseq_sample_sheet_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/SampleSheets/YYYY_MM_DD_Celeste_Adaptation_12986_16_17_18_21_matrix_samplesheet_iseq.csv',
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
             },
-            {
-                self._OUT_PARAM_NAME_KEY: 'novaseq_sample_sheet_fp',
+            'novaseq_sample_sheet_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/SampleSheets/YYYY_MM_DD_Celeste_Adaptation_12986_16_17_18_21_matrix_samplesheet_novaseq.csv',
                 self._FILE_PATH_KEY: True,
@@ -181,15 +165,57 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
             },
 
             # Part 4 Step 4 output
-            {
-                self._OUT_PARAM_NAME_KEY: 'iseqnormed_picklist_fp',
+            'iseqnormed_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     '{path}/Pooling/YYYY_MM_DD_Celeste_Adaptation_16_17_18_21_iSeqnormpool.csv',
                 self._FILE_PATH_KEY: True
             }
-        ]
+        }
+        return run_params, output_params
+
+    def test_matrix_tube_pipeline_standard_metag(self):
+        """Verify notebook produces expected output files."""
+
+        run_params, output_params = self._make_params()
         self._run_notebook_test(run_params, output_params)
 
+    def test_matrix_tube_pipeline_absquant_metag(self):
+        """Verify notebook produces expected output files."""
+
+        run_params, output_params = self._make_params()
+
+        run_params['syndna_pool_number'] = 1
+
+        # add optional syndna output
+        # Part 1 Step 7 output (optional syndna)
+        output_params['syndna_picklist_fp'] = {
+            self._OUT_PARAM_VARIABLE_KEY:
+                '{path}/Input_Norm/YYYY_MM_DD_Celeste_Adaptation_16-21_matrix_syndna_absquant.txt',
+            self._FILE_PATH_KEY: True
+        }
+
+        # update other outputs that change with absquant
+        # Part 3 Step 6 output
+        output_params['plate_df_fp'] = {
+            self._OUT_PARAM_VARIABLE_KEY:
+                '{path}/QC/YYYY_MM_DD_Celeste_Adaptation_matrix_df_absquant.txt',
+            self._FILE_PATH_KEY: True
+        }
+        # Part 3 Step 7 outputs
+        output_params['iseq_sample_sheet_fp'] = {
+            self._OUT_PARAM_VARIABLE_KEY:
+                '{path}/SampleSheets/YYYY_MM_DD_Celeste_Adaptation_12986_16_17_18_21_matrix_samplesheet_iseq_absquant.csv',
+            self._FILE_PATH_KEY: True,
+            self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
+        }
+        output_params['novaseq_sample_sheet_fp'] = {
+            self._OUT_PARAM_VARIABLE_KEY:
+                '{path}/SampleSheets/YYYY_MM_DD_Celeste_Adaptation_12986_16_17_18_21_matrix_samplesheet_novaseq_absquant.csv',
+            self._FILE_PATH_KEY: True,
+            self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
+        }
+
+        self._run_notebook_test(run_params, output_params)
 
 if __name__ == "__main__":
     unittest.main()

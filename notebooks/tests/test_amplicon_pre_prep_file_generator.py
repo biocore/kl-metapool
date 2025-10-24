@@ -139,18 +139,16 @@ class TestAmpliconNotebook(TestNotebook):
             'keep_these': ['ABTX_Plate_174', 'ABTX_Plate_178'],
         }
 
-        output_params = [
-            {
-                self._OUT_PARAM_NAME_KEY: 'output_filename',
+        output_params = {
+            'output_filename': {
                 self._OUT_PARAM_VARIABLE_KEY: '{path}/amplicon/20230302_IL515fBC_806_Celeste_Adaptation_12986_Plate_16_17_18_21.txt',
                 self._FILE_PATH_KEY: True,
             },
-            {
-                self._OUT_PARAM_NAME_KEY: 'merged_output_filename',
+            'merged_output_filename': {
                 self._OUT_PARAM_VARIABLE_KEY: '{path}/amplicon/20230203_IL515fBC_806_ABTX_11052_Plates_174_178_182_185_ADAPT_12986_Plate_16_17_18_21_merged.txt',
                 self._FILE_PATH_KEY: True,
             }
-        ]
+        }
 
         self._run_notebook_test(run_params, output_params)
 
