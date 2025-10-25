@@ -7,14 +7,15 @@ import re
 
 SAVE_DIR = "/Users/amandabirmingham/Desktop"
 
+
 class TestNotebook(unittest.TestCase):
     NOTEBOOK = "amplicon_pre_prep_file_generator.ipynb"
-    _OUT_PARAM_VARIABLE_KEY = "param_variable"  # key for output param variables
+    _OUT_PARAM_VARIABLE_KEY = "param_variable"
     _FILE_PATH_KEY = "is_filepath"  # key for file path parameters
     _ZERO_DATES_FUNC_KEY = "zero_dates_func"  # func to replace for dates
 
     # TODO: turn off before committing
-    _SAVE_UNMATCHED_OUTPUTS = False  # whether to save unmatched outputs
+    _SAVE_UNMATCHED_OUTPUTS = True  # whether to save unmatched outputs
 
     def setUp(self):
         self.notebooks_dir = os.path.dirname(os.path.dirname(__file__))
