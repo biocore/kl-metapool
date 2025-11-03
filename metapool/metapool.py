@@ -1537,6 +1537,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
         # Parse table to find sample names, and sum forward and rev reads.
         for i in counts_df.index:
             filename = counts_df.loc[i, sample_column]
+            # TODO: remove dependence on illumina file format (see issue #341)
             match = re.match(r'^(.*)_S\d+_L00\d', filename)
             if not match:
                 raise LookupError(f'id not found in {filename}')
