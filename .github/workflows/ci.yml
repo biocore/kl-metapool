@@ -39,8 +39,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate metapool
-          pytest -v -s --tb=short --disable-warnings \
-            --cov=metapool --cov=notebooks --cov-report=term-missing
+          pytest -rA --cov=metapool --cov=notebooks --cov-report=term-missing
 
       - name: Python linter
         shell: bash -l {0}
