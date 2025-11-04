@@ -23,7 +23,6 @@ from .sample_sheet import (SS_SAMPLE_ID_KEY,
 from .plate import (validate_plate_metadata, requires_dilution, dilute_gDNA,
                     autopool, find_threshold)
 from .amplipool import assign_emp_index
-from .igm import IGMManifest
 from .count import run_counts
 from .controls import is_blank
 from .metapool import (extract_stats_metadata, sum_lanes, compress_plates,
@@ -35,7 +34,7 @@ from .sequencers import get_model_by_instrument_id, PROFILE_NAME_KEY
 __credits__ = ("https://github.com/biocore/kl-metapool/"
                "graphs/contributors")
 
-__all__ = ['IGMManifest', 'add_controls', 'assign_emp_index', 'autopool',
+__all__ = ['add_controls', 'assign_emp_index', 'autopool',
            'compress_plates', 'strip_tubecode_leading_zeroes',
            'demux_pre_prep', 'demux_sample_sheet',
            'dilute_gDNA', 'extract_stats_metadata', 'find_threshold',
