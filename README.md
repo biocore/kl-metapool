@@ -4,7 +4,7 @@ A collection of Jupyter notebooks and modules to support the wet lab shotgun pip
 
 ## Installation
 
-**Note that this package is designed to be used with Qiita, and some tests will 
+**Note that this package is designed to be used with Qiita, and some tests will
 fail without a Qiita installation.**
 
 To install this package, first clone the repository from GitHub:
@@ -16,7 +16,7 @@ git clone https://github.com/biocore/kl-metapool.git
 Create a Python3 Conda environment in which to run the package:
 
 ```bash
-conda create --yes -n metapool 'python==3.9' scikit-learn pandas numpy nose pep8 flake8 matplotlib jupyter notebook 'seaborn>=0.7.1' pip openpyxl 'seqtk>=1.4'
+conda env create -f environment.yml
 ```
 
 Activate the Conda environment:
@@ -58,9 +58,9 @@ nosetests
 
 ## Use
 
-The notebooks themselves contain detailed usage instructions. 
+The notebooks themselves contain detailed usage instructions.
 
-Ideally, when using a notebook, you will copy the original and 
+Ideally, when using a notebook, you will copy the original and
 use it for each plate you create with the shotgun pipeline.
 
 Just make sure to activate the right Conda environment before starting the

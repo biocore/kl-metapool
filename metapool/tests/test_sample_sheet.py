@@ -3,6 +3,8 @@ import unittest
 import tempfile
 from datetime import datetime
 from os.path import join, dirname
+from io import StringIO
+from contextlib import redirect_stdout
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
@@ -84,35 +86,35 @@ class BaseTests(unittest.TestCase):
 
         bfx = [
             {
-             'Sample_Project': 'Koening_ITS_101',
-             'QiitaID': '101',
-             'BarcodesAreRC': False,
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': False,
-             'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
+                'Sample_Project': 'Koening_ITS_101',
+                'QiitaID': '101',
+                'BarcodesAreRC': False,
+                'ForwardAdapter': 'GATACA',
+                'ReverseAdapter': 'CATCAT',
+                'HumanFiltering': False,
+                'library_construction_protocol': 'Knight Lab Kapa HP',
+                'experiment_design_description': 'Eqiiperiment'
             },
             {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'QiitaID': '10052',
-             'BarcodesAreRC': False,
-             'ForwardAdapter': 'GATACA',
-             'ReverseAdapter': 'CATCAT',
-             'HumanFiltering': False,
-             'library_construction_protocol': 'Knight Lab Kapa HP',
-             'experiment_design_description': 'Eqiiperiment'
+                'Sample_Project': 'Yanomani_2008_10052',
+                'QiitaID': '10052',
+                'BarcodesAreRC': False,
+                'ForwardAdapter': 'GATACA',
+                'ReverseAdapter': 'CATCAT',
+                'HumanFiltering': False,
+                'library_construction_protocol': 'Knight Lab Kapa HP',
+                'experiment_design_description': 'Eqiiperiment'
             }
         ]
 
         contact = [
             {
-             'Sample_Project': 'Koening_ITS_101',
-             'Email': 'yoshiki@compy.com,ilike@turtles.com'
+                'Sample_Project': 'Koening_ITS_101',
+                'Email': 'yoshiki@compy.com,ilike@turtles.com'
             },
             {
-             'Sample_Project': 'Yanomani_2008_10052',
-             'Email': 'mgdb@gmail.com'
+                'Sample_Project': 'Yanomani_2008_10052',
+                'Email': 'mgdb@gmail.com'
             }
         ]
 
@@ -136,7 +138,7 @@ class BaseTests(unittest.TestCase):
 
     def _help_test_csv_files_exact_text_match(self, file_1, file_2):
         with open(file_1, 'r', encoding='utf-8') as f1, \
-             open(file_2, 'r', encoding='utf-8') as f2:
+                open(file_2, 'r', encoding='utf-8') as f2:
             text1 = f1.read()
             text2 = f2.read()
         self.assertMultiLineEqual(text1, text2)
@@ -470,10 +472,10 @@ class KLSampleSheetTests(BaseTests):
         luis = MetagenomicSampleSheetv100()
         luis.Reads = [151, 151]
         luis.add_sample(sample_sheet.Sample({
-                'Sample_ID': 'c',
-                'index': 'GATATA',
-                'index2': 'GCCTCC',
-                'Sample_Name': 'c.sample'}))
+            'Sample_ID': 'c',
+            'index': 'GATATA',
+            'index2': 'GCCTCC',
+            'Sample_Name': 'c.sample'}))
 
         base.merge([hugo, paco, luis])
 
@@ -544,7 +546,7 @@ class KLSampleSheetTests(BaseTests):
         }))
         paco.Bioinformatics = pd.DataFrame(self.md_metag['Bioinformatics'])
         paco.Bioinformatics['Sample_Project'] = (
-                'paco_' + paco.Bioinformatics['Sample_Project'])
+            'paco_' + paco.Bioinformatics['Sample_Project'])
 
         base.merge([hugo, paco])
 
@@ -1760,11 +1762,6 @@ class SampleSheetWorkflow(BaseTests):
 class ValidateSampleSheetTests(BaseTests):
     maxDiff = None
 
-    def assertStdOutEqual(self, expected):
-        # testing stdout: https://stackoverflow.com/a/12683001
-        observed = sys.stdout.getvalue().strip()
-        self.assertEqual(observed, expected)
-
     # def test_init_defer_validate_warning(self):
     #     # Assure DeprecationWarning for sheet init w/o defer_validate param
     #
@@ -1805,33 +1802,48 @@ class ValidateSampleSheetTests(BaseTests):
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
         # no errors
-        self.assertStdOutEqual('')
+        self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [])
 
     def test_quiet_validate_and_scrub_sample_sheet_w_context(self):
         sheet = MetagenomicSampleSheetv101(
             self.good_metag_ss_w_context, defer_validate=False)
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
         # no errors
-        self.assertStdOutEqual('')
+        self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [])
 
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
             self.no_project_ss, defer_validate=True)
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
-        self.assertStdOutEqual('ErrorMessage: The Sample_Project column in the'
-                               ' Data section is missing')
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(buffer.getvalue().strip(),
+                         'ErrorMessage: The Sample_Project column in the'
+                         ' Data section is missing')
 
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
             self.no_project_ss, defer_validate=True)
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
-        self.assertStdOutEqual('')
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        self.assertEqual(buffer.getvalue().strip(), '')
         msg_strs = [str(msg) for msg in msgs]
         self.assertEqual(msg_strs, ['ErrorMessage: The Sample_Project column'
                                     ' in the Data section is missing'])
@@ -1839,17 +1851,24 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
-        self.assertStdOutEqual('ErrorMessage: The Bioinformatics section '
-                               'cannot be missing')
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(
+            buffer.getvalue().strip(),
+            'ErrorMessage: The Bioinformatics section cannot be missing')
 
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
 
-        self.assertStdOutEqual('')
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        self.assertEqual(buffer.getvalue().strip(), '')
         msg_strs = [str(msg) for msg in msgs]
         self.assertEqual(
             msg_strs,
@@ -1858,10 +1877,13 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Contact = None
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
 
-        self.assertStdOutEqual('ErrorMessage: The Contact section '
-                               'cannot be missing')
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(buffer.getvalue().strip(),
+                         'ErrorMessage: The Contact section cannot be missing')
 
     def test_validate_and_scrub_sample_sheet_scrubbed_names(self):
         sheet = MetagenomicSampleSheetv90(
@@ -1895,8 +1917,11 @@ class ValidateSampleSheetTests(BaseTests):
                    'ELI364, P21_E.coli ELI365, P21_E.coli ELI366, P21_E.coli '
                    'ELI367, P21_E.coli ELI368, P21_E.coli ELI369')
 
-        self.assertTrue(sheet.validate_and_scrub_sample_sheet())
-        self.assertStdOutEqual(message)
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertTrue(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
         message = ('The following sample names were scrubbed for bcl2fastq '
@@ -1929,8 +1954,12 @@ class ValidateSampleSheetTests(BaseTests):
 
         sheet = MetagenomicSampleSheetv90(
             self.scrubbable_ss, defer_validate=False)
-        msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        self.assertStdOutEqual('')
+
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            msgs = sheet.quiet_validate_and_scrub_sample_sheet()
+
+        self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [message])
 
     def test_validate_and_scrub_sample_sheet_scrubbed_project_names(self):
@@ -1950,8 +1979,6 @@ class ValidateSampleSheetTests(BaseTests):
         sheet.Contact.replace(project_remapper, inplace=True)
         sheet.Bioinformatics.replace(project_remapper, inplace=True)
 
-        sheet.validate_and_scrub_sample_sheet()
-
         message = (
             'WarningMessage: The following project names were scrubbed for '
             'bcl2fastq compatibility. If the same invalid characters are also '
@@ -1959,7 +1986,12 @@ class ValidateSampleSheetTests(BaseTests):
             'automatically scrubbed too:\n'
             "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
         )
-        self.assertStdOutEqual(message)
+
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            sheet.validate_and_scrub_sample_sheet()
+
+        self.assertEqual(buffer.getvalue().strip(), message)
 
         scrubbed = {
             'NYU_s_Tisch_Art_Microbiome_13059',
@@ -1985,8 +2017,11 @@ class ValidateSampleSheetTests(BaseTests):
                    'Sample_Project column are missing a Qiita study '
                    'identifier: ProjectF, ProjectG')
 
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        self.assertStdOutEqual(message)
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
@@ -1996,10 +2031,14 @@ class ValidateSampleSheetTests(BaseTests):
             if sample.Sample_Project == 'ProjectF_11661':
                 sample.Lane = ' '
 
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: ProjectF_11661')
-        self.assertStdOutEqual(message)
+
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_validate_and_scrub_sample_sheet_missing_project_names(self):
         sheet = MetagenomicSampleSheetv101(
@@ -2009,12 +2048,16 @@ class ValidateSampleSheetTests(BaseTests):
         a_blank_mask = sheet.SampleContext[SAMPLE_NAME_KEY] == "BLANK1_1A"
         sheet.SampleContext.loc[a_blank_mask, PRIMARY_STUDY_KEY] = "123456"
 
-        self.assertFalse(sheet.validate_and_scrub_sample_sheet())
         message = ("ErrorMessage: The following projects were only found in "
                    "the SampleContext section: 123456. Projects need to be "
                    "listed in the Data and Bioinformatics section in order to "
                    "be included in the SampleContext section.")
-        self.assertStdOutEqual(message)
+
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertFalse(sheet.validate_and_scrub_sample_sheet())
+
+        self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_sample_sheet_to_dataframe(self):
         ss = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
@@ -2590,24 +2633,24 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
         'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'QiitaID': '99999',
-                'BarcodesAreRC': 'False',
-                'ForwardAdapter': 'AACC',
-                'ReverseAdapter': 'GGTT',
-                'HumanFiltering': 'False',
-                'library_construction_protocol': 'some protocol',
-                'experiment_design_description': 'some description',
-                'contains_replicates': 'False'
-            }
-        ]
+        {
+            'Sample_Project': 'MyProject_99999',
+            'QiitaID': '99999',
+            'BarcodesAreRC': 'False',
+            'ForwardAdapter': 'AACC',
+            'ReverseAdapter': 'GGTT',
+            'HumanFiltering': 'False',
+            'library_construction_protocol': 'some protocol',
+            'experiment_design_description': 'some description',
+            'contains_replicates': 'False'
+        }
+    ]
 
     _CONTACTS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'Email': 'foo@bar.org'
-            }
+        {
+            'Sample_Project': 'MyProject_99999',
+            'Email': 'foo@bar.org'
+        }
     ]
 
     _SAMPLE_CONTEXT = None
@@ -3087,15 +3130,15 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
         'barcode_id', 'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'QiitaID': '99999',
-                'HumanFiltering': 'False',
-                'library_construction_protocol': 'some protocol',
-                'experiment_design_description': 'some description',
-                'contains_replicates': 'False'
-            }
-        ]
+        {
+            'Sample_Project': 'MyProject_99999',
+            'QiitaID': '99999',
+            'HumanFiltering': 'False',
+            'library_construction_protocol': 'some protocol',
+            'experiment_design_description': 'some description',
+            'contains_replicates': 'False'
+        }
+    ]
 
     _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
 
