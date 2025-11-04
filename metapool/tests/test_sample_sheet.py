@@ -1802,11 +1802,11 @@ class ValidateSampleSheetTests(BaseTests):
 
     def test_quiet_validate_and_scrub_sample_sheet(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=False)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        
+
         # no errors
         self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [])
@@ -1814,11 +1814,11 @@ class ValidateSampleSheetTests(BaseTests):
     def test_quiet_validate_and_scrub_sample_sheet_w_context(self):
         sheet = MetagenomicSampleSheetv101(
             self.good_metag_ss_w_context, defer_validate=False)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        
+
         # no errors
         self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [])
@@ -1826,7 +1826,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
             self.no_project_ss, defer_validate=True)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1838,7 +1838,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_quiet_validate_and_scrub_sample_sheet_no_sample_project(self):
         sheet = MetagenomicSampleSheetv100(
             self.no_project_ss, defer_validate=True)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
@@ -1851,7 +1851,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1863,7 +1863,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_quiet_validate_scrub_sample_sheet_missing_bioinformatics(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Bioinformatics = None
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
@@ -1877,7 +1877,7 @@ class ValidateSampleSheetTests(BaseTests):
     def test_validate_and_scrub_sample_sheet_missing_contact(self):
         sheet = MetagenomicSampleSheetv90(self.good_ss, defer_validate=True)
         sheet.Contact = None
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
@@ -1921,7 +1921,7 @@ class ValidateSampleSheetTests(BaseTests):
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertTrue(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_quiet_validate_and_scrub_sample_sheet_scrubbed_names(self):
@@ -1955,11 +1955,11 @@ class ValidateSampleSheetTests(BaseTests):
 
         sheet = MetagenomicSampleSheetv90(
             self.scrubbable_ss, defer_validate=False)
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             msgs = sheet.quiet_validate_and_scrub_sample_sheet()
-        
+
         self.assertEqual(buffer.getvalue().strip(), '')
         self.assertEqual(msgs, [message])
 
@@ -1987,11 +1987,11 @@ class ValidateSampleSheetTests(BaseTests):
             'automatically scrubbed too:\n'
             "NYU's Tisch Art Microbiome 13059, The x.x microbiome project 1337"
         )
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             sheet.validate_and_scrub_sample_sheet()
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
         scrubbed = {
@@ -2021,7 +2021,7 @@ class ValidateSampleSheetTests(BaseTests):
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_validate_and_scrub_sample_sheet_project_missing_lane(self):
@@ -2034,11 +2034,11 @@ class ValidateSampleSheetTests(BaseTests):
 
         message = ('ErrorMessage: The following projects are missing a Lane '
                    'value: ProjectF_11661')
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_validate_and_scrub_sample_sheet_missing_project_names(self):
@@ -2053,11 +2053,11 @@ class ValidateSampleSheetTests(BaseTests):
                    "the SampleContext section: 123456. Projects need to be "
                    "listed in the Data and Bioinformatics section in order to "
                    "be included in the SampleContext section.")
-        
+
         buffer = StringIO()
         with redirect_stdout(buffer):
             self.assertFalse(sheet.validate_and_scrub_sample_sheet())
-        
+
         self.assertEqual(buffer.getvalue().strip(), message)
 
     def test_sample_sheet_to_dataframe(self):
@@ -3153,58 +3153,6 @@ class PacBioMetagSampleSheetv10CreationTests(SampleSheetLoadMakeAndLoadTests):
         self._help_test_load_sample_sheet(self.sheet_class)
 
     def test_PacBioMetagSampleSheetv10_roundtrip(self):
-        self._help_test_roundtrip_sample_sheet(self.sheet_class)
-
-
-class PacBioMetagSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
-    sheet_class = PacBioMetagSampleSheetv11
-    sample_sheet_name = "good_pacbio_metagv11.csv"
-
-    _INPUT_COLS = [
-        'sample sheet Sample_ID', 'Sample', 'Row', 'Col', 'Blank',
-        'Well', 'barcode_id_pacbio', 'barcode_id_twist',
-        'Project Plate', 'Project Name']
-
-    _INPUT_DATA = [
-        ['sample_1', 'sample.1', '1', '1', 'False',
-         'A1', 'bc3011', 'Plate_A_27_C04', 'sample_plate_1',
-         'MyProject_99999'],
-        ['sample_2', 'sample.2', '2', '1', 'False',
-         'A2', 'bc0112', 'Plate_A_27_C04', 'sample_plate_1',
-         'MyProject_99999'],
-        ['sample_3', 'sample.3', '3', '1', 'False',
-         'A3', 'bc9992', 'Plate_A_27_C04', 'sample_plate_1',
-         'MyProject_99999'],
-    ]
-
-    _OUTPUT_COLS = [
-        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'library_well_id',
-        'barcode_id_pacbio', 'barcode_id_twist', 'Sample_Project',
-        'Well_description']
-
-    _BIOINFORMATICS = [
-            {
-                'Sample_Project': 'MyProject_99999',
-                'QiitaID': '99999',
-                'HumanFiltering': 'False',
-                'library_construction_protocol': 'some protocol',
-                'experiment_design_description': 'some description',
-                'contains_replicates': 'False'
-            }
-        ]
-
-    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
-
-    def test_PacBioMetagSampleSheetv11_instantiate_from_path(self):
-        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
-
-    def test_PacBioMetagSampleSheetv11_make_sample_sheet(self):
-        self._help_test_make_sample_sheet(self.sheet_class, sequencer="Revio")
-
-    def test_PacBioMetagSampleSheetv11_load_sample_sheet(self):
-        self._help_test_load_sample_sheet(self.sheet_class)
-
-    def test_PacBioMetagSampleSheetv11_roundtrip(self):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
