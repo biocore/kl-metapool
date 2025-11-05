@@ -2,7 +2,7 @@ from collections import Counter, defaultdict
 from datetime import datetime
 from glob import glob
 from metapool.mp_strings import get_short_name_and_id, \
-    PM_WELL_ID_384_KEY
+    PM_WELL_ID_384_KEY, SS_SAMPLE_ID_KEY
 from metapool.plate import PlateReplication
 from metapool.sequencers import\
      get_sequencer_type_name_and_run_center_by_instrument_code, \
@@ -61,7 +61,7 @@ AMPLICON_PREP_COLUMN_RENAMER = {
     'MasterMix Lot': 'mastermix_lot',
     'Water Lot': 'water_lot',
     'Processing Robot': 'processing_robot',
-    'sample sheet Sample_ID': 'well_description'
+    SS_SAMPLE_ID_KEY: 'well_description'
 }
 
 _LAB_RUN_CENTER = "UCSDMI"

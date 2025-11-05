@@ -11,7 +11,7 @@ from .mp_strings import SAMPLE_NAME_KEY, PM_PROJECT_NAME_KEY, \
     PLATE_NAME_DELIMITER, SAMPLE_DNA_CONC_KEY, NORMALIZED_DNA_VOL_KEY, \
     SYNDNA_POOL_MASS_NG_KEY, SYNDNA_POOL_NUM_KEY, TUBECODE_KEY, \
     EXTRACTED_GDNA_CONC_KEY, PM_WELL_KEY, PM_DILUTED_KEY, PM_WELL_ID_96_KEY, \
-    NORMALIZED_WATER_VOL_KEY, CONTROLS_DESCRIPTION_KEY, \
+    NORMALIZED_WATER_VOL_KEY, CONTROLS_DESCRIPTION_KEY, SS_SAMPLE_ID_KEY, \
     get_plate_num_from_plate_name, get_main_project_from_plate_name
 from .plate import _validate_well_id_96, PlateReplication, PlateRemapper, \
     merge_plate_dfs
@@ -1513,7 +1513,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
     """
 
     # Map unwanted characters to other characters
-    plate_df["sample sheet Sample_ID"] = plate_df["Sample"].map(bcl_scrub_name)
+    plate_df[SS_SAMPLE_ID_KEY] = plate_df["Sample"].map(bcl_scrub_name)
 
     fastqc_file_type = "FastQC"
     # Logic for multiple input_file format support
@@ -1567,7 +1567,7 @@ def merge_read_counts(plate_df, counts_df, reads_column_name="Filtered Reads",
     # Merge reads with plate_df
     to_merge = counts_df[[reads_column_name]]
     plate_df_w_reads = plate_df.merge(to_merge,
-                                      left_on="sample sheet Sample_ID",
+                                      left_on=SS_SAMPLE_ID_KEY,
                                       right_on="Sample", how="left")
 
     return plate_df_w_reads
