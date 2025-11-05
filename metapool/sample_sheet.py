@@ -646,8 +646,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 f"duplicates: {sorted(result.columns.tolist())}")
 
         # result may contain additional columns that aren't allowed in the
-        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'. result
-        # may also be missing some required sample sheet columns. Thus,
+        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+        # result may also be missing some required sample sheet columns. Thus,
         # once all columns have been renamed to their preferred names, we
         # must determine the proper set of column names for this sample-
         # sheet. For legacy classes this is simply the list of columns
