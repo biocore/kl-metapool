@@ -1,4 +1,6 @@
 [run]
 relative_files = True
+source = metapool,notebooks
+
 [report]
 ignore_errors = True

@@ -28,7 +28,8 @@ base = [
 
 test = [
     'flake8 >= 7.1.1',
-    'nose >= 1.3.7',
+    'pytest >= 7.0.0',
+    'pytest-cov >= 4.0.0',
     'papermill >= 2.6.0',
     'pep8 >= 1.7.1']
 
@@ -52,7 +53,6 @@ setup(
     name='metapool',
     version=versioneer.get_version(),
     cmdclass=versioneer.get_cmdclass(),
-    test_suite='nose.collector',
     packages=find_packages(),
     package_data={
         'metapool': ['data/*.tsv', 'data/*.xlsx', 'tests/data/*.csv']},

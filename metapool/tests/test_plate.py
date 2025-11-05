@@ -1,3 +1,5 @@
+from io import StringIO
+from contextlib import redirect_stdout
 import sys
 import os
 import pandas as pd
@@ -242,10 +244,11 @@ class MessageTests(TestCase):
 
     def test_echo(self):
         e = ErrorMessage('Catch me if: you can')
-        e.echo()
 
-        # testing stdout: https://stackoverflow.com/a/12683001
-        output = sys.stdout.getvalue().strip()
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            e.echo()
+        output = buffer.getvalue().strip()
         self.assertEqual(output, 'ErrorMessage: Catch me if: you can')
 
 
@@ -386,10 +389,12 @@ class PlateValidationTests(TestCase):
     def test_validate_plate_metadata_returns_None(self):
         # add a repeated plate position
         self.metadata[1]['Plate Position'] = '1'
-        self.assertIsNone(validate_plate_metadata(self.metadata))
 
-        # testing stdout: https://stackoverflow.com/a/12683001
-        output = sys.stdout.getvalue().strip()
+        buffer = StringIO()
+        with redirect_stdout(buffer):
+            self.assertIsNone(validate_plate_metadata(self.metadata))
+
+        output = buffer.getvalue().strip()
         self.assertEqual(output, 'Messages for Plate 1 \n'
                          'ErrorMessage: The plate position "1" is repeated')
 

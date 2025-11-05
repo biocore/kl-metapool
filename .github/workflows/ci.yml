@@ -10,7 +10,7 @@ jobs:
     # we can add more versions of node.js in the future
     strategy:
       matrix:
-        python-version: ['3.9']
+        python-version: ['3.10']
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
@@ -39,10 +39,7 @@ jobs:
         shell: bash -l {0}
         run: |
           conda activate metapool
-          nosetests --with-coverage --cover-inclusive --cover-erase --cover-package=metapool,notebooks
-          # -i switch introduced to ignore errors when reading source files.
-          # See: https://stackoverflow.com/questions/2386975/no-source-for-code-message-in-coverage-py
-          coverage report -i
+          pytest -rA --cov=metapool --cov=notebooks --cov-report=term-missing
 
       - name: Python linter
         shell: bash -l {0}
