@@ -1173,8 +1173,6 @@ class SampleSheetWorkflow(BaseTests):
     def _help_make_test_column_alternatives_table(self):
         table2 = self.table.copy(deep=True)
 
-        # delete the "sample "
-
         table2['Well_description'] = ['Row A', 'Row B', 'Row C']
 
         table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
