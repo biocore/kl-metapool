@@ -646,15 +646,18 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 f"duplicates: {sorted(result.columns.tolist())}")
 
         # result may contain additional columns that aren't allowed in the
-        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
-        # There may also be required columns that aren't defined in result.
-
+        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'. result
+        # may also be missing some required sample sheet columns. Thus,
         # once all columns have been renamed to their preferred names, we
         # must determine the proper set of column names for this sample-
         # sheet. For legacy classes this is simply the list of columns
         # defined in each sample-sheet version. For newer classes, this is
         # defined at run-time and requires examining the metadata that
-        # will define the [Data] section.
+        # will define the [Data] section. Either way, it is done by calling
+        # _get_expected_data_columns. We then subset result to only
+        # the required columns that exist in result; note that this code does
+        # not error if some required columns are missing from result--that is
+        # handled elsewhere in the validation methods (_validate_data_columns).
         required_columns = self._get_expected_data_columns(table=result)
         subset = list(set(required_columns) & set(result.columns))
         result = result[subset]
