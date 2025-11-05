@@ -1103,21 +1103,21 @@ class SampleSheetWorkflow(BaseTests):
             msg2_defer_true = message2_defer_true_prefix + message2
             with self.assertRaisesRegex(ValueError, msg2_defer_true):
                 make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
-                                  strict=False, defer_validate=True)
+                                  defer_validate=True)
 
             # alternately, if defer_validate is False, the error message
             # starts with "Sample sheet instantiation failed".
             msg2_defer_false = message2_defer_false_prefix + message2
             with self.assertRaisesRegex(ValueError, msg2_defer_false):
                 make_sample_sheet(self.md_ampl, table2, 'HiSeq4000', [5, 7],
-                                  strict=False, defer_validate=False)
+                                  defer_validate=False)
 
             # second, correct the errors in the [Data] section.
             table2['Project Name'] = ['Koening_ITS_101', 'Yanomani_2008_10052',
                                       'Yanomani_2008_10052']
 
             obs = make_sample_sheet(self.md_ampl, table2, 'HiSeq4000',
-                                    [5, 7], strict=False)
+                                    [5, 7])
 
         self.assertIsInstance(obs, AmpliconSampleSheet)
 
@@ -1217,8 +1217,7 @@ class SampleSheetWorkflow(BaseTests):
         obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
-                                [5, 7],
-                                strict=False)
+                                [5, 7])
 
         self.assertIsNotNone(obs, msg="make_sample_sheet() failed")
         self.assertIsInstance(obs, AmpliconSampleSheet)
@@ -1237,8 +1236,7 @@ class SampleSheetWorkflow(BaseTests):
             _ = make_sample_sheet(self.md_ampl,
                                   table2,
                                   'HiSeq4000',
-                                  [5, 7],
-                                  strict=False)
+                                  [5, 7])
 
     def test_column_alternatives(self):
         # Try making sample-sheet w/an alternate column name and confirm that
@@ -1251,8 +1249,7 @@ class SampleSheetWorkflow(BaseTests):
         obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',
-                                [5, 7],
-                                strict=False)
+                                [5, 7])
 
         self._help_test_column_alternatives(obs)
 
@@ -1290,7 +1287,7 @@ class SampleSheetWorkflow(BaseTests):
             # this method to ensure that the observed table remains as
             # expected.
             obs = sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
-                                           'TruSeq HT', strict=False)
+                                           'TruSeq HT')
             self.assertEqual(len(obs), 3)
             pd.testing.assert_frame_equal(obs, exp, check_like=True)
 
@@ -1337,7 +1334,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetagenomicSampleSheetv100()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
 
         self.assertEqual(len(obs), 3)
 
@@ -1387,7 +1384,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetatranscriptomicSampleSheetv0()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'Well_description']]
@@ -1441,7 +1438,7 @@ class SampleSheetWorkflow(BaseTests):
 
         sheet = MetatranscriptomicSampleSheetv10()
 
-        obs = sheet._remap_table(self.table, strict=False)
+        obs = sheet._remap_table(self.table)
         obs = obs[['Sample_ID', 'Sample_Name', 'Sample_Plate', 'well_id_384',
                    'I7_Index_ID', 'index', 'I5_Index_ID', 'index2',
                    'Sample_Project', 'total_rna_concentration_ng_ul',
@@ -1457,7 +1454,7 @@ class SampleSheetWorkflow(BaseTests):
 
         with self.assertWarnsRegex(UserWarning, message):
             self.sheet._add_data_to_sheet(self.table, 'HiSeq4000', [1],
-                                          'TruSeq HT', strict=False)
+                                          'TruSeq HT')
 
         self.assertEqual(len(self.sheet), 3)
 
@@ -2716,7 +2713,7 @@ class SampleSheetLoadMakeAndLoadTests(BaseTests):
             self, sheet_class, metadata, table, output_cols, sequencer):
 
         sheet = make_sample_sheet(
-            metadata, table, sequencer, [1], strict=False)
+            metadata, table, sequencer, [1])
 
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, sheet_class)
@@ -3528,7 +3525,7 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
         err = "".join(self._MISSING_COLS_ERR_LINES)
         with self.assertRaisesRegex(ValueError, err):
             make_sample_sheet(self._make_metadata(self),
-                              table, 'iSeq', [1], strict=False)
+                              table, 'iSeq', [1])
 
     def test_katharoseq_make_sample_sheet_implicit_not_strict(self):
         data = self._KATH_INPUT_DATA.copy()
@@ -3561,8 +3558,7 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
 
         # sheet will be created but extended columns will not be present
         # and no error is raised. Kathseq_RackID is silently dropped.
-        sheet = make_sample_sheet(metadata, table, 'iSeq', [1],
-                                  strict=False)
+        sheet = make_sample_sheet(metadata, table, 'iSeq', [1])
 
         self.assertIsNotNone(sheet)
         self.assertIsInstance(sheet, MetagenomicSampleSheetv102)
@@ -3590,7 +3586,7 @@ class MetagenomicSampleSheetv102CreationTests(SampleSheetLoadMakeAndLoadTests):
         err = "".join(err_lines)
         with self.assertRaisesRegex(ValueError, err):
             make_sample_sheet(self._make_metadata(self),
-                              table, 'iSeq', [1], strict=False)
+                              table, 'iSeq', [1])
 
 
 if __name__ == '__main__':

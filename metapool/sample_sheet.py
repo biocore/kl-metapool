@@ -623,12 +623,8 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
-    def _remap_table(self, table, strict):
+    def _remap_table(self, table):
         result = table.copy(deep=True)
-
-        if strict:
-            warnings.warn("strict=True is no longer supported. Proceeding "
-                          "with strict=False behavior.")
 
         # if a column named 'index' is present in table, assume it is a
         # numeric index and not a sequence of bases, which is required in
@@ -664,7 +660,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         return result
 
-    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
+    def _add_data_to_sheet(self, table, sequencer, lanes, assay):
         if self._remapper is None:
             raise ValueError("sample-sheet does not contain a valid Assay"
                              " type.")
@@ -676,7 +672,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
         table['Well_description'] = well_description
 
-        table = self._remap_table(table, strict)
+        table = self._remap_table(table)
 
         if self._ALLOW_MISSING_COLS:
             for column in self._get_expected_data_columns():
@@ -2171,7 +2167,7 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes,
-                      strict=None, defer_validate=False):
+                      defer_validate=False):
     """Write a valid sample sheet
 
     Parameters
@@ -2222,11 +2218,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes,
         A string representing the sequencer used.
     lanes: list of integers
         A list of integers representing the lanes used.
-    strict: boolean
-        If True, a subset of columns based on Assay type will define the
-        columns in the [Data] section of the sample-sheet. Otherwise all
-        columns in table will pass through into the sample-sheet. Either way
-        some columns will be renamed as needed by Assay type.
 
     Returns
     -------
@@ -2246,19 +2237,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes,
     messages = sheet._validate_metadata_dict(metadata)
 
     if len(messages) == 0:
-        # if the user did not *explicitly* set the strict value
-        if strict is None:
-            # NB: the below is duck-typing.  It isn't checking whether the
-            # sheet's data actually contains any katharoseq samples, but rather
-            # whether the sheet *itself* can check whether it
-            # contains any katharoseq samples.  If it has this ability, it
-            # needs to go through the strict=False handling; see issue #236.
-            strict = getattr(
-                sheet, 'contains_katharoseq_samples', None) is None
-
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lanes, metadata[_ASSAY_KEY],
-                                 strict)
+        sheet._add_data_to_sheet(table, sequencer, lanes, metadata[_ASSAY_KEY])
 
         # now that we have a SampleSheet() object, validate it for any
         # additional errors that may be present in the data and/or metadata.
