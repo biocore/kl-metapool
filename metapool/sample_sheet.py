@@ -623,46 +623,44 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 else:
                     pass
 
-    def _remap_table(self, table, strict):
+    def _remap_table(self, table):
         result = table.copy(deep=True)
 
-        if strict:
-            # All columns not defined in _remapper will be removed from result.
-            result = table[self._remapper.keys()].copy()
-            result.rename(self._remapper, axis=1, inplace=True)
-        else:
-            # if a column named 'index' is present in table, assume it is a
-            # numeric index and not a sequence of bases, which is required in
-            # the output. Assume the column that will become 'index' is
-            # defined in _remapper.
-            if 'index' in set(result.columns):
-                result.drop(columns=['index'], inplace=True)
+        # if a column named 'index' is present in table, assume it is a
+        # numeric index and not a sequence of bases, which is required in
+        # the output. Assume the column that will become 'index' is
+        # defined in _remapper.
+        if 'index' in set(result.columns):
+            result.drop(columns=['index'], inplace=True)
 
-            _remapper = KLSampleSheet._column_alts | self._remapper
-            result.rename(_remapper, axis=1, inplace=True)
+        _remapper = KLSampleSheet._column_alts | self._remapper
+        result.rename(_remapper, axis=1, inplace=True)
 
-            if len(result.columns) != len(result.columns.unique()):
-                raise ValueError(
-                    f"The remapped sample sheet column names contain "
-                    f"duplicates: {sorted(result.columns.tolist())}")
+        if len(result.columns) != len(result.columns.unique()):
+            raise ValueError(
+                f"The remapped sample sheet column names contain "
+                f"duplicates: {sorted(result.columns.tolist())}")
 
-            # result may contain additional columns that aren't allowed in the
-            # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
-            # There may also be required columns that aren't defined in result.
-
-            # once all columns have been renamed to their preferred names, we
-            # must determine the proper set of column names for this sample-
-            # sheet. For legacy classes this is simply the list of columns
-            # defined in each sample-sheet version. For newer classes, this is
-            # defined at run-time and requires examining the metadata that
-            # will define the [Data] section.
-            required_columns = self._get_expected_data_columns(table=result)
-            subset = list(set(required_columns) & set(result.columns))
-            result = result[subset]
+        # result may contain additional columns that aren't allowed in the
+        # [Data] section of a sample-sheet e.g.: 'Extraction Kit Lot'.
+        # result may also be missing some required sample sheet columns. Thus,
+        # once all columns have been renamed to their preferred names, we
+        # must determine the proper set of column names for this sample-
+        # sheet. For legacy classes this is simply the list of columns
+        # defined in each sample-sheet version. For newer classes, this is
+        # defined at run-time and requires examining the metadata that
+        # will define the [Data] section. Either way, it is done by calling
+        # _get_expected_data_columns. We then subset result to only
+        # the required columns that exist in result; note that this code does
+        # not error if some required columns are missing from result--that is
+        # handled elsewhere in the validation methods (_validate_data_columns).
+        required_columns = self._get_expected_data_columns(table=result)
+        subset = list(set(required_columns) & set(result.columns))
+        result = result[subset]
 
         return result
 
-    def _add_data_to_sheet(self, table, sequencer, lanes, assay, strict=True):
+    def _add_data_to_sheet(self, table, sequencer, lanes, assay):
         if self._remapper is None:
             raise ValueError("sample-sheet does not contain a valid Assay"
                              " type.")
@@ -674,7 +672,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             table['Sample'].astype(str) + "." + table['Well'].astype(str)
         table['Well_description'] = well_description
 
-        table = self._remap_table(table, strict)
+        table = self._remap_table(table)
 
         if self._ALLOW_MISSING_COLS:
             for column in self._get_expected_data_columns():
@@ -2169,7 +2167,7 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
 
 
 def make_sample_sheet(metadata, table, sequencer, lanes,
-                      strict=None, defer_validate=False):
+                      defer_validate=False):
     """Write a valid sample sheet
 
     Parameters
@@ -2220,11 +2218,6 @@ def make_sample_sheet(metadata, table, sequencer, lanes,
         A string representing the sequencer used.
     lanes: list of integers
         A list of integers representing the lanes used.
-    strict: boolean
-        If True, a subset of columns based on Assay type will define the
-        columns in the [Data] section of the sample-sheet. Otherwise all
-        columns in table will pass through into the sample-sheet. Either way
-        some columns will be renamed as needed by Assay type.
 
     Returns
     -------
@@ -2244,19 +2237,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes,
     messages = sheet._validate_metadata_dict(metadata)
 
     if len(messages) == 0:
-        # if the user did not *explicitly* set the strict value
-        if strict is None:
-            # NB: the below is duck-typing.  It isn't checking whether the
-            # sheet's data actually contains any katharoseq samples, but rather
-            # whether the sheet *itself* can check whether it
-            # contains any katharoseq samples.  If it has this ability, it
-            # needs to go through the strict=False handling; see issue #236.
-            strict = getattr(
-                sheet, 'contains_katharoseq_samples', None) is None
-
         sheet._add_metadata_to_sheet(metadata, sequencer)
-        sheet._add_data_to_sheet(table, sequencer, lanes, metadata[_ASSAY_KEY],
-                                 strict)
+        sheet._add_data_to_sheet(table, sequencer, lanes, metadata[_ASSAY_KEY])
 
         # now that we have a SampleSheet() object, validate it for any
         # additional errors that may be present in the data and/or metadata.
