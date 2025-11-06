@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 import re
 
-SAVE_DIR = "/Users/amandabirmingham/Desktop"
+SAVE_DIR = "~/Desktop"
 
 
 class TestNotebook(unittest.TestCase):
@@ -15,7 +15,7 @@ class TestNotebook(unittest.TestCase):
     _ZERO_DATES_FUNC_KEY = "zero_dates_func"  # func to replace for dates
 
     # TODO: turn off before committing
-    _SAVE_UNMATCHED_OUTPUTS = True  # whether to save unmatched outputs
+    _SAVE_UNMATCHED_OUTPUTS = False  # whether to save unmatched outputs
 
     def setUp(self):
         self.notebooks_dir = os.path.dirname(os.path.dirname(__file__))
@@ -26,7 +26,7 @@ class TestNotebook(unittest.TestCase):
                                           zero_dates_func=None):
         """Helper function to compare two text files for exact match."""
 
-        filename = filename if not filename else f"{filename} "
+        filename = f"{filename} " if filename else ""
         msg = f"{filename}files do not match exactly."
         self.maxDiff = None
         with open(file_1, 'r', encoding='utf-8') as f1, \
