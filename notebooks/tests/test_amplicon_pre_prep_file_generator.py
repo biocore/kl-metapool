@@ -1,4 +1,3 @@
-import unittest
 from notebooks.tests.notebook_test_helpers import TestNotebook
 
 
@@ -176,7 +175,3 @@ class TestAmpliconNotebook(TestNotebook):
         }
 
         self._run_notebook_test(run_params, output_params)
-
-
-if __name__ == "__main__":
-    unittest.main()

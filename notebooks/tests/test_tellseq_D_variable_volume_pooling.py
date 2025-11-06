@@ -54,7 +54,3 @@ class TestTellseqDNotebook(unittest.TestCase):
                         self.assertEqual(out_line, test_line,
                                          msg=("Lines of output" +
                                               "and test don't match"))
-
-
-if __name__ == "__main__":
-    unittest.main()
