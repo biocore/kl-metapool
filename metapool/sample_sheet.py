@@ -17,7 +17,7 @@ from metapool.mp_strings import parse_project_name, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
     BARCODE_ID_KEY, \
-    PACBIO_BARCODE_ID_KEY, TWIST_BARCODE_ID_KEY, LIBRARY_WELL_ID_KEY
+    PACBIO_BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, LIBRARY_WELL_ID_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -1823,7 +1823,7 @@ class PacBioMetagSampleSheetv11(PacBioSampleSheet):
         'well_description',
         LIBRARY_WELL_ID_KEY,
         PACBIO_BARCODE_ID_KEY,
-        TWIST_BARCODE_ID_KEY)
+        TWIST_ADAPTOR_ID_KEY)
 
     def __init__(self, path=None, defer_validate=False):
         """Knight Lab's SampleSheet subclass to support PacBio sequencing
@@ -1850,7 +1850,7 @@ class PacBioMetagSampleSheetv11(PacBioSampleSheet):
         self._remapper = self._extend_mapping_type(
             {"Well": LIBRARY_WELL_ID_KEY,
              PACBIO_BARCODE_ID_KEY: PACBIO_BARCODE_ID_KEY,
-             TWIST_BARCODE_ID_KEY: TWIST_BARCODE_ID_KEY,
+             TWIST_ADAPTOR_ID_KEY: TWIST_ADAPTOR_ID_KEY,
              }
         )
 
@@ -1859,7 +1859,7 @@ class PacBioMetagSampleSheetv11(PacBioSampleSheet):
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
             LIBRARY_WELL_ID_KEY, PACBIO_BARCODE_ID_KEY,
-            TWIST_BARCODE_ID_KEY) + _SUFFIX_PLATE_COLUMNS
+            TWIST_ADAPTOR_ID_KEY) + _SUFFIX_PLATE_COLUMNS
         self._validate_on_load(path, defer_validate)
 
 
