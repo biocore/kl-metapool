@@ -1246,6 +1246,10 @@ class SampleSheetWorkflow(BaseTests):
         table2.rename({'index2': 'i5 sequence'},
                       axis=1, inplace=True)
 
+        # delete the SS_SAMPLE_ID_KEY column from the table
+        # to demonstrate that it will automatically be added back
+        table2.drop(columns=[SS_SAMPLE_ID_KEY], inplace=True)
+
         obs = make_sample_sheet(self.md_ampl,
                                 table2,
                                 'HiSeq4000',

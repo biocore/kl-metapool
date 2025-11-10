@@ -16,7 +16,8 @@ from metapool.mp_strings import parse_project_name, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
-    BARCODE_ID_KEY
+    BARCODE_ID_KEY, \
+    PACBIO_BARCODE_ID_KEY, TWIST_BARCODE_ID_KEY, LIBRARY_WELL_ID_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -1792,7 +1793,7 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
         self._remapper = self._extend_mapping_type(
             {"Well": _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY: BARCODE_ID_KEY})
         self._CARRIED_PREP_COLUMNS = PacBioSampleSheet._CARRIED_PREP_COLUMNS
-        # No index or barcode columns in Data section, and well column is
+        # No index columns in Data section, and well column is
         # "Sample_Well" instead of "well_id_384"
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
@@ -1805,6 +1806,61 @@ class PacBioMetagSampleSheetv10(PacBioSampleSheet):
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_METAG_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+
+class PacBioMetagSampleSheetv11(PacBioSampleSheet):
+    _HEADER = PacBioSampleSheet._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = PACBIO_METAG_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '11'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+    _CARRIED_PREP_COLUMNS = (
+        EXPT_DESIGN_DESC_KEY,
+        LIB_CONSTRUCT_PROTOCOL_KEY,
+        SAMPLE_NAME_KEY,
+        'sample_plate',
+        'sample_project',
+        'well_description',
+        LIBRARY_WELL_ID_KEY,
+        PACBIO_BARCODE_ID_KEY,
+        TWIST_BARCODE_ID_KEY)
+
+    def __init__(self, path=None, defer_validate=False):
+        """Knight Lab's SampleSheet subclass to support PacBio sequencing
+
+        Trims Header section, removes Settings and Reads entirely, and
+        deleted index-related columns from Data section.
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+        """
+
+        # NB: it matters that this come *before* the __init__ call;
+        # __init__ calls _parse, which will automatically populate the
+        # SampleContext section if it is present in the file--but only if
+        # it is defined here first.
+        self.SampleContext = None
+        super().__init__(path=path, defer_validate=True)
+
+        # No index columns in the remapper, and well is "library_well_id"
+        # not "well_id_384" because these are only done in 96-well plates
+        self._remapper = _BASE_PLATE_REMAPPER
+        self._remapper = self._extend_mapping_type(
+            {"Well": LIBRARY_WELL_ID_KEY,
+             PACBIO_BARCODE_ID_KEY: PACBIO_BARCODE_ID_KEY,
+             TWIST_BARCODE_ID_KEY: TWIST_BARCODE_ID_KEY,
+             }
+        )
+
+        # No index columns in Data section, and well column is
+        # "library_well_id" instead of "well_id_384"
+        self._data_columns = (
+            SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+            LIBRARY_WELL_ID_KEY, PACBIO_BARCODE_ID_KEY,
+            TWIST_BARCODE_ID_KEY) + _SUFFIX_PLATE_COLUMNS
+        self._validate_on_load(path, defer_validate)
 
 
 class PacBioAbsquantSampleSheetv10(AbsQuantMixin, PacBioSampleSheet):
@@ -2123,6 +2179,7 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
         PACBIO_METAG_SHEET_TYPE: {
             _METAGENOMIC: {
                 '10': PacBioMetagSampleSheetv10,
+                '11': PacBioMetagSampleSheetv11,
             },
         },
         PACBIO_ABSQUANT_SHEET_TYPE: {

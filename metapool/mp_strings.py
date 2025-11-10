@@ -68,6 +68,9 @@ TUBECODE_KEY = "TubeCode"
 ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
 EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
 BARCODE_ID_KEY = 'barcode_id'
+PACBIO_BARCODE_ID_KEY = 'barcode_id_pacbio'
+TWIST_BARCODE_ID_KEY = 'barcode_id_twist'
+LIBRARY_WELL_ID_KEY = 'library_well_id'
 
 
 def parse_project_name(project_name):
