@@ -3203,24 +3203,24 @@ class PacBioMetagSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
 
     _INPUT_COLS = [
         SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
-        'Well', 'barcode_id', 'twist_adaptor_id', 'twist_is_pooled',
+        'Well', 'barcode_id', 'twist_adaptor_id',
         'Project Plate', 'Project Name']
 
     _INPUT_DATA = [
         ['sample_1', 'sample.1', '1', '1', 'False',
-         'A1', 'bc3011', '16_UDI_1_A01_F--16_UDI_1_A01_R', 'False',
+         'A1', 'bc3011', '16_UDI_1_A01_F--16_UDI_1_A01_R',
          'sample_plate_1', 'MyProject_99999'],
         ['sample_2', 'sample.2', '2', '1', 'False',
-         'A2', 'bc0112', '16_UDI_2_B01_F--16_UDI_2_B01_R', 'False',
+         'A2', 'bc0112', '16_UDI_2_B01_F--16_UDI_2_B01_R',
          'sample_plate_1', 'MyProject_99999'],
         ['sample_3', 'sample.3', '3', '1', 'False',
-         'A3', 'bc9992', '16_UDI_5_E01_F--16_UDI_5_E01_R', 'False',
+         'A3', 'bc9992', '16_UDI_5_E01_F--16_UDI_5_E01_R',
          'sample_plate_1', 'MyProject_99999'],
     ]
 
     _OUTPUT_COLS = [
         'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
-        'barcode_id', 'twist_adaptor_id', 'twist_is_pooled',
+        'barcode_id', 'twist_adaptor_id',
         'Sample_Project', 'Well_description']
 
     _BIOINFORMATICS = [
@@ -3256,27 +3256,28 @@ class PacBioAbsquantSampleSheetv11CreationTests(
 
     _INPUT_COLS = PacBioMetagSampleSheetv11CreationTests._INPUT_COLS.copy() + \
         ['mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
-         'vol_extracted_elution_ul', 'syndna_pool_number']
+         'vol_extracted_elution_ul', 'syndna_pool_number', 'syndna_is_twisted']
 
     _INPUT_DATA = [
         ['sample_1', 'sample.1', '1', '1', 'False',
-         'A1', 'bc3011', '16_UDI_1_A01_F--16_UDI_1_A01_R', 'False',
+         'A1', 'bc3011', '16_UDI_1_A01_F--16_UDI_1_A01_R',
          'sample_plate_1', 'MyProject_99999',
-         '0.2', '1.0', '1.1', '1'],
+         '0.2', '1.0', '1.1', '1', 'False'],
         ['sample_2', 'sample.2', '2', '1', 'False',
-         'A2', 'bc0112', '16_UDI_2_B01_F--16_UDI_2_B01_R', 'False',
+         'A2', 'bc0112', '16_UDI_2_B01_F--16_UDI_2_B01_R',
          'sample_plate_1', 'MyProject_99999',
-         '0.22', '1.0', '1.1', '1'],
+         '0.22', '1.0', '1.1', '1', 'False'],
         ['sample_3', 'sample.3', '3', '1', 'False',
-         'A3', 'bc9992', '16_UDI_5_E01_F--16_UDI_5_E01_R', 'False',
+         'A3', 'bc9992', '16_UDI_5_E01_F--16_UDI_5_E01_R',
          'sample_plate_1', 'MyProject_99999',
-         '0.25', '1.0', '1.1', '1'],
+         '0.25', '1.0', '1.1', '1', 'False'],
     ]
 
     _OUTPUT_COLS = \
-        PacBioMetagSampleSheetv11CreationTests._OUTPUT_COLS.copy() + \
-        ['mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
-         'vol_extracted_elution_ul', 'syndna_pool_number']
+        PacBioMetagSampleSheetv11CreationTests._OUTPUT_COLS.copy() + [
+            'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+            'vol_extracted_elution_ul', 'syndna_pool_number',
+            'syndna_is_twisted']
 
     _BIOINFORMATICS = PacBioMetagSampleSheetv11CreationTests._BIOINFORMATICS
 

@@ -16,7 +16,7 @@ from metapool.mp_strings import parse_project_name, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
-    BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, TWIST_IS_POOLED_KEY
+    BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, SYNDNA_IS_TWISTED_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -1831,7 +1831,7 @@ class PacBioAbsquantSampleSheetv10(AbsQuantMixin, PacBioSampleSheet):
 
 class PacBioSampleSheetWithTwistAdapters(PacBioSampleSheet):
     _CARRIED_PREP_COLUMNS = PacBioSampleSheet._CARRIED_PREP_COLUMNS + (
-        TWIST_ADAPTOR_ID_KEY, TWIST_IS_POOLED_KEY)
+        TWIST_ADAPTOR_ID_KEY,)
 
     def __new__(cls, path=None, *args, **kwargs):
         """
@@ -1848,9 +1848,6 @@ class PacBioSampleSheetWithTwistAdapters(PacBioSampleSheet):
     def __init__(self, path=None, defer_validate=False):
         """Knight Lab's SampleSheet subclass for PacBio with Twist adapters
 
-        Trims Header section, removes Settings and Reads entirely, and
-        deleted index-related columns from Data section.
-
         Parameters
         ----------
         path: str, optional
@@ -1864,16 +1861,15 @@ class PacBioSampleSheetWithTwistAdapters(PacBioSampleSheet):
         self.SampleContext = None
         super().__init__(path=path, defer_validate=True)
 
-        # In addition to what is in PacBioSampleSheet, add twist columns
+        # In addition to what is in PacBioSampleSheet, add twist column
         self._remapper = self._extend_mapping_type(
-            {TWIST_ADAPTOR_ID_KEY: TWIST_ADAPTOR_ID_KEY,
-             TWIST_IS_POOLED_KEY: TWIST_IS_POOLED_KEY})
+            {TWIST_ADAPTOR_ID_KEY: TWIST_ADAPTOR_ID_KEY})
 
-        # In addition to what is in PacBioSampleSheet, add twist columns
+        # In addition to what is in PacBioSampleSheet, add twist column
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
             _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY,
-            TWIST_ADAPTOR_ID_KEY, TWIST_IS_POOLED_KEY) + _SUFFIX_PLATE_COLUMNS
+            TWIST_ADAPTOR_ID_KEY) + _SUFFIX_PLATE_COLUMNS
         self._validate_on_load(path, defer_validate)
 
 
@@ -1884,8 +1880,27 @@ class PacBioMetagSampleSheetv11(PacBioSampleSheetWithTwistAdapters):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
+class TwistAbsquantMixin(AbsQuantMixin):
+    _TWIST_ABSQUANT_SPECIFIC_COLUMNS = (SYNDNA_IS_TWISTED_KEY,)
+
+    _TWIST_ABSQUANT_REMAPPER = MappingProxyType({
+        SYNDNA_IS_TWISTED_KEY: SYNDNA_IS_TWISTED_KEY,
+    })
+
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
+        self._remapper = self._extend_mapping_type(
+            self._TWIST_ABSQUANT_REMAPPER)
+        self._data_columns = self._data_columns + \
+            self._TWIST_ABSQUANT_SPECIFIC_COLUMNS
+        if self._CARRIED_PREP_COLUMNS is not None:
+            self._CARRIED_PREP_COLUMNS = self._CARRIED_PREP_COLUMNS + \
+                self._TWIST_ABSQUANT_SPECIFIC_COLUMNS
+        self._validate_on_load(path, defer_validate)
+
+
 class PacBioAbsquantSampleSheetv11(
-        AbsQuantMixin, PacBioSampleSheetWithTwistAdapters):
+        TwistAbsquantMixin, PacBioSampleSheetWithTwistAdapters):
     _HEADER = PacBioSampleSheetWithTwistAdapters._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '11'

@@ -69,7 +69,7 @@ ELUTION_VOL_KEY = 'vol_extracted_elution_ul'
 EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
 BARCODE_ID_KEY = 'barcode_id'
 TWIST_ADAPTOR_ID_KEY = 'twist_adaptor_id'
-TWIST_IS_POOLED_KEY = 'twist_is_pooled'
+SYNDNA_IS_TWISTED_KEY = 'syndna_is_twisted'
 
 
 def parse_project_name(project_name):
