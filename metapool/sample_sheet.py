@@ -317,6 +317,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 a_list.pop()  # Remove the last element
             return a_list
 
+        def _convert_likely_bool(x):
+            bool_x = convert_to_bool(x)
+            result = x if bool_x is None else bool_x
+            return result
+
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
@@ -384,6 +389,18 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         # vals beyond the header are empty values so don't add
                         # them
                         line = line[:len(section_header)]
+
+                        # Irritatingly, samples aren't stored in a DataFrame
+                        # but rather as a list of Sample objects, so any
+                        # boolean fields in the data section can't be
+                        # scrubbed via the existing
+                        # _normalize_df_sections_booleans mechanism >:-(
+                        # Until we manage to break away from the
+                        # Illumina-object-based sample sheet representation,
+                        # putting any bools in the data section requires
+                        # special handling here.
+                        line = [_convert_likely_bool(x) for x in line]
+
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
@@ -1853,8 +1870,10 @@ class PacBioSampleSheetWithTwistAdapters(PacBioSampleSheet):
              TWIST_IS_POOLED_KEY: TWIST_IS_POOLED_KEY,})
 
         # In addition to what is in PacBioSampleSheet, add twist columns
-        self._data_columns = self._data_columns + \
-             (TWIST_ADAPTOR_ID_KEY, TWIST_IS_POOLED_KEY)
+        self._data_columns = (
+            SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+            _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY,
+            TWIST_ADAPTOR_ID_KEY, TWIST_IS_POOLED_KEY) + _SUFFIX_PLATE_COLUMNS
         self._validate_on_load(path, defer_validate)
 
 
