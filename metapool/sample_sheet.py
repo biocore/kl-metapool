@@ -1867,7 +1867,7 @@ class PacBioSampleSheetWithTwistAdapters(PacBioSampleSheet):
         # In addition to what is in PacBioSampleSheet, add twist columns
         self._remapper = self._extend_mapping_type(
             {TWIST_ADAPTOR_ID_KEY: TWIST_ADAPTOR_ID_KEY,
-             TWIST_IS_POOLED_KEY: TWIST_IS_POOLED_KEY,})
+             TWIST_IS_POOLED_KEY: TWIST_IS_POOLED_KEY})
 
         # In addition to what is in PacBioSampleSheet, add twist columns
         self._data_columns = (
@@ -1885,7 +1885,7 @@ class PacBioMetagSampleSheetv11(PacBioSampleSheetWithTwistAdapters):
 
 
 class PacBioAbsquantSampleSheetv11(
-    AbsQuantMixin, PacBioSampleSheetWithTwistAdapters):
+        AbsQuantMixin, PacBioSampleSheetWithTwistAdapters):
     _HEADER = PacBioSampleSheetWithTwistAdapters._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '11'
