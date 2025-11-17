@@ -1,0 +1,27 @@
+[Header],,,,,,,,,,,,,
+SheetType,pacbio_absquant,,,,,,,,,,,,
+SheetVersion,11,,,,,,,,,,,,
+Investigator Name,Knight,,,,,,,,,,,,
+Experiment Name,RKL_experiment,,,,,,,,,,,,
+Date,2025-08-29,,,,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,,,,
+Description,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[Data],,,,,,,,,,,,,
+Sample_ID,Sample_Name,Sample_Plate,Sample_Well,barcode_id,twist_adaptor_id,Sample_Project,Well_description,mass_syndna_input_ng,extracted_gdna_concentration_ng_ul,vol_extracted_elution_ul,syndna_pool_number,syndna_is_twisted,Lane
+sample_1,sample.1,sample_plate_1,A1,bc3011,16_UDI_1_A01_F--16_UDI_1_A01_R,MyProject_99999,sample_plate_1.sample.1.A1,0.2,1,1.1,1,False,1
+sample_2,sample.2,sample_plate_1,A2,bc0112,16_UDI_2_B01_F--16_UDI_2_B01_R,MyProject_99999,sample_plate_1.sample.2.A2,0.22,1,1.1,1,False,1
+sample_3,sample.3,sample_plate_1,A3,bc9992,16_UDI_5_E01_F--16_UDI_5_E01_R,MyProject_99999,sample_plate_1.sample.3.A3,0.25,1,1.1,1,False,1
+,,,,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,,,,
+Sample_Project,QiitaID,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,,,,,
+MyProject_99999,99999,False,some protocol,some description,False,,,,,,,,
+,,,,,,,,,,,,,
+[Contact],,,,,,,,,,,,,
+Sample_Project,Email,,,,,,,,,,,,
+MyProject_99999,foo@bar.org,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[SampleContext],,,,,,,,,,,,,
+sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,,,,
+sample.3,control blank,99999,,,,,,,,,,,
+,,,,,,,,,,,,,

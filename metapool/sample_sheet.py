@@ -16,7 +16,7 @@ from metapool.mp_strings import parse_project_name, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
-    BARCODE_ID_KEY
+    BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, SYNDNA_IS_TWISTED_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -317,6 +317,11 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 a_list.pop()  # Remove the last element
             return a_list
 
+        def _convert_likely_bool(x):
+            bool_x = convert_to_bool(x)
+            result = x if bool_x is None else bool_x
+            return result
+
         with open(path, encoding=self._encoding) as handle:
             lines = list(csv.reader(handle, skipinitialspace=True))
 
@@ -384,6 +389,18 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                         # vals beyond the header are empty values so don't add
                         # them
                         line = line[:len(section_header)]
+
+                        # Irritatingly, samples aren't stored in a DataFrame
+                        # but rather as a list of Sample objects, so any
+                        # boolean fields in the data section can't be
+                        # scrubbed via the existing
+                        # _normalize_df_sections_booleans mechanism >:-(
+                        # Until we manage to break away from the
+                        # Illumina-object-based sample sheet representation,
+                        # putting any bools in the data section requires
+                        # special handling here.
+                        line = [_convert_likely_bool(x) for x in line]
+
                         self.add_sample(
                             sample_sheet.Sample(dict(zip(section_header,
                                                          line))))
@@ -1428,6 +1445,10 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         "Library Well": DESTINATION_WELL_384_KEY,
     })
 
+    # differs from KLSampleSheet base because includes well_id_384 (instead of
+    # Sample_Well) and does not include Lane
+    _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
+
     _optional_replicate_columns = (ORIG_NAME_KEY, DESTINATION_WELL_384_KEY)
 
     def __new__(cls, path=None, *args, **kwargs):
@@ -1457,7 +1478,6 @@ class KLSampleSheetWithReplicates(KLSampleSheet):
         super().__init__(path=path, defer_validate=True)
         self._remapper = _BASE_METAG_REMAPPER
         self._remapper = self._extend_mapping_type(self._REPLICATES_REMAPPER)
-        self._CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
         self._data_columns = _BASE_DATA_COLUMNS
         self._optional_col_sets = self._extend_mapping_type(
             {self._REPLICATES_SET_KEY: (
@@ -1561,6 +1581,8 @@ class KatharoseqMixin(object):
                                     'project_abbreviation',
                                     ELUTION_VOL_KEY, 'well_id_96')
 
+    # TODO: will need to extend _CARRIED_PREP_COLUMNS with katharoseq cols
+
     @staticmethod
     def _is_katharo_name(sample_name):
         return sample_name.lower().startswith(KatharoseqMixin._KATHARO_PREFIX)
@@ -1598,6 +1620,10 @@ class KatharoseqMixin(object):
 
 
 class KLTellSeqSampleSheet(KLSampleSheetWithSampleContext):
+    _CARRIED_PREP_COLUMNS = tuple(
+        [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
+         _LC_ILLUMINA_INDEX_COLUMNS])
+
     def __new__(cls, path=None, *args, **kwargs):
         """
             Override so that base class cannot be instantiated.
@@ -1647,29 +1673,12 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
-    # if refactoring, see:
-    # https://github.com/biocore/kl-metapool/issues/263
-
-    @property
-    def CARRIED_PREP_COLUMNS(self):
-        return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
-                _LC_ILLUMINA_INDEX_COLUMNS]
-
 
 class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
     _HEADER = KLSampleSheet._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
-
-    # if refactoring, see:
-    # https://github.com/biocore/kl-metapool/issues/263
-
-    @property
-    def CARRIED_PREP_COLUMNS(self):
-        return [x for x in _BASE_CARRIED_PREP_COLUMNS if x not in
-                _LC_ILLUMINA_INDEX_COLUMNS] + \
-            list(AbsQuantMixin._ABSQUANT_SPECIFIC_COLUMNS)
 
 
 class AmpliconSampleSheet(KLSampleSheet):
@@ -1688,6 +1697,7 @@ class AmpliconSampleSheet(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
+    # same as KLSampleSheet EXCEPT no lane column
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
         _LC_ILLUMINA_INDEX_COLUMNS + (
             LIB_CONSTRUCT_PROTOCOL_KEY,
@@ -1740,6 +1750,10 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
         _SAMPLE_CONTEXT_KEY: SAMPLE_CONTEXT_COLS
     })
 
+    # differs from KLSampleSheetWithSampleContext (well, really
+    # KLSampleSheetWithReplicates) base because no illumina index columns,
+    # Sample_Well used instead of well_id_384 because pacbio is done in 96-well
+    # only, and added barcode id.
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,
                              LIB_CONSTRUCT_PROTOCOL_KEY,
                              SAMPLE_NAME_KEY,
@@ -1786,13 +1800,14 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
         # it is defined here first.
         self.SampleContext = None
         super().__init__(path=path, defer_validate=True)
+
         # No index columns in the remapper, and well is "Sample_Well" not
         # "well_id_384" because these are only done in 96-well plates
         self._remapper = _BASE_PLATE_REMAPPER
         self._remapper = self._extend_mapping_type(
             {"Well": _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY: BARCODE_ID_KEY})
-        self._CARRIED_PREP_COLUMNS = PacBioSampleSheet._CARRIED_PREP_COLUMNS
-        # No index or barcode columns in Data section, and well column is
+
+        # No index columns in Data section, and well column is
         # "Sample_Well" instead of "well_id_384"
         self._data_columns = (
             SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
@@ -1811,6 +1826,84 @@ class PacBioAbsquantSampleSheetv10(AbsQuantMixin, PacBioSampleSheet):
     _HEADER = PacBioSampleSheet._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+
+class PacBioSampleSheetWithTwistAdapters(PacBioSampleSheet):
+    _CARRIED_PREP_COLUMNS = PacBioSampleSheet._CARRIED_PREP_COLUMNS + (
+        TWIST_ADAPTOR_ID_KEY,)
+
+    def __new__(cls, path=None, *args, **kwargs):
+        """
+            Override so that base class cannot be instantiated.
+        """
+        if cls is PacBioSampleSheetWithTwistAdapters:
+            raise TypeError(
+                f"only children of '{cls.__name__}' may be instantiated")
+
+        instance = super(PacBioSampleSheetWithTwistAdapters, cls).__new__(
+            cls, *args, **kwargs)
+        return instance
+
+    def __init__(self, path=None, defer_validate=False):
+        """Knight Lab's SampleSheet subclass for PacBio with Twist adapters
+
+        Parameters
+        ----------
+        path: str, optional
+            File path to the sample sheet to load.
+        """
+
+        # NB: it matters that this come *before* the __init__ call;
+        # __init__ calls _parse, which will automatically populate the
+        # SampleContext section if it is present in the file--but only if
+        # it is defined here first.
+        self.SampleContext = None
+        super().__init__(path=path, defer_validate=True)
+
+        # In addition to what is in PacBioSampleSheet, add twist column
+        self._remapper = self._extend_mapping_type(
+            {TWIST_ADAPTOR_ID_KEY: TWIST_ADAPTOR_ID_KEY})
+
+        # In addition to what is in PacBioSampleSheet, add twist column
+        self._data_columns = (
+            SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
+            _SS_SAMPLE_WELL_KEY, BARCODE_ID_KEY,
+            TWIST_ADAPTOR_ID_KEY) + _SUFFIX_PLATE_COLUMNS
+        self._validate_on_load(path, defer_validate)
+
+
+class PacBioMetagSampleSheetv11(PacBioSampleSheetWithTwistAdapters):
+    _HEADER = PacBioSampleSheetWithTwistAdapters._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = PACBIO_METAG_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '11'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+
+class TwistAbsquantMixin(AbsQuantMixin):
+    _TWIST_ABSQUANT_SPECIFIC_COLUMNS = (SYNDNA_IS_TWISTED_KEY,)
+
+    _TWIST_ABSQUANT_REMAPPER = MappingProxyType({
+        SYNDNA_IS_TWISTED_KEY: SYNDNA_IS_TWISTED_KEY,
+    })
+
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
+        self._remapper = self._extend_mapping_type(
+            self._TWIST_ABSQUANT_REMAPPER)
+        self._data_columns = self._data_columns + \
+            self._TWIST_ABSQUANT_SPECIFIC_COLUMNS
+        if self._CARRIED_PREP_COLUMNS is not None:
+            self._CARRIED_PREP_COLUMNS = self._CARRIED_PREP_COLUMNS + \
+                self._TWIST_ABSQUANT_SPECIFIC_COLUMNS
+        self._validate_on_load(path, defer_validate)
+
+
+class PacBioAbsquantSampleSheetv11(
+        TwistAbsquantMixin, PacBioSampleSheetWithTwistAdapters):
+    _HEADER = PacBioSampleSheetWithTwistAdapters._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '11'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
@@ -1871,8 +1964,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
-    # data_columns are the same as base KLSampleSheet so they will not be
-    # overridden here. _BIOINFORMATICS_COLUMNS as well.
+    # TODO: note: same as KLSampleSheet EXCEPT no lane column
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
         _LC_ILLUMINA_INDEX_COLUMNS + (
             LIB_CONSTRUCT_PROTOCOL_KEY,
@@ -1882,6 +1974,9 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
             "well_description",
             _SS_SAMPLE_WELL_KEY,
     )
+
+    # data_columns are the same as base KLSampleSheet so they will not be
+    # overridden here. _BIOINFORMATICS_COLUMNS as well.
 
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
@@ -2123,11 +2218,13 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
         PACBIO_METAG_SHEET_TYPE: {
             _METAGENOMIC: {
                 '10': PacBioMetagSampleSheetv10,
+                '11': PacBioMetagSampleSheetv11,
             },
         },
         PACBIO_ABSQUANT_SHEET_TYPE: {
             _METAGENOMIC: {
                 '10': PacBioAbsquantSampleSheetv10,
+                '11': PacBioAbsquantSampleSheetv11,
             },
         }
     }
@@ -2207,8 +2304,8 @@ def make_sample_sheet(metadata, table, sequencer, lanes,
         - ReverseComplement: If the reads in the FASTQ files should be reverse
           complemented by bcl2fastq [0]
     table: pd.DataFrame
-        The Plate's data with one column per variable: sample name ('sample
-        sheet Sample_ID'), forward and reverse barcodes ('i5 sequence', 'i7
+        The Plate's data with one column per variable: sample name
+        ('Sample_ID'), forward and reverse barcodes ('i5 sequence', 'i7
         sequence'), forward and reverse barcode names ('i5 name', 'i7
         name'), description ('Sample'), well identifier ('Well'), project
         plate (PM_PROJECT_PLATE_KEY), project name (PM_PROJECT_NAME_KEY),

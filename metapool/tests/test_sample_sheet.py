@@ -29,6 +29,8 @@ from metapool.sample_sheet import (KLSampleSheet, AmpliconSampleSheet,
                                    TellseqAbsquantMetagSampleSheetv10,
                                    PacBioMetagSampleSheetv10,
                                    PacBioAbsquantSampleSheetv10,
+                                   PacBioMetagSampleSheetv11,
+                                   PacBioAbsquantSampleSheetv11,
                                    sample_sheet_to_dataframe,
                                    make_sample_sheet, load_sample_sheet,
                                    demux_sample_sheet, sheet_needs_demuxing,
@@ -3192,6 +3194,105 @@ class PacBioAbsquantSampleSheetv10CreationTests(
         self._help_test_load_sample_sheet(self.sheet_class)
 
     def test_PacBioAbsquantSampleSheetv10_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
+
+class PacBioMetagSampleSheetv11CreationTests(SampleSheetLoadMakeAndLoadTests):
+    sheet_class = PacBioMetagSampleSheetv11
+    sample_sheet_name = "good_pacbio_metagv11.csv"
+
+    _INPUT_COLS = [
+        SS_SAMPLE_ID_KEY, 'Sample', 'Row', 'Col', 'Blank',
+        'Well', 'barcode_id', 'twist_adaptor_id',
+        'Project Plate', 'Project Name']
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'bc3011', '16_UDI_1_A01_F--16_UDI_1_A01_R',
+         'sample_plate_1', 'MyProject_99999'],
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'bc0112', '16_UDI_2_B01_F--16_UDI_2_B01_R',
+         'sample_plate_1', 'MyProject_99999'],
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'bc9992', '16_UDI_5_E01_F--16_UDI_5_E01_R',
+         'sample_plate_1', 'MyProject_99999'],
+    ]
+
+    _OUTPUT_COLS = [
+        'Sample_ID', 'Sample_Name', 'Sample_Plate', 'Sample_Well',
+        'barcode_id', 'twist_adaptor_id',
+        'Sample_Project', 'Well_description']
+
+    _BIOINFORMATICS = [
+        {
+            'Sample_Project': 'MyProject_99999',
+            'QiitaID': '99999',
+            'HumanFiltering': 'False',
+            'library_construction_protocol': 'some protocol',
+            'experiment_design_description': 'some description',
+            'contains_replicates': 'False'
+        }
+    ]
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    def test_PacBioMetagSampleSheetv11_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_PacBioMetagSampleSheetv11_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class, sequencer="Revio")
+
+    def test_PacBioMetagSampleSheetv11_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_PacBioMetagSampleSheetv11_roundtrip(self):
+        self._help_test_roundtrip_sample_sheet(self.sheet_class)
+
+
+class PacBioAbsquantSampleSheetv11CreationTests(
+        SampleSheetLoadMakeAndLoadTests):
+    sheet_class = PacBioAbsquantSampleSheetv11
+    sample_sheet_name = "good_pacbio_absquantv11.csv"
+
+    _INPUT_COLS = PacBioMetagSampleSheetv11CreationTests._INPUT_COLS.copy() + \
+        ['mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+         'vol_extracted_elution_ul', 'syndna_pool_number', 'syndna_is_twisted']
+
+    _INPUT_DATA = [
+        ['sample_1', 'sample.1', '1', '1', 'False',
+         'A1', 'bc3011', '16_UDI_1_A01_F--16_UDI_1_A01_R',
+         'sample_plate_1', 'MyProject_99999',
+         '0.2', '1.0', '1.1', '1', 'False'],
+        ['sample_2', 'sample.2', '2', '1', 'False',
+         'A2', 'bc0112', '16_UDI_2_B01_F--16_UDI_2_B01_R',
+         'sample_plate_1', 'MyProject_99999',
+         '0.22', '1.0', '1.1', '1', 'False'],
+        ['sample_3', 'sample.3', '3', '1', 'False',
+         'A3', 'bc9992', '16_UDI_5_E01_F--16_UDI_5_E01_R',
+         'sample_plate_1', 'MyProject_99999',
+         '0.25', '1.0', '1.1', '1', 'False'],
+    ]
+
+    _OUTPUT_COLS = \
+        PacBioMetagSampleSheetv11CreationTests._OUTPUT_COLS.copy() + [
+            'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
+            'vol_extracted_elution_ul', 'syndna_pool_number',
+            'syndna_is_twisted']
+
+    _BIOINFORMATICS = PacBioMetagSampleSheetv11CreationTests._BIOINFORMATICS
+
+    _SAMPLE_CONTEXT = MetagenomicSampleSheetv101CreationTests._SAMPLE_CONTEXT
+
+    def test_PacBioAbsquantSampleSheetv11_instantiate_from_path(self):
+        self._help_test_instantiate_sample_sheet_from_path(self.sheet_class)
+
+    def test_PacBioAbsquantSampleSheetv11_make_sample_sheet(self):
+        self._help_test_make_sample_sheet(self.sheet_class, sequencer="Revio")
+
+    def test_PacBioAbsquantSampleSheetv11_load_sample_sheet(self):
+        self._help_test_load_sample_sheet(self.sheet_class)
+
+    def test_PacBioAbsquantSampleSheetv11_roundtrip(self):
         self._help_test_roundtrip_sample_sheet(self.sheet_class)
 
 
