@@ -911,13 +911,16 @@ def _find_filtered_files(fp):
     # 'only-adapter-filtered', 'zerofiles' and possibly other directories
     # in the future as well.
 
-    # we expect the filepaths to be of the form:
+    # we expect the filepaths to be of the form (for human filtered):
     # <project_name_w_qiita_id>/filtered_sequences/<fastq_file>
+    # and (for not human filtered):
+    # <project_name_w_qiita_id>/trimmed_sequences/<fastq_file>
     # However, we intentionally search across all directories to locate
     # any fastq files w/in a filtered_sequences subdirectory, even if
     # they don't match our expectation so that no potentially desirable
     # file is silently filtered out.
     files = glob(f"{fp}/**/filtered_sequences/*.fastq.gz", recursive=True)
+    files += glob(f"{fp}/**/trimmed_sequences/*.fastq.gz", recursive=True)
 
     by_project = defaultdict(list)
 
@@ -951,9 +954,10 @@ def _find_filtered_files(fp):
         tmp = tmp.strip(sep)
         tmp = tmp.split(sep)
 
-        # tmp[1] != 'filtered_sequences' doesn't appear to be possible given
+        # tmp[1] not in ... doesn't appear to be possible given
         # the glob statement above, but we'll keep it here for safety.
-        if len(tmp) != 3 or tmp[1] != 'filtered_sequences':
+        if len(tmp) != 3 or tmp[1] not in [
+                'filtered_sequences', 'trimmed_sequences']:
             raise ValueError(f"{fastq_fp} appears to be stored in an "
                              "unexpected location")
 
