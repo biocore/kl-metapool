@@ -954,7 +954,7 @@ def _find_filtered_files(fp):
         tmp = tmp.strip(sep)
         tmp = tmp.split(sep)
 
-        # tmp[1] != 'filtered_sequences' doesn't appear to be possible given
+        # tmp[1] not in ... doesn't appear to be possible given
         # the glob statement above, but we'll keep it here for safety.
         if len(tmp) != 3 or tmp[1] not in [
                 'filtered_sequences', 'trimmed_sequences']:
