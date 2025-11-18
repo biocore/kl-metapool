@@ -1766,7 +1766,8 @@ class TestPrep(TestCase):
 
         project_names = ['Your_Project_12345', 'Your_Project_67890']
 
-        create_files(project_names, 'filtered_sequences')
+        create_files(project_names[1:], 'filtered_sequences')
+        create_files(project_names[:1], 'trimmed_sequences')
 
         if other_dirs:
             # in reality files with the same names wouldn't be present in both
