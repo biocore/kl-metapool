@@ -1959,27 +1959,27 @@ class TestPrePrepReplicates(TestCase):
 
 EXAMPLE_RESULTS = {
     "Your_Project_12345": [
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "T_LS_7_15_15B_S27_L007_R2_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_1_2014_S36_L007_R2_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_1_2014_SRE_S36_L007_R1_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_8_10_2013_S31_L007_R2_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/A.R2.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/A.R2.fastq.gz"),
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_8_10_2013_S31_L007_R1_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "T_LS_7_15_15B_S27_L007_R1_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_1_2014_S36_L007_R1_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_1_2014_SRE_S36_L007_R2_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/A.R1.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/A.R1.fastq.gz"),
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_3_24_2015_S37_L007_R1_001.trimmed.fastq.gz"),
-        ("/Your_Project_12345/filtered_sequences/"
+        ("/Your_Project_12345/trimmed_sequences/"
          "LS_3_24_2015_S37_L007_R2_001.trimmed.fastq.gz")
     ],
     "Your_Project_67890": [
@@ -2010,27 +2010,27 @@ EXAMPLE_RESULTS = {
 # This is a sample of the expected output from _find_filtered_files()
 
 EXAMPLE_RESULTS2 = {
-    ("/Your_Project_12345/filtered_sequences/T_LS_7_15_15B_S27_L007_R2_001."
+    ("/Your_Project_12345/trimmed_sequences/T_LS_7_15_15B_S27_L007_R2_001."
      "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
-    ("/Your_Project_12345/filtered_sequences/LS_1_2014_S36_L007_R2_001."
+    ("/Your_Project_12345/trimmed_sequences/LS_1_2014_S36_L007_R2_001."
      "trimmed.fastq.gz"): "LS_1_2014_S36_L007",
-    ("/Your_Project_12345/filtered_sequences/LS_1_2014_SRE_S36_L007_R1_001."
+    ("/Your_Project_12345/trimmed_sequences/LS_1_2014_SRE_S36_L007_R1_001."
      "trimmed.fastq.gz"): "LS_1_2014_SRE_S36_L007",
-    ("/Your_Project_12345/filtered_sequences/LS_8_10_2013_S31_L007_R2_001."
+    ("/Your_Project_12345/trimmed_sequences/LS_8_10_2013_S31_L007_R2_001."
      "trimmed.fastq.gz"): "LS_8_10_2013_S31_L007",
-    ("/Your_Project_12345/filtered_sequences/A.R2.fastq.gz"): "A",
-    ("/Your_Project_12345/filtered_sequences/LS_8_10_2013_S31_L007_R1_001."
+    ("/Your_Project_12345/trimmed_sequences/A.R2.fastq.gz"): "A",
+    ("/Your_Project_12345/trimmed_sequences/LS_8_10_2013_S31_L007_R1_001."
      "trimmed.fastq.gz"): "LS_8_10_2013_S31_L007",
-    ("/Your_Project_12345/filtered_sequences/T_LS_7_15_15B_S27_L007_R1_001."
+    ("/Your_Project_12345/trimmed_sequences/T_LS_7_15_15B_S27_L007_R1_001."
      "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
-    ("/Your_Project_12345/filtered_sequences/LS_1_2014_S36_L007_R1_001."
+    ("/Your_Project_12345/trimmed_sequences/LS_1_2014_S36_L007_R1_001."
      "trimmed.fastq.gz"): "LS_1_2014_S36_L007",
-    ("/Your_Project_12345/filtered_sequences/LS_1_2014_SRE_S36_L007_R2_001."
+    ("/Your_Project_12345/trimmed_sequences/LS_1_2014_SRE_S36_L007_R2_001."
      "trimmed.fastq.gz"): "LS_1_2014_SRE_S36_L007",
-    ("/Your_Project_12345/filtered_sequences/A.R1.fastq.gz"): "A",
-    ("/Your_Project_12345/filtered_sequences/LS_3_24_2015_S37_L007_R1_001."
+    ("/Your_Project_12345/trimmed_sequences/A.R1.fastq.gz"): "A",
+    ("/Your_Project_12345/trimmed_sequences/LS_3_24_2015_S37_L007_R1_001."
      "trimmed.fastq.gz"): "LS_3_24_2015_S37_L007",
-    ("/Your_Project_12345/filtered_sequences/LS_3_24_2015_S37_L007_R2_001."
+    ("/Your_Project_12345/trimmed_sequences/LS_3_24_2015_S37_L007_R2_001."
      "trimmed.fastq.gz"): "LS_3_24_2015_S37_L007",
     ("/Your_Project_67890/filtered_sequences/T_LS_7_15_15B_S27_L007_R2_001."
      "trimmed.fastq.gz"): "T_LS_7_15_15B_S27_L007",
