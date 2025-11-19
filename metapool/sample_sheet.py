@@ -37,7 +37,7 @@ _READ_2_KEY = 'Read2'
 _SETTINGS_KEY = 'Settings'
 _DATA_KEY = 'Data'
 _ASSAY_KEY = 'Assay'
-_SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
+
 _SS_QIITA_ID_KEY = 'QiitaID'
 _SS_SAMPLE_NAME_KEY = 'Sample_Name'
 _SS_SAMPLE_WELL_KEY = 'Sample_Well'
@@ -46,9 +46,7 @@ _EMAIL_KEY = 'Email'
 _HUMAN_FILTERING_KEY = 'HumanFiltering'
 _SHEET_TYPE_KEY = 'SheetType'
 _SHEET_VERSION_KEY = 'SheetVersion'
-_LANE_KEY = 'Lane'
 _BARCODES_ARE_RC_KEY = 'BarcodesAreRC'
-
 STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 STANDARD_METAT_SHEET_TYPE = 'standard_metat'
 TELLSEQ_METAG_SHEET_TYPE = 'tellseq_metag'
@@ -69,6 +67,8 @@ _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 
 SS_SAMPLE_ID_KEY = 'Sample_ID'
+SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
+LANE_KEY = 'Lane'
 
 PROTOCOL_NAME_ILLUMINA = "Illumina"
 PROTOCOL_NAME_TELLSEQ = "TellSeq"
@@ -1554,6 +1554,12 @@ class AbsQuantMixin(object):
         ELUTION_VOL_KEY: ELUTION_VOL_KEY
     })
 
+    # Reminder: the method of adding carried prep columns and data columns used
+    # below ONLY works if the mixin is the last class in the inheritance list
+    # and if the class that inherits from it does not explicitly set these
+    # attributes in its own __init__ method.  Safest not to set these
+    # attributes in leaf classes at all (specific sheet versions) for leaf
+    # class that uses a mixin like this.
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
         self._remapper = self._extend_mapping_type(self._ABSQUANT_REMAPPER)
@@ -1887,6 +1893,12 @@ class TwistAbsquantMixin(AbsQuantMixin):
         SYNDNA_IS_TWISTED_KEY: SYNDNA_IS_TWISTED_KEY,
     })
 
+    # Reminder: the method of adding carried prep columns and data columns used
+    # below ONLY works if the mixin is the last class in the inheritance list
+    # and if the class that inherits from it does not explicitly set these
+    # attributes in its own __init__ method.  Safest not to set these
+    # attributes in leaf classes at all (specific sheet versions) for leaf
+    # class that uses a mixin like this.
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
         self._remapper = self._extend_mapping_type(
@@ -1964,7 +1976,9 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
-    # TODO: note: same as KLSampleSheet EXCEPT no lane column
+    # same as KLSampleSheet EXCEPT no lane column.
+    # doesn't cause problems for this to be defined on this "leaf" class
+    # because class isn't being mixed in with anything else.
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
         _LC_ILLUMINA_INDEX_COLUMNS + (
             LIB_CONSTRUCT_PROTOCOL_KEY,
@@ -2036,6 +2050,8 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
         _CONTACT_KEY: _CONTACT_COLS,
     })
 
+    # doesn't cause problems for this to be defined on this "leaf" class
+    # because class isn't being mixed in with anything else.
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
 
     def __init__(self, path=None, defer_validate=False):
@@ -2070,6 +2086,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         _CONTACT_KEY: _CONTACT_COLS,
     })
 
+    # doesn't cause problems for this to be defined on this "leaf" class
+    # because class isn't being mixed in with anything else.
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
         'total_rna_concentration_ng_ul',
         ELUTION_VOL_KEY)
