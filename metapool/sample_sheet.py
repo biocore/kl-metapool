@@ -37,7 +37,7 @@ _READ_2_KEY = 'Read2'
 _SETTINGS_KEY = 'Settings'
 _DATA_KEY = 'Data'
 _ASSAY_KEY = 'Assay'
-_SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
+
 _SS_QIITA_ID_KEY = 'QiitaID'
 _SS_SAMPLE_NAME_KEY = 'Sample_Name'
 _SS_SAMPLE_WELL_KEY = 'Sample_Well'
@@ -46,9 +46,7 @@ _EMAIL_KEY = 'Email'
 _HUMAN_FILTERING_KEY = 'HumanFiltering'
 _SHEET_TYPE_KEY = 'SheetType'
 _SHEET_VERSION_KEY = 'SheetVersion'
-_LANE_KEY = 'Lane'
 _BARCODES_ARE_RC_KEY = 'BarcodesAreRC'
-
 STANDARD_METAG_SHEET_TYPE = 'standard_metag'
 STANDARD_METAT_SHEET_TYPE = 'standard_metat'
 TELLSEQ_METAG_SHEET_TYPE = 'tellseq_metag'
@@ -69,6 +67,8 @@ _METAGENOMIC = 'Metagenomic'
 _METATRANSCRIPTOMIC = 'Metatranscriptomic'
 
 SS_SAMPLE_ID_KEY = 'Sample_ID'
+SS_SAMPLE_PROJECT_KEY = 'Sample_Project'
+LANE_KEY = 'Lane'
 
 PROTOCOL_NAME_ILLUMINA = "Illumina"
 PROTOCOL_NAME_TELLSEQ = "TellSeq"
@@ -96,7 +96,7 @@ SAMPLE_SHEETS_BY_PROTOCOL = {
 # insertion order is preserved in dictionaries (cite:
 # https://mail.python.org/pipermail/python-dev/2017-December/151283.html ).
 _BASE_BIOINFORMATICS_COLS = MappingProxyType(
-    {_SS_SAMPLE_PROJECT_KEY: str,
+    {SS_SAMPLE_PROJECT_KEY: str,
      _SS_QIITA_ID_KEY: str,
      _BARCODES_ARE_RC_KEY: bool,
      'ForwardAdapter': str,
@@ -108,12 +108,12 @@ _BASE_BIOINFORMATICS_COLS = MappingProxyType(
 _BIOINFORMATICS_COLS_W_REP_SUPPORT = MappingProxyType(
     _BASE_BIOINFORMATICS_COLS | {CONTAINS_REPLICATES_KEY: bool})
 _CONTACT_COLS = MappingProxyType({
-    _SS_SAMPLE_PROJECT_KEY: str,
+    SS_SAMPLE_PROJECT_KEY: str,
     _EMAIL_KEY: str})
 
 _PREFIX_PLATE_COLUMNS = (SS_SAMPLE_ID_KEY, _SS_SAMPLE_NAME_KEY, 'Sample_Plate',
                          PM_WELL_ID_384_KEY)
-_SUFFIX_PLATE_COLUMNS = (_SS_SAMPLE_PROJECT_KEY, 'Well_description')
+_SUFFIX_PLATE_COLUMNS = (SS_SAMPLE_PROJECT_KEY, 'Well_description')
 _ILLUMINA_INDEX_COLUMNS = ('I7_Index_ID', 'index', 'I5_Index_ID', 'index2')
 _LC_ILLUMINA_INDEX_COLUMNS = tuple(
     [x.lower() for x in _ILLUMINA_INDEX_COLUMNS])
@@ -145,7 +145,7 @@ _BASE_PLATE_REMAPPER = MappingProxyType({
     'Sample': _SS_SAMPLE_NAME_KEY,
     PM_PROJECT_PLATE_KEY: 'Sample_Plate',
     'Well': PM_WELL_ID_384_KEY,
-    PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
+    PM_PROJECT_NAME_KEY: SS_SAMPLE_PROJECT_KEY,
     'Well_description': 'Well_description'
 })
 
@@ -224,7 +224,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             "sample_project",
             "well_description",
             _SS_SAMPLE_WELL_KEY,
-            _LANE_KEY,
+            LANE_KEY,
     )
 
     _GENERATED_PREP_COLUMNS = _BASE_GENERATED_PREP_COLUMNS
@@ -542,7 +542,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                     col_order = self.all_sample_keys
 
                 if not data_df.empty and lane is not None:
-                    data_df[_LANE_KEY] = lane
+                    data_df[LANE_KEY] = lane
                 _write_df_section(data_df[col_order])
 
             elif title in self._KL_ADDTL_DF_SECTIONS:
@@ -712,7 +712,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
 
         for lane in lanes:
             for sample in table.to_dict(orient='records'):
-                sample[_LANE_KEY] = lane
+                sample[LANE_KEY] = lane
                 self.add_sample(sample_sheet.Sample(sample))
 
         return table
@@ -1002,7 +1002,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
                 sample.Sample_ID = new_sample
             if new_project != sample.Sample_Project:
                 updated_projects[sample.Sample_Project] = new_project
-                sample[_SS_SAMPLE_PROJECT_KEY] = new_project
+                sample[SS_SAMPLE_PROJECT_KEY] = new_project
 
         if updated_samples:
             msgs.append(WarningMessage('The following sample names were '
@@ -1127,13 +1127,13 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             msgs.append(
                 ErrorMessage(
                     f"The following project names in the "
-                    f"{_SS_SAMPLE_PROJECT_KEY} column are missing a Qiita "
+                    f"{SS_SAMPLE_PROJECT_KEY} column are missing a Qiita "
                     f"study identifier: "
                     f"{', '.join(sorted(bad_projects))}"))
 
         # check that the bioinformatics and data sections have the exact
         # same list of projects in them
-        bfx_project_names = set(self.Bioinformatics[_SS_SAMPLE_PROJECT_KEY])
+        bfx_project_names = set(self.Bioinformatics[SS_SAMPLE_PROJECT_KEY])
         not_shared = data_project_names ^ bfx_project_names
         if not_shared:
             msgs.append(
@@ -1146,7 +1146,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         # bioinformatics section, but they can't have any project that ISN'T
         # in the bioinformatics section!
         # NB:below logic works even if there ISN'T a sample context section
-        contact_project_names = set(self.Contact[_SS_SAMPLE_PROJECT_KEY])
+        contact_project_names = set(self.Contact[SS_SAMPLE_PROJECT_KEY])
         sample_context_project_ids = get_all_projects_in_context(
             self._get_section(_SAMPLE_CONTEXT_KEY))
 
@@ -1215,14 +1215,14 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             # (e.g., MIDAS_10317:10317 and TMI_10317:10317 is acceptable, but
             # MIDAS_10317:10317 and MIDAS_10317:10318 is not).
             proj_name_to_qiita_id_df = self.Bioinformatics[
-                [_SS_SAMPLE_PROJECT_KEY, _SS_QIITA_ID_KEY]]
+                [SS_SAMPLE_PROJECT_KEY, _SS_QIITA_ID_KEY]]
 
             # get the control info out of the Data section
             samples_details = self._get_samples_details()
             for curr_sample_name, curr_details in samples_details.items():
                 if self.sample_is_a_blank(curr_sample_name):
                     curr_name_mask = \
-                        proj_name_to_qiita_id_df[_SS_SAMPLE_PROJECT_KEY] == \
+                        proj_name_to_qiita_id_df[SS_SAMPLE_PROJECT_KEY] == \
                         curr_details[SAMPLE_PROJECT_KEY]
                     curr_qiita_id = proj_name_to_qiita_id_df.loc[
                         curr_name_mask, _SS_QIITA_ID_KEY].tolist()[0]
@@ -1278,7 +1278,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
         bioinformatics = self.Bioinformatics
         for curr_project_record in bioinformatics.to_dict(orient='records'):
             curr_full_project_name = \
-                curr_project_record[_SS_SAMPLE_PROJECT_KEY]
+                curr_project_record[SS_SAMPLE_PROJECT_KEY]
             curr_proj_dict = parse_project_name(curr_full_project_name)
             curr_proj_dict[SAMPLES_DETAILS_KEY] = {}
 
@@ -1309,7 +1309,7 @@ class KLSampleSheet(sample_sheet.SampleSheet):
             curr_sample_name = curr_sample[_SS_SAMPLE_NAME_KEY]
             curr_sample_dict = {
                 SAMPLE_NAME_KEY: curr_sample_name,
-                SAMPLE_PROJECT_KEY: curr_sample[_SS_SAMPLE_PROJECT_KEY],
+                SAMPLE_PROJECT_KEY: curr_sample[SS_SAMPLE_PROJECT_KEY],
                 SS_SAMPLE_ID_KEY: curr_sample[SS_SAMPLE_ID_KEY]}
 
             if ORIG_NAME_KEY in curr_sample:
@@ -1554,6 +1554,12 @@ class AbsQuantMixin(object):
         ELUTION_VOL_KEY: ELUTION_VOL_KEY
     })
 
+    # Reminder: the method of adding carried prep columns and data columns used
+    # below ONLY works if the mixin is the last class in the inheritance list
+    # and if the class that inherits from it does not explicitly set these
+    # attributes in its own __init__ method.  Safest not to set these
+    # attributes in leaf classes at all (specific sheet versions) for leaf
+    # class that uses a mixin like this.
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
         self._remapper = self._extend_mapping_type(self._ABSQUANT_REMAPPER)
@@ -1719,7 +1725,7 @@ class AmpliconSampleSheet(KLSampleSheet):
             'Well': _SS_SAMPLE_WELL_KEY,
             'Name': 'I7_Index_ID',
             'Golay Barcode': 'index',
-            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY,
+            PM_PROJECT_NAME_KEY: SS_SAMPLE_PROJECT_KEY,
         }
 
 
@@ -1739,7 +1745,7 @@ class PacBioSampleSheet(KLSampleSheetWithSampleContext):
     # in Bioinformatics section columns
     _KL_ADDTL_DF_SECTIONS = MappingProxyType({
         _BIOINFORMATICS_KEY: MappingProxyType({
-            _SS_SAMPLE_PROJECT_KEY: str,
+            SS_SAMPLE_PROJECT_KEY: str,
             _SS_QIITA_ID_KEY: str,
             _HUMAN_FILTERING_KEY: bool,
             LIB_CONSTRUCT_PROTOCOL_KEY: str,
@@ -1887,6 +1893,12 @@ class TwistAbsquantMixin(AbsQuantMixin):
         SYNDNA_IS_TWISTED_KEY: SYNDNA_IS_TWISTED_KEY,
     })
 
+    # Reminder: the method of adding carried prep columns and data columns used
+    # below ONLY works if the mixin is the last class in the inheritance list
+    # and if the class that inherits from it does not explicitly set these
+    # attributes in its own __init__ method.  Safest not to set these
+    # attributes in leaf classes at all (specific sheet versions) for leaf
+    # class that uses a mixin like this.
     def __init__(self, path=None, defer_validate=False):
         super().__init__(path=path, defer_validate=True)
         self._remapper = self._extend_mapping_type(
@@ -1964,7 +1976,9 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
         'Chemistry': 'Default',
     }
 
-    # TODO: note: same as KLSampleSheet EXCEPT no lane column
+    # same as KLSampleSheet EXCEPT no lane column.
+    # doesn't cause problems for this to be defined on this "leaf" class
+    # because class isn't being mixed in with anything else.
     _CARRIED_PREP_COLUMNS = (EXPT_DESIGN_DESC_KEY,) + \
         _LC_ILLUMINA_INDEX_COLUMNS + (
             LIB_CONSTRUCT_PROTOCOL_KEY,
@@ -1989,7 +2003,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
             'i7 sequence': 'index',
             'i5 name': 'I5_Index_ID',
             'i5 sequence': 'index2',
-            PM_PROJECT_NAME_KEY: _SS_SAMPLE_PROJECT_KEY
+            PM_PROJECT_NAME_KEY: SS_SAMPLE_PROJECT_KEY
         }
         self._validate_on_load(path, defer_validate)
 
@@ -2036,6 +2050,8 @@ class MetatranscriptomicSampleSheetv0(KLSampleSheet):
         _CONTACT_KEY: _CONTACT_COLS,
     })
 
+    # doesn't cause problems for this to be defined on this "leaf" class
+    # because class isn't being mixed in with anything else.
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS
 
     def __init__(self, path=None, defer_validate=False):
@@ -2070,6 +2086,8 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         _CONTACT_KEY: _CONTACT_COLS,
     })
 
+    # doesn't cause problems for this to be defined on this "leaf" class
+    # because class isn't being mixed in with anything else.
     _CARRIED_PREP_COLUMNS = _BASE_CARRIED_PREP_COLUMNS + (
         'total_rna_concentration_ng_ul',
         ELUTION_VOL_KEY)
@@ -2084,7 +2102,7 @@ class MetatranscriptomicSampleSheetv10(KLSampleSheet):
         }
         self._data_columns = \
             _PREFIX_PLATE_COLUMNS + _ILLUMINA_INDEX_COLUMNS + (
-                _SS_SAMPLE_PROJECT_KEY, 'total_rna_concentration_ng_ul',
+                SS_SAMPLE_PROJECT_KEY, 'total_rna_concentration_ng_ul',
                 ELUTION_VOL_KEY, 'Well_description')
         self._validate_on_load(path, defer_validate)
 
@@ -2395,13 +2413,13 @@ def sample_sheet_to_dataframe(sheet, lcase_cols=True, add_protocol_info=True):
     out.columns = [get_col_name(c) for c in out.columns]
 
     if add_protocol_info:
-        out = out.merge(sheet.Bioinformatics[[_SS_SAMPLE_PROJECT_KEY,
+        out = out.merge(sheet.Bioinformatics[[SS_SAMPLE_PROJECT_KEY,
                                               LIB_CONSTRUCT_PROTOCOL_KEY,
                                               EXPT_DESIGN_DESC_KEY]],
-                        left_on=get_col_name(_SS_SAMPLE_PROJECT_KEY),
-                        right_on=_SS_SAMPLE_PROJECT_KEY)
-    if get_col_name(_SS_SAMPLE_PROJECT_KEY) != _SS_SAMPLE_PROJECT_KEY:
-        out.drop(columns=_SS_SAMPLE_PROJECT_KEY, inplace=True)
+                        left_on=get_col_name(SS_SAMPLE_PROJECT_KEY),
+                        right_on=SS_SAMPLE_PROJECT_KEY)
+    if get_col_name(SS_SAMPLE_PROJECT_KEY) != SS_SAMPLE_PROJECT_KEY:
+        out.drop(columns=SS_SAMPLE_PROJECT_KEY, inplace=True)
 
     found_sort_key = None
     potential_well_keys = [_SS_SAMPLE_WELL_KEY, PM_WELL_ID_384_KEY]
@@ -2505,7 +2523,7 @@ def demux_sample_sheet(sheet):
         else:
             ctx_projects = set()
 
-        projects = set(df[_SS_SAMPLE_PROJECT_KEY]) | ctx_projects
+        projects = set(df[SS_SAMPLE_PROJECT_KEY]) | ctx_projects
 
         # Generate a list of projects associated with each set of samples.
         # Construct bioinformatics and contact sections for each set so that
@@ -2514,11 +2532,11 @@ def demux_sample_sheet(sheet):
         # NB: Don't handle SampleContext section here bc it is sample-, not
         # project-specific, so needs to happen after we set the samples below.
         new_sheet.Bioinformatics = sheet.Bioinformatics.loc[
-            sheet.Bioinformatics[_SS_SAMPLE_PROJECT_KEY].isin(
+            sheet.Bioinformatics[SS_SAMPLE_PROJECT_KEY].isin(
                 projects)].reset_index(drop=True)
         new_sheet.Bioinformatics[CONTAINS_REPLICATES_KEY] = False
         new_sheet.Contact = sheet.Contact.loc[
-            sheet.Contact[_SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
+            sheet.Contact[SS_SAMPLE_PROJECT_KEY].isin(projects)].reset_index(
             drop=True)
 
         # NB: if modifying this section, see issue #321
@@ -2586,7 +2604,7 @@ def _get_sample_context_project_names(sheet, external_context=None):
         ctx_projects_mask = \
             bioinformatics[_SS_QIITA_ID_KEY].isin(ctx_project_ids)
         ctx_projects = \
-            set(bioinformatics.loc[ctx_projects_mask, _SS_SAMPLE_PROJECT_KEY])
+            set(bioinformatics.loc[ctx_projects_mask, SS_SAMPLE_PROJECT_KEY])
     # end if there are any projects in the sample context section
 
     return ctx_projects
@@ -2609,7 +2627,7 @@ def make_sections_dict(plate_df, studies_info, expt_name, expt_type,
         curr_proj_name = curr_study_dict[PM_PROJECT_NAME_KEY]
         curr_qiita_id = get_qiita_id_from_project_name(curr_proj_name)
         curr_bioinfo_adds = {
-            _SS_SAMPLE_PROJECT_KEY: curr_proj_name,
+            SS_SAMPLE_PROJECT_KEY: curr_proj_name,
             _SS_QIITA_ID_KEY: curr_qiita_id,
             _HUMAN_FILTERING_KEY: curr_study_dict[_HUMAN_FILTERING_KEY],
             EXPT_DESIGN_DESC_KEY: curr_study_dict[EXPT_DESIGN_DESC_KEY],
@@ -2623,7 +2641,7 @@ def make_sections_dict(plate_df, studies_info, expt_name, expt_type,
         bioinfo_dicts.append(curr_bioinfo_dict)
 
         curr_contact_dict = {
-            _SS_SAMPLE_PROJECT_KEY: curr_proj_name,
+            SS_SAMPLE_PROJECT_KEY: curr_proj_name,
             _EMAIL_KEY: curr_study_dict[_EMAIL_KEY]
         }
         contacts_dicts.append(curr_contact_dict)
