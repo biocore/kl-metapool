@@ -27,7 +27,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             # Part 1 Step 8 output
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/test_output/pacbio_v11_metag_sample_sheet.csv'),
+                    ('{path}/SampleSheets/pacbio_v11_metag_sample_sheet.csv'),
                 self._FILE_PATH_KEY: True
             }
         }
@@ -56,7 +56,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             # Part 1 Step 8 output
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/test_output/'
+                    ('{path}/SampleSheets/'
                      'pacbio_v11_absquant_unpooled_sample_sheet.csv'),
                 self._FILE_PATH_KEY: True
             }
@@ -73,12 +73,12 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
                 f'{self.test_data_dir}/processing_docs/'
                 'pacbio_twist_pooled_absquant_processing_doc.csv'),
             'qiita_id_key': "Qiita_ID",
-            'sample_name_col_key': "sample_name",
+            'sample_name_col_key': "Sample_ID",
             'sample_type_key': "sample_type",
             'plate_col_key': "Extraction_Plate",
             'project_name_col_key': "Project_Name",
             'well_col_key': "Library_Well_ID",
-            'twist_adaptor_id_col_key': "Amplification_Twist_UDI",
+            'twist_adaptor_id_col_key': "Twist_UDI_Barcode",
             'barcode_col_key': "Barcode",
             'run_id_key': "Sequencing Run",
             'run_title_key': "Sequencing Run Name"
@@ -88,7 +88,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             # Part 1 Step 8 output
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/test_output/'
+                    ('{path}/SampleSheets/'
                      'pacbio_v11_absquant_pooled_sample_sheet.csv'),
                 self._FILE_PATH_KEY: True
             },
