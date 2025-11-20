@@ -5,7 +5,7 @@ from pathlib import Path
 import os
 import re
 
-SAVE_DIR = "/Users/amandabirmingham/Desktop"
+SAVE_DIR = "~/Desktop"
 
 
 class TestNotebook(unittest.TestCase):
