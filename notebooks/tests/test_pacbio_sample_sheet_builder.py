@@ -83,7 +83,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
                     ('{path}/SampleSheets/'
                      'pacbio_v11_absquant_pooled_sample_sheet.csv'),
                 self._FILE_PATH_KEY: True
-            },
+            }
         }
 
         self._run_notebook_test(run_params, output_params)
