@@ -7,7 +7,6 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
 
     def test_pacbio_v11_no_twist_metag(self):
         run_params = {
-            # Part 1 Step 0 inputs
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
                 f'pacbio_metag_processing_doc.csv'),
@@ -24,7 +23,6 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
         }
 
         output_params = {
-            # Part 1 Step 8 output
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/pacbio_v11_metag_sample_sheet.csv'),
@@ -36,7 +34,6 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
 
     def test_pacbio_v11_unpooled_absquant(self):
         run_params = {
-            # Part 1 Step 0 inputs
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
                 f'pacbio_twist_unpooled_absquant_processing_doc.csv'),
@@ -53,7 +50,6 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
         }
 
         output_params = {
-            # Part 1 Step 8 output
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/'
@@ -65,10 +61,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
         self._run_notebook_test(run_params, output_params)
 
     def test_pacbio_v11_pooled_absquant(self):
-        """Verify notebook produces expected output files."""
-
         run_params = {
-            # Part 1 Step 0 inputs
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
                 'pacbio_twist_pooled_absquant_processing_doc.csv'),
@@ -85,7 +78,6 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
         }
 
         output_params = {
-            # Part 1 Step 8 output
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/'
