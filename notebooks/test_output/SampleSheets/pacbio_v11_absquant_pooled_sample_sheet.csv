@@ -24,7 +24,7 @@ Sample_ID,Sample_Name,Sample_Plate,Sample_Well,barcode_id,twist_adaptor_id,Sampl
 ,,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,,
 Sample_Project,QiitaID,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,,,,,
-test_soil_16130,16130,False,Knight Lab PacBio absquant,fecal samples for metagenomic sequencing with absquant,False,,,,,,,,
+test_soil_16130,16130,False,Knight Lab PacBio absquant,soil samples for metagenomic sequencing with absquant,False,,,,,,,,
 ,,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,,
 Sample_Project,Email,,,,,,,,,,,,
