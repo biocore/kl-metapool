@@ -1,0 +1,31 @@
+[Header],,,,,,,,
+SheetType,pacbio_metag,,,,,,,
+SheetVersion,11,,,,,,,
+Investigator Name,Knight,,,,,,,
+Experiment Name,Test1Pacbio,,,,,,,
+Date,2025-11-20,,,,,,,
+Assay,Metagenomic,,,,,,,
+Description,,,,,,,,
+,,,,,,,,
+[Data],,,,,,,,
+Sample_ID,Sample_Name,Sample_Plate,Sample_Well,barcode_id,twist_adaptor_id,Sample_Project,Well_description,Lane
+Duo_Lav_09013_jumpcode,Duo.Lav.09013.jumpcode,test1,A1,bc2025,,test1_jumpcode_16005,test1.Duo.Lav.09013.jumpcode.A1,1
+Duo_Lav_205525_jumpcode,Duo.Lav.205525.jumpcode,test1,B1,bc2026,,test1_jumpcode_16005,test1.Duo.Lav.205525.jumpcode.B1,1
+Jej_Lav_205525_jumpcode,Jej.Lav.205525.jumpcode,test1,C1,bc2027,,test1_jumpcode_16005,test1.Jej.Lav.205525.jumpcode.C1,1
+TestSubject01_jumpcode,TestSubject01.jumpcode,test1,D1,bc2028,,test1_jumpcode_16005,test1.TestSubject01.jumpcode.D1,1
+TestSubject05_jumpcode,TestSubject05.jumpcode,test1,E1,bc2029,,test1_jumpcode_16005,test1.TestSubject05.jumpcode.E1,1
+TestSubject10_jumpcode,TestSubject10.jumpcode,test1,F1,bc2030,,test1_jumpcode_16005,test1.TestSubject10.jumpcode.F1,1
+BLANK_jumpcode,BLANK.jumpcode,test1,D2,bc2036,,test1_jumpcode_16005,test1.BLANK.jumpcode.D2,1
+,,,,,,,,
+[Bioinformatics],,,,,,,,
+Sample_Project,QiitaID,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,
+test1_jumpcode_16005,16005,True,Knight Lab PacBio,fecal samples for metagenomic sequencing,False,,,
+,,,,,,,,
+[Contact],,,,,,,,
+Sample_Project,Email,,,,,,,
+test1_jumpcode_16005,gail.ackermann50@gmail.com,,,,,,,
+,,,,,,,,
+[SampleContext],,,,,,,,
+sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,
+BLANK.jumpcode,control blank,16005,,,,,,
+,,,,,,,,

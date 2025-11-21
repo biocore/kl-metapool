@@ -1,0 +1,41 @@
+[Header],,,,,,,,,,,,,
+SheetType,pacbio_absquant,,,,,,,,,,,,
+SheetVersion,11,,,,,,,,,,,,
+Investigator Name,Knight,,,,,,,,,,,,
+Experiment Name,Prep_information_AmpliFiValidation_Aug_2025,,,,,,,,,,,,
+Date,2025-11-20,,,,,,,,,,,,
+Assay,Metagenomic,,,,,,,,,,,,
+Description,,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[Data],,,,,,,,,,,,,
+Sample_ID,Sample_Name,Sample_Plate,Sample_Well,barcode_id,twist_adaptor_id,Sample_Project,Well_description,mass_syndna_input_ng,extracted_gdna_concentration_ng_ul,vol_extracted_elution_ul,syndna_pool_number,syndna_is_twisted,Lane
+Person_A_Amplifi_1_PB,Person.A.Amplifi.1.PB,donorA-E_amplifi,A3,bc2017,,amplifi_validation_15196,donorA-E_amplifi.Person.A.Amplifi.1.PB.A3,15.8,71.475,110,2000,,1
+Person_A_Amplifi_1_rep_PB,Person.A.Amplifi.1.rep.PB,donorA-E_amplifi,A1,bc2001,16_UDI_1_A01_F--16_UDI_1_A01_R,amplifi_validation_15196,donorA-E_amplifi.Person.A.Amplifi.1.rep.PB.A1,15.8,71.475,110,2000,FALSE,1
+Person_B_Amplifi_1_PB,Person.B.Amplifi.1.PB,donorA-E_amplifi,B3,bc2018,,amplifi_validation_15196,donorA-E_amplifi.Person.B.Amplifi.1.PB.B3,15.8,14.053,110,2000,,1
+Person_B_Amplifi_1_rep_PB,Person.B.Amplifi.1.rep.PB,donorA-E_amplifi,B1,bc2002,16_UDI_2_B01_F--16_UDI_2_B01_R,amplifi_validation_15196,donorA-E_amplifi.Person.B.Amplifi.1.rep.PB.B1,15.8,14.053,110,2000,FALSE,1
+Person_C_Amplifi_1_PB,Person.C.Amplifi.1.PB,donorA-E_amplifi,C3,bc2019,,amplifi_validation_15196,donorA-E_amplifi.Person.C.Amplifi.1.PB.C3,15.8,19.722,110,2000,,1
+Person_C_Amplifi_1_rep_PB,Person.C.Amplifi.1.rep.PB,donorA-E_amplifi,C1,bc2003,16_UDI_3_C01_F--16_UDI_3_C01_R,amplifi_validation_15196,donorA-E_amplifi.Person.C.Amplifi.1.rep.PB.C1,15.8,19.722,110,2000,FALSE,1
+Person_D_Amplifi_1_PB,Person.D.Amplifi.1.PB,donorA-E_amplifi,D3,bc2020,,amplifi_validation_15196,donorA-E_amplifi.Person.D.Amplifi.1.PB.D3,15.8,13.186,110,2000,,1
+Person_D_Amplifi_1_rep_PB,Person.D.Amplifi.1.rep.PB,donorA-E_amplifi,D1,bc2004,16_UDI_4_D01_F--16_UDI_4_D01_R,amplifi_validation_15196,donorA-E_amplifi.Person.D.Amplifi.1.rep.PB.D1,15.8,13.186,110,2000,FALSE,1
+Person_E_Amplifi_1_PB,Person.E.Amplifi.1.PB,donorA-E_amplifi,E3,bc2021,,amplifi_validation_15196,donorA-E_amplifi.Person.E.Amplifi.1.PB.E3,15.8,17.967,110,2000,,1
+Person_E_Amplifi_1_rep_PB,Person.E.Amplifi.1.rep.PB,donorA-E_amplifi,E1,bc2005,16_UDI_5_E01_F--16_UDI_5_E01_R,amplifi_validation_15196,donorA-E_amplifi.Person.E.Amplifi.1.rep.PB.E1,15.8,17.967,110,2000,FALSE,1
+Person_A_Amplifi_2_rep_PB,Person.A.Amplifi.2.rep.PB,donorA-E_amplifi,F2,bc2014,16_UDI_14_F02_F--16_UDI_14_F02_R,amplifi_validation_15196,donorA-E_amplifi.Person.A.Amplifi.2.rep.PB.F2,15.8,69.231,110,2000,FALSE,1
+Person_B_Amplifi_2_rep_PB,Person.B.Amplifi.2.rep.PB,donorA-E_amplifi,G2,bc2015,16_UDI_15_G02_F--16_UDI_15_G02_R,amplifi_validation_15196,donorA-E_amplifi.Person.B.Amplifi.2.rep.PB.G2,15.8,12.899,110,2000,FALSE,1
+Person_C_Amplifi_2_rep_PB,Person.C.Amplifi.2.rep.PB,donorA-E_amplifi,H2,bc2016,16_UDI_16_H02_F--16_UDI_16_H02_R,amplifi_validation_15196,donorA-E_amplifi.Person.C.Amplifi.2.rep.PB.H2,15.8,11.374,110,2000,FALSE,1
+000079007_replicate_PB,000079007.replicate.PB,LS_time_series,C2,bc2011,16_UDI_11_C02_F--16_UDI_11_C02_R,ls_amplifi_validation_10283,LS_time_series.000079007.replicate.PB.C2,15.8,0.866,110,2000,FALSE,1
+000079009_replicate_PB,000079009.replicate.PB,LS_time_series,D2,bc2012,16_UDI_12_D02_F--16_UDI_12_D02_R,ls_amplifi_validation_10283,LS_time_series.000079009.replicate.PB.D2,15.8,1.504,110,2000,FALSE,1
+000089765_replicate_PB,000089765.replicate.PB,LS_time_series,E2,bc2013,16_UDI_13_E02_F--16_UDI_13_E02_R,ls_amplifi_validation_10283,LS_time_series.000089765.replicate.PB.E2,15.8,6.981,110,2000,FALSE,1
+,,,,,,,,,,,,,
+[Bioinformatics],,,,,,,,,,,,,
+Sample_Project,QiitaID,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,,,,,
+ls_amplifi_validation_10283,10283,True,Knight Lab PacBio absquant,fecal samples for metagenomic sequencing with absquant,False,,,,,,,,
+amplifi_validation_15196,15196,True,Knight Lab PacBio absquant,fecal samples for metagenomic sequencing with absquant,False,,,,,,,,
+,,,,,,,,,,,,,
+[Contact],,,,,,,,,,,,,
+Sample_Project,Email,,,,,,,,,,,,
+ls_amplifi_validation_10283,gail.ackermann50@gmail.com,,,,,,,,,,,,
+amplifi_validation_15196,gail.ackermann50@gmail.com,,,,,,,,,,,,
+,,,,,,,,,,,,,
+[SampleContext],,,,,,,,,,,,,
+sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,,,,
+,,,,,,,,,,,,,
