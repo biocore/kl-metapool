@@ -2225,7 +2225,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
 
     def trim_and_merge_dfs(controls_df, plate_df, preserve_leading_zeroes):
         controls_df = controls_df.drop(
-            ["LocationCell", "LocationColumn", "LocationRow"], axis=1
+            ["LocationCell", "LocationColumn", "LocationRow",
+             "RackID","Time", "Date"], axis=1
         )
 
         # Merge plate_df with controls table
@@ -2237,7 +2238,6 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
     # Loop through BLANK folder and assign description "negative_control"
     blanks = _load_blanks_accession_df(
         blanks_dir, preserve_leading_zeroes=preserve_leading_zeroes)
-    blanks.drop(["Time", "Date", "RackID"], axis=1, inplace=True)
     blanks[CONTROLS_DESCRIPTION_KEY] = "negative_control"
 
     if katharoseq_dir is not None:
@@ -2245,7 +2245,6 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         # assign description "positive_control"
         katharoseq = _load_katharoseq_accession_df(
             katharoseq_dir, preserve_leading_zeroes=preserve_leading_zeroes)
-        katharoseq.drop(["Time", "Date"], axis=1, inplace=True)
         katharoseq[CONTROLS_DESCRIPTION_KEY] = "positive_control"
 
         # Find katharoseq rackid and merge cell counts
