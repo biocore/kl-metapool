@@ -12,6 +12,7 @@ class TestNotebook(unittest.TestCase):
     NOTEBOOK = "amplicon_pre_prep_file_generator.ipynb"
     _OUT_PARAM_VARIABLE_KEY = "param_variable"
     _FILE_PATH_KEY = "is_filepath"  # key for file path parameters
+    _AUTOCONSTRUCTED_KEY = "is_autoconstructed"  # if param not set explicitly
     _ZERO_DATES_FUNC_KEY = "zero_dates_func"  # func to replace for dates
 
     # TODO: turn off before committing
@@ -75,8 +76,12 @@ class TestNotebook(unittest.TestCase):
             for curr_param_name, curr_details in out_param_details.items():
                 curr_param_variable = \
                     curr_details[self._OUT_PARAM_VARIABLE_KEY]
-                run_params[curr_param_name] = \
-                    curr_param_variable.format(path=tmp_path)
+
+                # autoconstructed output variables are not explicitly set as
+                # parameters; the code being tested should generate them itself
+                if not curr_details.get(self._AUTOCONSTRUCTED_KEY, False):
+                    run_params[curr_param_name] = \
+                        curr_param_variable.format(path=tmp_path)
 
                 if curr_details.get(self._FILE_PATH_KEY, False):
                     # extract directory path by removing {path}/ and filename
