@@ -201,7 +201,7 @@ class TestMetatranscriptomicsMatrixPipelineSeqcountNormNotebook(TestNotebook):
                 #  input will be provided to the notebook, which will allow
                 #  it to run and all the OTHER file outputs will be tested,
                 #  which is still a step up from none being tested.
-                self._FILE_PATH_KEY: True
+                self._FILE_PATH_KEY: False
             }
         }
 
