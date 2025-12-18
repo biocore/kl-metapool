@@ -177,7 +177,6 @@ class TestAmpliconNotebook(TestNotebook):
 
         self._run_notebook_test(run_params, output_params)
 
-
     def test_amplicon_for_katharoseq(self):
         """Verify notebook produces expected output files with katharoseq."""
 
