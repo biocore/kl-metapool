@@ -2226,7 +2226,7 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
     def trim_and_merge_dfs(controls_df, plate_df, preserve_leading_zeroes):
         controls_df = controls_df.drop(
             ["LocationCell", "LocationColumn", "LocationRow",
-             "RackID","Time", "Date"], axis=1
+             "RackID", "Time", "Date"], axis=1
         )
 
         # Merge plate_df with controls table

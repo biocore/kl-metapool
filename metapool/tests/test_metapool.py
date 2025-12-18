@@ -101,7 +101,7 @@ class Tests(TestCase):
         self.add_controls_for_kath_exp_fp_w_leading_zeroes_tubecode = \
             os.path.join(
                 path,
-                'data/add_controls_expected_out_w_leading_zeroes' \
+                'data/add_controls_expected_out_w_leading_zeroes'
                 '_tubecode_for_katharoseq.tsv')
         self.katharoseq_dir = os.path.join(path, 'data/katharo')
         self.blanks_dir = os.path.join(path, 'data/blanks')
