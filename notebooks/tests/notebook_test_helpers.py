@@ -18,10 +18,15 @@ class TestNotebook(unittest.TestCase):
     # TODO: turn off before committing
     _SAVE_UNMATCHED_OUTPUTS = False  # whether to save unmatched outputs
 
+    _TEST_DATA_DIR_NAME = "test_data"
+    _TEST_OUTPUT_DIR_NAME = "test_output"
+
     def setUp(self):
         self.notebooks_dir = os.path.dirname(os.path.dirname(__file__))
-        self.test_data_dir = os.path.join(self.notebooks_dir, 'test_data')
-        self.test_output_dir = os.path.join(self.notebooks_dir, 'test_output')
+        self.test_data_dir = os.path.join(
+            self.notebooks_dir, self._TEST_DATA_DIR_NAME)
+        self.test_output_dir = os.path.join(
+            self.notebooks_dir, self._TEST_OUTPUT_DIR_NAME)
 
     def _help_test_files_exact_text_match(self, file_1, file_2, filename=None,
                                           zero_dates_func=None):
@@ -59,6 +64,15 @@ class TestNotebook(unittest.TestCase):
         date_pattern = r',\nDate,\d{4}-\d{2}-\d{2},'
         replacement = r',\nDate,0000-00-00,'
         return re.sub(date_pattern, replacement, text)
+
+    def _replace_local_test_paths(self, text):
+        """Helper function to replace local directory paths in text."""
+
+        for test_dir in [self._TEST_DATA_DIR_NAME, self._TEST_OUTPUT_DIR_NAME]:
+            path_pattern = rf'(?<=:\s)(?:\.?/)?(?:[^/\s]+/)*{test_dir}/'
+            replacement = f'/LOCAL/PATH/TO/{test_dir}/'
+            text = re.sub(path_pattern, replacement, text)
+        return text
 
     def _run_notebook_test(self, run_params, out_param_details):
         """Verify notebook produces expected output files.
