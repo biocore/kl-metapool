@@ -95,11 +95,20 @@ class Tests(TestCase):
         self.add_controls_exp_fp = os.path.join(
             path,
             'data/add_controls_expected_out.tsv')
-        self.add_controls_exp_fp_w_leading_zeroes_tubecode = os.path.join(
+        self.add_controls_for_kath_exp_fp = os.path.join(
             path,
-            'data/add_controls_expected_out_w_leading_zeroes_tubecode.tsv')
+            'data/add_controls_expected_out_for_katharoseq.tsv')
+        self.add_controls_for_kath_exp_fp_w_leading_zeroes_tubecode = \
+            os.path.join(
+                path,
+                'data/add_controls_expected_out_w_leading_zeroes'
+                '_tubecode_for_katharoseq.tsv')
         self.katharoseq_dir = os.path.join(path, 'data/katharo')
         self.blanks_dir = os.path.join(path, 'data/blanks')
+        self.kath_tubecodes_in_plate_df = [
+            '363159670', '363159656', '363159647', '363159609',
+            '363159623', '363159600', '363159649', '363159633',
+            '363159669', '363159666', '363159642', '363159665']
 
         self.plate_df = pd.read_csv(plate_fp, sep=',')
         self.counts_df = pd.read_csv(counts_fp, sep=',')
@@ -137,7 +146,7 @@ class Tests(TestCase):
                               "syntax error: line 1, column 0", 8, ParseError)]
 
         self.validation_plate_df = pd.read_csv(
-            self.add_controls_exp_fp_w_leading_zeroes_tubecode,
+            self.add_controls_for_kath_exp_fp_w_leading_zeroes_tubecode,
             dtype={TUBECODE_KEY: str,
                    'RackID': str},
             sep='\t')
@@ -410,7 +419,7 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(plate_df_exp, plate_df_obs)
 
-    def test_add_controls_preserve_leading_zeroes(self):
+    def test_add_controls_for_katharoseq_preserve_leading_zeroes(self):
         plate_df = pd.read_csv(
             self.comp_plate_exp_fp_w_leading_zeroes_tubecode,
             dtype={'TubeCode': str}, sep='\t')
@@ -421,7 +430,7 @@ class Tests(TestCase):
                                         preserve_leading_zeroes=True)
 
         add_controls_exp = pd.read_csv(
-            self.add_controls_exp_fp_w_leading_zeroes_tubecode,
+            self.add_controls_for_kath_exp_fp_w_leading_zeroes_tubecode,
             dtype={TUBECODE_KEY: str,
                    'RackID': str,
                    'Kathseq_RackID': str},
@@ -439,7 +448,7 @@ class Tests(TestCase):
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)
 
-    def test_add_controls(self):
+    def test_add_controls_for_katharoseq(self):
         plate_df = pd.read_csv(self.comp_plate_exp_fp,
                                dtype={TUBECODE_KEY: str}, sep='\t')
 
@@ -447,7 +456,7 @@ class Tests(TestCase):
                                         self.blanks_dir,
                                         self.katharoseq_dir)
 
-        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
+        add_controls_exp = pd.read_csv(self.add_controls_for_kath_exp_fp,
                                        dtype={TUBECODE_KEY: str,
                                               'RackID': str,
                                               'Kathseq_RackID': str},
@@ -461,6 +470,34 @@ class Tests(TestCase):
         add_controls_obs = add_controls(add_controls_exp,
                                         self.blanks_dir,
                                         self.katharoseq_dir)
+
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
+
+    def test_add_controls(self):
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={TUBECODE_KEY: str}, sep='\t')
+
+        # remove from plate_df any samples whose TubeCodes are for katharoseq
+        plate_df = plate_df[~plate_df[TUBECODE_KEY].isin(
+            self.kath_tubecodes_in_plate_df)].reset_index(drop=True)
+
+        add_controls_obs = add_controls(plate_df,
+                                        self.blanks_dir,
+                                        None)
+
+        add_controls_exp = pd.read_csv(self.add_controls_exp_fp,
+                                       dtype={TUBECODE_KEY: str},
+                                       sep='\t')
+
+        pd.testing.assert_frame_equal(add_controls_obs,
+                                      add_controls_exp)
+
+        # Testing edge case that technician reruns the
+        # module on the same dataframe
+        add_controls_obs = add_controls(add_controls_exp,
+                                        self.blanks_dir,
+                                        None)
 
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)

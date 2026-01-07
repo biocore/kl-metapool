@@ -2223,10 +2223,21 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
                       "Returning unmodified input")
         return plate_df
 
+    def trim_and_merge_dfs(controls_df, plate_df, preserve_leading_zeroes):
+        controls_df = controls_df.drop(
+            ["LocationCell", "LocationColumn", "LocationRow",
+             "RackID", "Time", "Date"], axis=1
+        )
+
+        # Merge plate_df with controls table
+        if not preserve_leading_zeroes:
+            plate_df = strip_tubecode_leading_zeroes(plate_df)
+        plate_df = pd.merge(plate_df, controls_df, on=TUBECODE_KEY, how="left")
+        return plate_df
+
     # Loop through BLANK folder and assign description "negative_control"
     blanks = _load_blanks_accession_df(
         blanks_dir, preserve_leading_zeroes=preserve_leading_zeroes)
-    blanks.drop(["Time", "Date", "RackID"], axis=1, inplace=True)
     blanks[CONTROLS_DESCRIPTION_KEY] = "negative_control"
 
     if katharoseq_dir is not None:
@@ -2234,7 +2245,6 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         # assign description "positive_control"
         katharoseq = _load_katharoseq_accession_df(
             katharoseq_dir, preserve_leading_zeroes=preserve_leading_zeroes)
-        katharoseq.drop(["Time", "Date"], axis=1, inplace=True)
         katharoseq[CONTROLS_DESCRIPTION_KEY] = "positive_control"
 
         # Find katharoseq rackid and merge cell counts
@@ -2285,14 +2295,8 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         # Concatenate controls into a "Controls" table and add a
         # column named "control_sample"
         controls = pd.concat([blanks, katharoseq_merged])
-        controls = controls.drop(
-            ["LocationCell", "LocationColumn", "LocationRow"], axis=1
-        )
-
-        # Merge plate_df with controls table
-        if not preserve_leading_zeroes:
-            plate_df = strip_tubecode_leading_zeroes(plate_df)
-        plate_df = pd.merge(plate_df, controls, on=TUBECODE_KEY, how="left")
+        plate_df = trim_and_merge_dfs(
+            controls, plate_df, preserve_leading_zeroes)
 
         # Assign sample_names ('Sample') to Katharoseq controls
         plate_df["Sample"] = np.where(
@@ -2312,8 +2316,9 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
         )
 
     else:
-        # Merge plate_df with controls table
-        plate_df = pd.merge(plate_df, blanks, on=TUBECODE_KEY, how="left")
+        # Merge plate_df with blanks table
+        plate_df = trim_and_merge_dfs(
+            blanks, plate_df, preserve_leading_zeroes)
 
     # identify the blanks based on their lack of a name and the presence of
     # the "negative_control" description somewhere in their record
