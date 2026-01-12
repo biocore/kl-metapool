@@ -12,15 +12,21 @@ class TestNotebook(unittest.TestCase):
     NOTEBOOK = "amplicon_pre_prep_file_generator.ipynb"
     _OUT_PARAM_VARIABLE_KEY = "param_variable"
     _FILE_PATH_KEY = "is_filepath"  # key for file path parameters
+    _AUTOCONSTRUCTED_KEY = "is_autoconstructed"  # if param not set explicitly
     _ZERO_DATES_FUNC_KEY = "zero_dates_func"  # func to replace for dates
 
     # TODO: turn off before committing
     _SAVE_UNMATCHED_OUTPUTS = False  # whether to save unmatched outputs
 
+    _TEST_DATA_DIR_NAME = "test_data"
+    _TEST_OUTPUT_DIR_NAME = "test_output"
+
     def setUp(self):
         self.notebooks_dir = os.path.dirname(os.path.dirname(__file__))
-        self.test_data_dir = os.path.join(self.notebooks_dir, 'test_data')
-        self.test_output_dir = os.path.join(self.notebooks_dir, 'test_output')
+        self.test_data_dir = os.path.join(
+            self.notebooks_dir, self._TEST_DATA_DIR_NAME)
+        self.test_output_dir = os.path.join(
+            self.notebooks_dir, self._TEST_OUTPUT_DIR_NAME)
 
     def _help_test_files_exact_text_match(self, file_1, file_2, filename=None,
                                           zero_dates_func=None):
@@ -59,6 +65,15 @@ class TestNotebook(unittest.TestCase):
         replacement = r',\nDate,0000-00-00,'
         return re.sub(date_pattern, replacement, text)
 
+    def _replace_local_test_paths(self, text):
+        """Helper function to replace local directory paths in text."""
+
+        for test_dir in [self._TEST_DATA_DIR_NAME, self._TEST_OUTPUT_DIR_NAME]:
+            path_pattern = rf'(?<=:\s)(?:\.?/)?(?:[^/\s]+/)*{test_dir}/'
+            replacement = f'/LOCAL/PATH/TO/{test_dir}/'
+            text = re.sub(path_pattern, replacement, text)
+        return text
+
     def _run_notebook_test(self, run_params, out_param_details):
         """Verify notebook produces expected output files.
 
@@ -75,8 +90,12 @@ class TestNotebook(unittest.TestCase):
             for curr_param_name, curr_details in out_param_details.items():
                 curr_param_variable = \
                     curr_details[self._OUT_PARAM_VARIABLE_KEY]
-                run_params[curr_param_name] = \
-                    curr_param_variable.format(path=tmp_path)
+
+                # autoconstructed output variables are not explicitly set as
+                # parameters; the code being tested should generate them itself
+                if not curr_details.get(self._AUTOCONSTRUCTED_KEY, False):
+                    run_params[curr_param_name] = \
+                        curr_param_variable.format(path=tmp_path)
 
                 if curr_details.get(self._FILE_PATH_KEY, False):
                     # extract directory path by removing {path}/ and filename
