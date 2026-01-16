@@ -63,6 +63,7 @@ MiSeqi100:
     # no revcomping of i5 index sequences is required for MiSeq i100 series *IF* we
     # are using standalone BCL convert.  If we ever change how we are doing
     # FASTQ generation, we may need to change this.
+    revcomp_samplesheet_i5_index: false
     profile_name: 'MiSeq i100'
     platform: "Illumina"
     sequencing_method: "sequencing by synthesis"
@@ -73,10 +74,11 @@ MiSeqi100Plus:
     # i5 sequences for demultiplexing”,
     # https://knowledge.illumina.com/software/general/software-general-reference_material-list/000001800
     # no revcomping of i5 index sequences is required for MiSeq i100 series
-    # (which I am going to anticipate includes the i100 Plus, since it is not listed 
+    # (which I am going to anticipate includes the i100 Plus, since it is not listed
     # separately in the documentation, unlike the NovaSeqX/X Plus) *IF* we
     # are using standalone BCL convert.  If we ever change how we are doing
     # FASTQ generation, we may need to change this.
+    revcomp_samplesheet_i5_index: false
     profile_name: 'MiSeq i100 Plus'
     platform: "Illumina"
     sequencing_method: "sequencing by synthesis"
