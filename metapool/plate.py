@@ -3,6 +3,7 @@ from math import ceil
 from datetime import datetime
 import numpy as np
 import pandas as pd
+import re
 import warnings
 from scipy.stats import zscore
 from sklearn.linear_model import LogisticRegression
@@ -220,14 +221,13 @@ def _parse_and_validate_well_384(well):
     ValueError
         If well format is invalid or outside 384-well plate bounds.
     """
-    import re
 
     VALID_384_WELL_ROWS = set('ABCDEFGHIJKLMNOP')
     MAX_384_WELL_COL = 24
 
     # Check type and basic format using regex
-    # Format: single letter A-Za-z followed by 1-2 digits
-    if not isinstance(well, str) or not re.match(r'^[A-Za-z]\d{1,2}$', well):
+    # Format: single letter A-Pa-p followed by 1-2 digits
+    if not isinstance(well, str) or not re.match(r'^[A-Pa-p]\d{1,2}$', well):
         raise ValueError(
             "Well must be a letter A-P followed by a number 1-24, "
             "e.g., A1 or A01")
