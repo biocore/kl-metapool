@@ -138,3 +138,78 @@ class TestNotebook(unittest.TestCase):
                 self._help_test_files_exact_text_match(
                     curr_expected_fp, curr_generated_fp, curr_param_name,
                     zero_dates_func=curr_param_zero_dates)
+
+    def _run_notebook_content_test(self, run_params, expected_strings=None,
+                                   unexpected_strings=None):
+        """Execute notebook and verify expected strings appear in cell outputs.
+
+        This method is useful for testing notebooks that produce text output
+        (such as validation messages) rather than file outputs.
+
+        Parameters
+        ----------
+        run_params : dict
+            Dictionary of parameter names to values to pass to papermill.
+        expected_strings : list of str, optional
+            Strings that must appear in the notebook's cell outputs.
+            Test fails if any expected string is not found.
+        unexpected_strings : list of str, optional
+            Strings that must NOT appear in the notebook's cell outputs.
+            Test fails if any unexpected string is found.
+
+        Raises
+        ------
+        AssertionError
+            If any expected string is not found in the notebook outputs,
+            or if any unexpected string is found.
+        """
+        import nbformat
+
+        expected_strings = expected_strings or []
+        unexpected_strings = unexpected_strings or []
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            output_notebook_path = f"{tmp_path}/{self.NOTEBOOK}"
+
+            pm.execute_notebook(
+                input_path=f"{self.notebooks_dir}/{self.NOTEBOOK}",
+                output_path=output_notebook_path,
+                parameters=run_params,
+                log_output=True,
+            )
+
+            # Read the executed notebook and extract all cell outputs
+            with open(output_notebook_path, 'r', encoding='utf-8') as f:
+                nb = nbformat.read(f, as_version=4)
+
+            # Collect all text outputs from all cells
+            all_outputs = []
+            for cell in nb.cells:
+                if cell.cell_type == 'code' and 'outputs' in cell:
+                    for output in cell['outputs']:
+                        if output.get('output_type') == 'stream':
+                            all_outputs.append(output.get('text', ''))
+                        elif output.get('output_type') == 'execute_result':
+                            data = output.get('data', {})
+                            if 'text/plain' in data:
+                                all_outputs.append(data['text/plain'])
+                        elif output.get('output_type') == 'error':
+                            all_outputs.append(
+                                '\n'.join(output.get('traceback', [])))
+
+            combined_output = '\n'.join(all_outputs)
+
+            # Check for expected strings
+            for expected in expected_strings:
+                self.assertIn(
+                    expected, combined_output,
+                    msg=f"Expected string '{expected}' not found in notebook "
+                        f"output. Full output:\n{combined_output}")
+
+            # Check for unexpected strings
+            for unexpected in unexpected_strings:
+                self.assertNotIn(
+                    unexpected, combined_output,
+                    msg=f"Unexpected string '{unexpected}' found in notebook "
+                        f"output. Full output:\n{combined_output}")
