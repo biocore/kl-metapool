@@ -35,4 +35,5 @@ dependencies:
       - coverage
       - coveralls
       # notebook requirements
+      - ipyfilechooser
       - ipykernel

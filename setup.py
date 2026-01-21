@@ -40,7 +40,8 @@ coverage = [
 notebook = [
     'jupyter >= 1.1.1',
     'notebook >= 6.5.7',
-    'watermark >= 2.5.0']
+    'watermark >= 2.5.0'
+    'ipyfilechooser']
 
 all_deps = base + test + coverage + notebook
 
