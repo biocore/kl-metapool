@@ -11,6 +11,8 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
                             _validate_plate, Message, ErrorMessage,
                             WarningMessage, requires_dilution, dilute_gDNA,
                             find_threshold, autopool, _validate_well_id_96,
+                            _parse_and_validate_well_384,
+                            sort_by_interleaved_plates,
                             merge_plate_dfs, PlateReplication, PlateRemapper)
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
@@ -193,6 +195,277 @@ class PlateHelperTests(TestCase):
                 plate_df_two_name="con_2")
 
         pd.testing.assert_frame_equal(expected_df, obs_df)
+
+
+class ParseAndValidateWell384Tests(TestCase):
+    def test_valid_case_insensitive(self):
+        # Test that lowercase letters are accepted
+        self.assertEqual((1, 1), _parse_and_validate_well_384('a1'))
+        self.assertEqual((16, 24), _parse_and_validate_well_384('p24'))
+        self.assertEqual((8, 12), _parse_and_validate_well_384('H12'))
+        self.assertEqual((8, 12), _parse_and_validate_well_384('h12'))
+
+    def test_valid_middle_wells(self):
+        # Test arbitrary valid wells in the middle of the plate
+        self.assertEqual((8, 12), _parse_and_validate_well_384('H12'))
+        self.assertEqual((4, 6), _parse_and_validate_well_384('D6'))
+        self.assertEqual((13, 18), _parse_and_validate_well_384('M18'))
+
+    def test_valid_zero_padded_columns(self):
+        # Test that zero-padded column numbers are accepted
+        self.assertEqual((1, 1), _parse_and_validate_well_384('A01'))
+        self.assertEqual((1, 9), _parse_and_validate_well_384('A09'))
+        self.assertEqual((16, 1), _parse_and_validate_well_384('P01'))
+        self.assertEqual((8, 6), _parse_and_validate_well_384('H06'))
+
+    def test_boundary_values(self):
+        # Test all four corners of 384-well plate
+        self.assertEqual((1, 1), _parse_and_validate_well_384('A1'))
+        self.assertEqual((1, 24), _parse_and_validate_well_384('A24'))
+        self.assertEqual((16, 1), _parse_and_validate_well_384('P1'))
+        self.assertEqual((16, 24), _parse_and_validate_well_384('P24'))
+
+        # Two-digit column at boundary (column 12)
+        self.assertEqual((1, 12), _parse_and_validate_well_384('A12'))
+
+        # Second-to-last row and column
+        self.assertEqual((15, 23), _parse_and_validate_well_384('O23'))
+
+    def test_invalid_row_out_of_range(self):
+        # Test rows beyond P (16)
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('Q1')
+        self.assertIn('A-P', str(context.exception))
+
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('Z1')
+        self.assertIn('A-P', str(context.exception))
+
+        # Lowercase invalid row
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('q12')
+        self.assertIn('A-P', str(context.exception))
+
+    def test_invalid_column_out_of_range(self):
+        # Column 0 doesn't exist
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A0')
+        self.assertIn('1-24', str(context.exception))
+
+        # Column 25 exceeds 384-well max
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A25')
+        self.assertIn('1-24', str(context.exception))
+
+        # Column way out of range
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('P100')
+        self.assertIn('1-24', str(context.exception))
+
+        # Negative column
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A-1')
+        self.assertIn('A1 or A01', str(context.exception))
+
+    def test_invalid_malformed_format(self):
+        # Reversed format (number first)
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('1A')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Two letters
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('AA1')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Letter after number
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A1A')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Missing column
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Missing row
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('1')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # No numeric column
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('AB')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Leading whitespace
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384(' A1')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Trailing whitespace
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A1 ')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Space in middle
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('A 1')
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Empty string
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384('')
+        self.assertIn('A1 or A01', str(context.exception))
+
+    def test_invalid_wrong_types(self):
+        # None instead of string
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384(None)
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # Integer instead of string
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384(123)
+        self.assertIn('A1 or A01', str(context.exception))
+
+        # List instead of string
+        with self.assertRaises(ValueError) as context:
+            _parse_and_validate_well_384(['A1'])
+        self.assertIn('A1 or A01', str(context.exception))
+
+
+class SortByInterleavedPlatesTests(TestCase):
+    def test_within_quadrant_ordering(self):
+        # Quadrant 1 only: odd rows (A, C, E...) + odd columns (1, 3, 5...)
+        # Should sort by row first, then column
+        input_df = pd.DataFrame({
+            'Well': ['A5', 'A1', 'C1', 'A3', 'C3'],
+            'sample': ['s5', 's1', 's6', 's3', 's8']
+        })
+        result = sort_by_interleaved_plates(input_df, 'Well')
+        expected_order = ['A1', 'A3', 'A5', 'C1', 'C3']
+        self.assertEqual(result['Well'].tolist(), expected_order)
+
+    def test_cross_quadrant_ordering(self):
+        # Mix of quadrant 1 (odd row, odd col) and quadrant 3 (even row,
+        # odd col). Quadrant 1 should come before quadrant 3.
+        input_df = pd.DataFrame({
+            'Well': ['B1', 'A1', 'B3', 'A3'],
+            'sample': ['q3_1', 'q1_1', 'q3_2', 'q1_2']
+        })
+        result = sort_by_interleaved_plates(input_df, 'Well')
+        # Quadrant 1: A1, A3; Quadrant 3: B1, B3
+        expected_order = ['A1', 'A3', 'B1', 'B3']
+        self.assertEqual(result['Well'].tolist(), expected_order)
+
+    def test_all_quadrants_ordering(self):
+        # Wells from all 4 quadrants in scrambled order
+        # Q1: odd row + odd col, Q2: odd row + even col
+        # Q3: even row + odd col, Q4: even row + even col
+        input_df = pd.DataFrame({
+            'Well': ['B2', 'A2', 'B1', 'A1', 'D4', 'C4', 'D3', 'C3'],
+            'sample': ['q4_1', 'q2_1', 'q3_1', 'q1_1',
+                       'q4_2', 'q2_2', 'q3_2', 'q1_2']
+        })
+        result = sort_by_interleaved_plates(input_df, 'Well')
+        # Q1: A1, C3; Q2: A2, C4; Q3: B1, D3; Q4: B2, D4
+        expected_order = ['A1', 'C3', 'A2', 'C4', 'B1', 'D3', 'B2', 'D4']
+        self.assertEqual(result['Well'].tolist(), expected_order)
+
+    def test_preserves_columns_and_data(self):
+        # Verify columns are preserved in same order, no new columns added,
+        # and data stays associated with correct wells
+        input_df = pd.DataFrame({
+            'Well': ['C1', 'A1'],
+            'sample_name': ['sample_C1', 'sample_A1'],
+            'concentration': [10.5, 20.3]
+        })
+        result = sort_by_interleaved_plates(input_df, 'Well')
+
+        # Check columns are identical (same order, no additions)
+        self.assertEqual(list(result.columns), list(input_df.columns))
+
+        # Check data stays with correct wells after sorting
+        # A1 should be first (quadrant 1), C1 second (quadrant 1, row C > A)
+        self.assertEqual(result['Well'].tolist(), ['A1', 'C1'])
+        self.assertEqual(result['sample_name'].tolist(),
+                         ['sample_A1', 'sample_C1'])
+        self.assertEqual(result['concentration'].tolist(), [20.3, 10.5])
+
+    def test_missing_column_raises_error(self):
+        input_df = pd.DataFrame({
+            'Well': ['A1', 'B2'],
+            'sample': ['s1', 's2']
+        })
+        with self.assertRaises(ValueError) as context:
+            sort_by_interleaved_plates(input_df, 'NonexistentColumn')
+        self.assertIn('NonexistentColumn', str(context.exception))
+
+    def test_invalid_well_raises_error(self):
+        # Invalid well Q26 (row Q doesn't exist, column 26 doesn't exist)
+        input_df = pd.DataFrame({
+            'Well': ['A1', 'Q26'],
+            'sample': ['s1', 's2']
+        })
+        with self.assertRaises(ValueError):
+            sort_by_interleaved_plates(input_df, 'Well')
+
+    def test_complete_384_well_plate(self):
+        # Build a complete 384-well plate in reverse order and verify sorting
+        rows = 'ABCDEFGHIJKLMNOP'
+        cols = range(1, 25)
+        wells = []
+        for c in reversed(cols):
+            for r in reversed(rows):
+                wells.append(f'{r}{c}')
+
+        input_df = pd.DataFrame({
+            'Well': wells,
+            'index': list(range(len(wells)))
+        })
+        result = sort_by_interleaved_plates(input_df, 'Well')
+
+        # Build expected order:
+        # Q1: odd rows (A,C,E,G,I,K,M,O) + odd cols (1,3,...,23) - row then col
+        # Q2: odd rows + even cols (2,4,...,24)
+        # Q3: even rows (B,D,F,H,J,L,N,P) + odd cols
+        # Q4: even rows + even cols
+        odd_rows = 'ACEGIKMO'
+        even_rows = 'BDFHJLNP'
+        odd_cols = list(range(1, 25, 2))
+        even_cols = list(range(2, 25, 2))
+
+        expected = []
+        # Q1
+        for r in odd_rows:
+            for c in odd_cols:
+                expected.append(f'{r}{c}')
+        # Q2
+        for r in odd_rows:
+            for c in even_cols:
+                expected.append(f'{r}{c}')
+        # Q3
+        for r in even_rows:
+            for c in odd_cols:
+                expected.append(f'{r}{c}')
+        # Q4
+        for r in even_rows:
+            for c in even_cols:
+                expected.append(f'{r}{c}')
+
+        self.assertEqual(result['Well'].tolist(), expected)
+
+    def test_zero_padded_wells(self):
+        # Mix of zero-padded and non-padded formats
+        input_df = pd.DataFrame({
+            'Well': ['A01', 'C1', 'A03'],
+            'sample': ['s1', 's2', 's3']
+        })
+        result = sort_by_interleaved_plates(input_df, 'Well')
+        # All in Q1, sorted by row then column: A01, A03, C1
+        expected_order = ['A01', 'A03', 'C1']
+        self.assertEqual(result['Well'].tolist(), expected_order)
 
 
 class MessageTests(TestCase):

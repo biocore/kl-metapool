@@ -202,6 +202,103 @@ def _well_to_row_and_col(well):
     return ord(well[0].upper()) - 64, int(well[1:])
 
 
+def _parse_and_validate_well_384(well):
+    """Validate input 384-well plate well ID and parse into (row, column).
+
+    Parameters
+    ----------
+    well : str
+        Well identifier like 'A1', 'P24', 'A01', etc.
+
+    Returns
+    -------
+    tuple
+        (row_number, column_number) where row A=1, B=2, etc.
+
+    Raises
+    ------
+    ValueError
+        If well format is invalid or outside 384-well plate bounds.
+    """
+    import re
+
+    VALID_384_WELL_ROWS = set('ABCDEFGHIJKLMNOP')
+    MAX_384_WELL_COL = 24
+
+    # Check type and basic format using regex
+    # Format: single letter A-Za-z followed by 1-2 digits
+    if not isinstance(well, str) or not re.match(r'^[A-Za-z]\d{1,2}$', well):
+        raise ValueError(
+            "Well must be a letter A-P followed by a number 1-24, "
+            "e.g., A1 or A01")
+
+    row_letter = well[0].upper()
+    col_str = well[1:]
+
+    # Validate row is A-P
+    if row_letter not in VALID_384_WELL_ROWS:
+        raise ValueError(
+            f"Well row '{row_letter}' is invalid. "
+            f"Row must be A-P for a 384-well plate.")
+
+    # Parse and validate column
+    col = int(col_str)
+    if col < 1 or col > MAX_384_WELL_COL:
+        raise ValueError(
+            f"Well column {col} is invalid. "
+            f"Column must be 1-24 for a 384-well plate.")
+
+    row = ord(row_letter) - 64
+    return (row, col)
+
+
+def sort_by_interleaved_plates(df, well_column):
+    """Sort DataFrame rows by interleaved 96-well plate order.
+
+    Sorts wells in the order of four interleaved 96-well plates within a
+    384-well plate. The order is: quadrant 1, then quadrant 2, then quadrant 3,
+    then quadrant 4. Within each quadrant, wells are sorted by row first,
+    then by column.
+
+    Quadrant mapping (based on 384-well position):
+    - Quadrant 1: Odd rows (A, C, E, ...) + Odd columns (1, 3, 5, ...)
+    - Quadrant 2: Odd rows + Even columns (2, 4, 6, ...)
+    - Quadrant 3: Even rows (B, D, F, ...) + Odd columns
+    - Quadrant 4: Even rows + Even columns
+
+    Parameters
+    ----------
+    df : pd.DataFrame
+        DataFrame containing well identifiers.
+    well_column : str
+        Name of the column containing 384-well IDs.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame sorted by quadrant, then row, then column.
+
+    Raises
+    ------
+    ValueError
+        If well_column doesn't exist or contains invalid well IDs.
+    """
+    if well_column not in df.columns:
+        raise ValueError(
+            f"Column '{well_column}' not found in DataFrame.")
+
+    def _get_sort_key(well):
+        row, col = _parse_and_validate_well_384(well)
+        # not necessary to validate plate position output since we know the
+        # well is a valid one if we got here
+        quadrant = int(_plate_position(well))
+        return (quadrant, row, col)
+
+    sort_keys = df[well_column].apply(_get_sort_key)
+    sorted_indices = sort_keys.sort_values().index
+    return df.loc[sorted_indices].reset_index(drop=True)
+
+
 def _decompress_well(well):
     """Returns a 96 well plate ID from a compressed 384 well plate ID"""
 
