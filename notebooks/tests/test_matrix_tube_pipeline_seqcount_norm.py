@@ -209,6 +209,158 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
         run_params, output_params = self._make_params()
         self._run_notebook_test(run_params, output_params)
 
+    def test_matrix_tube_pipeline_standard_metag_w_replicates(self):
+        """Verify notebook produces expected output files with replicates."""
+
+        # TODO: before commit, anonymize all human names
+        run_params = {
+            # Part 1 Step 0 inputs
+            'expt_name': 'RKL_0180',
+            'plate_counter': 279,
+
+            # Part 1 Step 0 studies_info
+            'studies_info': [
+                {
+                    'Project Name': 'Test1_Skin_Round_2_15459',
+                    'Project Abbreviation': 'Test1',
+                    'sample_accession_fp':
+                        f'{self.test_data_dir}/Plate_Maps/'
+                        f'Test1_Skin_replicates_15459_Sample_Accession.tsv',
+                    'qiita_metadata_fp': (f'{self.test_data_dir}/Plate_Maps/'
+                                          f'15459_20241114-111725.txt'),
+                    'experiment_design_description':
+                        'metagenomic sequencing of skin in'
+                        ' various storage solutions',
+                    'HumanFiltering': 'True',
+                    'Email': 'madison10ambre@gmail.com'
+                }
+            ],
+
+            # Part 1 Step 0 compression_layout
+            'compression_layout': [
+                {
+                    'Plate Position': 1,
+                    'Plate map file':
+                        (f'{self.test_data_dir}/Plate_Maps/'
+                         f'Test1_Skin_replicates_15459_P1_Map.tsv'),
+                    'Project Name': 'Test1_Skin_Round_2_15459',
+                    'Project Plate': 'Plate_1',
+                    'Plate elution volume': 70
+                },
+                {
+                    'Plate Position': 3,
+                    'Plate map file':
+                        (f'{self.test_data_dir}/Plate_Maps/'
+                         f'Test1_Skin_replicates_15459_P2_Map.tsv'),
+                    'Project Name': 'Test1_Skin_Round_2_15459',
+                    'Project Plate': 'Plate_2',
+                    'Plate elution volume': 70
+                }
+            ],
+
+            # Part 1 Step 3 inputs
+            'blanks_dir': f'{self.test_data_dir}/BLANKS_for_replicates',
+            'katharoseq_dir': None,
+
+            # Part 1 Step 5 inputs
+            'sample_concs_fp':
+                (f'{self.test_data_dir}/Quant/MiniPico/'
+                 'Test1_Skin_replicates_15459_P1-2_gDNA_quant.txt'),
+
+            # Part 1 Step 5 (replicates section) inputs
+            'replicate_dict': {1:2, 3:4},
+            'well_col': 'Library Well',
+
+            # Part 1 Step 6 inputs (verify defaults)
+            'ng': 5,
+            'total_vol': 3500,
+            'min_vol': 25,
+            'resolution': 2.5,
+
+            # Part 1 Step 7 inputs (optional syndna)
+            'syndna_pool_number': None,
+            'undiluted_gdna_conc_fp': None,
+
+            # Part 2 Step 2 inputs
+            # NB: this is stored in the outputs dir historically but isn't an
+            # output of the notebook -_-
+            'index_combo_fp':
+                f'{self.test_output_dir}/iTru/new_iTru_combos_Dec2017.csv',
+
+            # Part 3 Step 1 inputs
+            'lib_concs_fp':
+                f'{self.test_data_dir}/Quant/MiniPico/Test1_Skin_replicates_15459_clean_lib_quant.txt',
+
+            # Part 3 Step 3 inputs
+            'evp_total_vol': 190,
+
+            # Part 3 Step 7 inputs
+            'iseq_lanes': [1],
+            'novaseq_sequencer': 'NovaSeqXPlus',
+            'novaseq_lanes': [1],
+
+            # Part 4 Step 1 inputs
+            'read_counts_fps': [
+                (f'{self.test_data_dir}/Demux/raw_reads_Test1_Skin_replicates_15459.tsv')
+            ],
+            'READ_COUNTS_SAMPLE_KEY': 'Category',
+
+            # Part 4 Step 2 inputs
+            'dynamic_range': 30
+        }
+
+        output_params = {
+            # Part 1 Step 8 output
+            'norm_picklist_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    ('{path}/Input_Norm/'
+                    'Test1_Skin_replicates_15459_P1-2_inputnorm.txt'),
+                self._FILE_PATH_KEY: True
+            },
+            # Part 2 Step 3 output
+            'index_picklist_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    ('{path}/Indices/Test1_Skin_replicates_15459_P1-2_indices_279_matrix.txt'),
+                self._FILE_PATH_KEY: True
+            },
+
+            # Part 3 Step 5 output
+            'evp_picklist_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    '{path}/Pooling/Test1_Skin_replicates_15459_P1-2_evp.csv',
+                self._FILE_PATH_KEY: True
+            },
+
+            # Part 3 Step 6 output
+            'plate_df_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    '{path}/QC/Test1_Skin_replicates_15459_P1-2_matrix_df.txt',
+                self._FILE_PATH_KEY: True
+            },
+
+            # Part 3 Step 7 outputs
+            'iseq_sample_sheet_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    ('{path}/SampleSheets/Test1_Skin_replicates_15459_iseq.csv'),
+                self._FILE_PATH_KEY: True,
+                self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
+            },
+            'novaseq_sample_sheet_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    ('{path}/SampleSheets/Test1_Skin_replicates_15459_novaseq.csv'),
+                self._FILE_PATH_KEY: True,
+                self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
+            },
+
+            # Part 4 Step 4 output
+            'iseqnormed_picklist_fp': {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    ('{path}/Pooling/Test1_Skin_replicates_15459_iSeqnormpool.csv'),
+                self._FILE_PATH_KEY: True
+            }
+        }
+        self._run_notebook_test(run_params, output_params)
+
     def test_matrix_tube_pipeline_absquant_metag(self):
         """Verify notebook produces expected output files."""
 
