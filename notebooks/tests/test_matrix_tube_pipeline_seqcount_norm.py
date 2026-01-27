@@ -212,7 +212,6 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
     def test_matrix_tube_pipeline_standard_metag_w_replicates(self):
         """Verify notebook produces expected output files with replicates."""
 
-        # TODO: before commit, anonymize all human names
         run_params = {
             # Part 1 Step 0 inputs
             'expt_name': 'RKL_0180',
@@ -232,7 +231,7 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
                         'metagenomic sequencing of skin in'
                         ' various storage solutions',
                     'HumanFiltering': 'True',
-                    'Email': 'madison10ambre@gmail.com'
+                    'Email': 'anonymous@example.com'
                 }
             ],
 
@@ -268,7 +267,7 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
                  'Test1_Skin_replicates_15459_P1-2_gDNA_quant.txt'),
 
             # Part 1 Step 5 (replicates section) inputs
-            'replicate_dict': {1:2, 3:4},
+            'replicate_dict': {1: 2, 3: 4},
             'well_col': 'Library Well',
 
             # Part 1 Step 6 inputs (verify defaults)
@@ -289,7 +288,8 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
 
             # Part 3 Step 1 inputs
             'lib_concs_fp':
-                f'{self.test_data_dir}/Quant/MiniPico/Test1_Skin_replicates_15459_clean_lib_quant.txt',
+                f'{self.test_data_dir}/Quant/MiniPico/'
+                f'Test1_Skin_replicates_15459_clean_lib_quant.txt',
 
             # Part 3 Step 3 inputs
             'evp_total_vol': 190,
@@ -301,7 +301,8 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
 
             # Part 4 Step 1 inputs
             'read_counts_fps': [
-                (f'{self.test_data_dir}/Demux/raw_reads_Test1_Skin_replicates_15459.tsv')
+                (f'{self.test_data_dir}/Demux/'
+                 f'raw_reads_Test1_Skin_replicates_15459.tsv')
             ],
             'READ_COUNTS_SAMPLE_KEY': 'Category',
 
@@ -314,13 +315,14 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
             'norm_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/Input_Norm/'
-                    'Test1_Skin_replicates_15459_P1-2_inputnorm.txt'),
+                     'Test1_Skin_replicates_15459_P1-2_inputnorm.txt'),
                 self._FILE_PATH_KEY: True
             },
             # Part 2 Step 3 output
             'index_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/Indices/Test1_Skin_replicates_15459_P1-2_indices_279_matrix.txt'),
+                    ('{path}/Indices/Test1_Skin_replicates_15459_'
+                     'P1-2_indices_279_matrix.txt'),
                 self._FILE_PATH_KEY: True
             },
 
@@ -341,13 +343,15 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
             # Part 3 Step 7 outputs
             'iseq_sample_sheet_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/SampleSheets/Test1_Skin_replicates_15459_iseq.csv'),
+                    ('{path}/SampleSheets/'
+                     'Test1_Skin_replicates_15459_iseq.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
             },
             'novaseq_sample_sheet_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/SampleSheets/Test1_Skin_replicates_15459_novaseq.csv'),
+                    ('{path}/SampleSheets/'
+                     'Test1_Skin_replicates_15459_novaseq.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
             },
@@ -355,7 +359,8 @@ class TestMatrixTubePipelineSeqcountNormNotebook(TestNotebook):
             # Part 4 Step 4 output
             'iseqnormed_picklist_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
-                    ('{path}/Pooling/Test1_Skin_replicates_15459_iSeqnormpool.csv'),
+                    ('{path}/Pooling/'
+                     'Test1_Skin_replicates_15459_iSeqnormpool.csv'),
                 self._FILE_PATH_KEY: True
             }
         }
