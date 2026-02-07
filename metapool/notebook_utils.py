@@ -54,10 +54,10 @@ def pick_expected_separator(fps_list):
     num_txt = sum([x.endswith('.txt') for x in fps_list])
     num_tsv = sum([x.endswith('.tsv') for x in fps_list])
 
-    if num_csv == num_fps:
+    if num_csv == num_fps and num_csv > 0:
         sep = ','
         visible_sep = "comma"
-    elif (num_tsv + num_txt) != num_fps:
+    elif num_fps == 0 or (num_tsv + num_txt) != num_fps:
         warnings.warn(
             "Could not determine separator; defaulting to " + visible_sep)
 

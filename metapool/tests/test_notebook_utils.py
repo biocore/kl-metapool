@@ -101,6 +101,18 @@ class TestPickExpectedSeparator(unittest.TestCase):
         self.assertEqual(sep, '\t')
         self.assertEqual(visible_sep, 'tab')
 
+    def test_empty_list_warns(self):
+        """Test that empty file list triggers warning and defaults to tab."""
+        fps = []
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            sep, visible_sep = pick_expected_separator(fps)
+            # Should default to tab and warn
+            self.assertEqual(sep, '\t')
+            self.assertEqual(visible_sep, 'tab')
+            self.assertEqual(len(w), 1)
+            self.assertIn('Could not determine separator', str(w[0].message))
+
 
 if __name__ == '__main__':
     unittest.main()
