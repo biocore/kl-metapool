@@ -2022,45 +2022,6 @@ def compress_plates(compression_layout, sample_accession_df,
     """
     compressed_plate_df = pd.DataFrame([])
 
-    if arbitrary_mapping_df is not None:
-        well_mapper = PlateRemapper(arbitrary_mapping_df)
-        plate_identifier_col = PM_PROJECT_PLATE_KEY
-    else:
-        well_mapper = PlateReplication(well_col)
-        well_mapper._reset()
-        plate_identifier_col = "Plate Position"
-
-    for plate_dict_index in range(len(compression_layout)):
-        idx = compression_layout[plate_dict_index]
-        plate_map = read_visionmate_file(
-            idx["Plate map file"], [TUBECODE_KEY, "RackID"],
-            preserve_leading_zeroes=preserve_leading_zeroes)
-
-        # Populate plate map
-        plate_map[PM_PROJECT_NAME_KEY] = idx[PM_PROJECT_NAME_KEY]
-        plate_map["Plate Position"] = idx["Plate Position"]
-        plate_map["Project Abbreviation"] = idx["Project Abbreviation"]
-        plate_map["vol_extracted_elution_ul"] = idx["Plate elution volume"]
-        if PM_PROJECT_PLATE_KEY in idx:
-            # If yes, use "Project Plate" to construct the value for
-            # "Project Plate" in plate_map
-            plate_map[PM_PROJECT_PLATE_KEY] = \
-                f"{idx[PM_PROJECT_NAME_KEY]}_{idx[PM_PROJECT_PLATE_KEY]}"
-        elif "Sample Plate" in compression_layout[plate_dict_index]:
-            # If "Project Plate" is not present but "Sample Plate" is, use
-            # "Sample Plate" for "Project Plate" in plate_map
-            plate_map[PM_PROJECT_PLATE_KEY] = idx["Sample Plate"]
-        # assume it is okay if neither is found.
-
-        # Assign 384 well from compressed plate position
-        plate_map = _assign_compressed_wells_for_96_well_plate(
-            plate_map, well_mapper, idx[plate_identifier_col],
-            input_platemap_well_96_col="LocationCell",
-            output_platemap_well_384_col=well_col)
-
-        compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
-    # next plate index in compression layout dict
-
     # strip leading and/or trailing whitespace from all columns
     sample_accession_df = sample_accession_df.map(
         lambda x: x.strip() if isinstance(x, str) else x)
@@ -2069,11 +2030,67 @@ def compress_plates(compression_layout, sample_accession_df,
         sample_accession_df = \
             strip_tubecode_leading_zeroes(sample_accession_df)
 
-    # Merge sample accession
-    compressed_plate_df_merged = _merge_accession_to_compressed_plate_df(
-        compressed_plate_df, sample_accession_df)
+    if compression_layout:
+        if arbitrary_mapping_df is not None:
+            well_mapper = PlateRemapper(arbitrary_mapping_df)
+            plate_identifier_col = PM_PROJECT_PLATE_KEY
+        else:
+            well_mapper = PlateReplication(well_col)
+            well_mapper._reset()
+            plate_identifier_col = "Plate Position"
 
-    # Rename columns for legacy
+        for plate_dict_index in range(len(compression_layout)):
+            idx = compression_layout[plate_dict_index]
+            plate_map = read_visionmate_file(
+                idx["Plate map file"], [TUBECODE_KEY, "RackID"],
+                preserve_leading_zeroes=preserve_leading_zeroes)
+
+            # Populate plate map
+            plate_map[PM_PROJECT_NAME_KEY] = idx[PM_PROJECT_NAME_KEY]
+            plate_map["Plate Position"] = idx["Plate Position"]
+            plate_map["Project Abbreviation"] = idx["Project Abbreviation"]
+            plate_map["vol_extracted_elution_ul"] = idx["Plate elution volume"]
+            if PM_PROJECT_PLATE_KEY in idx:
+                # If yes, use "Project Plate" to construct the value for
+                # "Project Plate" in plate_map
+                plate_map[PM_PROJECT_PLATE_KEY] = \
+                    f"{idx[PM_PROJECT_NAME_KEY]}_{idx[PM_PROJECT_PLATE_KEY]}"
+            elif "Sample Plate" in compression_layout[plate_dict_index]:
+                # If "Project Plate" is not present but "Sample Plate" is, use
+                # "Sample Plate" for "Project Plate" in plate_map
+                plate_map[PM_PROJECT_PLATE_KEY] = idx["Sample Plate"]
+            # assume it is okay if neither is found.
+
+            # Assign 384 well from compressed plate position
+            plate_map = _assign_compressed_wells_for_96_well_plate(
+                plate_map, well_mapper, idx[plate_identifier_col],
+                input_platemap_well_96_col="LocationCell",
+                output_platemap_well_384_col=well_col)
+
+            compressed_plate_df = pd.concat([compressed_plate_df, plate_map])
+        # next plate index in compression layout dict
+
+        # Merge sample accession
+        compressed_plate_df_merged = _merge_accession_to_compressed_plate_df(
+            compressed_plate_df, sample_accession_df)
+
+        # Generate name for compressed plate
+        compressed_plate_name = _generate_compressed_plate_name(
+            compressed_plate_df_merged)
+        compressed_plate_df_merged[PM_COMPRESSED_PLATE_NAME_KEY] = \
+            compressed_plate_name
+    else:
+        compressed_plate_df_merged = sample_accession_df.copy()
+        # warn if there is no compression layout dict, because that means we are
+        # not doing any compression, and the output will just be the sample
+        # accession df with some renamed columns, and that is probably not what
+        # the user intended.
+        warnings.warn(
+            "No compression layout dict provided. Returning sample "
+            "accession df with renamed columns, but no compression applied.")
+    # end if there is/is not a compression layout dict
+
+        # Rename columns for legacy
     compressed_plate_df_merged.rename(
         columns={
             "LocationCell": PM_WELL_ID_96_KEY,
@@ -2083,12 +2100,6 @@ def compress_plates(compression_layout, sample_accession_df,
         },
         inplace=True,
     )
-
-    # Generate name for compressed plate
-    compressed_plate_name = _generate_compressed_plate_name(
-        compressed_plate_df_merged)
-    compressed_plate_df_merged[PM_COMPRESSED_PLATE_NAME_KEY] = \
-        compressed_plate_name
 
     # Arrange plate_df so sample col is first
     diff = compressed_plate_df_merged.columns.difference(["Sample"])
@@ -2220,6 +2231,11 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
     # Check whether controls have already been added
     if PM_BLANK_KEY in plate_df.columns:
         warnings.warn("Plate dataframe input already had controls. "
+                      "Returning unmodified input")
+        return plate_df
+
+    if blanks_dir is None and katharoseq_dir is None:
+        warnings.warn("No blanks_dir or katharoseq_dir provided. "
                       "Returning unmodified input")
         return plate_df
 
@@ -2444,14 +2460,17 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
 
     # This checks that all the samples names recorded in the plate_df have
     # metadata associated with them
-    pat = "positive_control|negative_control"
-    control_samples = set(
-        plate_df.loc[
-            (plate_df[CONTROLS_DESCRIPTION_KEY].str.contains(pat))
-            | (plate_df[CONTROLS_DESCRIPTION_KEY].isna()),
-            "Sample",
-        ]
-    )
+    if CONTROLS_DESCRIPTION_KEY not in plate_df.columns:
+        control_samples = set()
+    else:
+        pat = "positive_control|negative_control"
+        control_samples = set(
+            plate_df.loc[
+                (plate_df[CONTROLS_DESCRIPTION_KEY].str.contains(pat))
+                | (plate_df[CONTROLS_DESCRIPTION_KEY].isna()),
+                "Sample",
+            ]
+        )
 
     warnings.warn(f"There are {len(control_samples)} control samples"
                   " in this plate")
@@ -2483,30 +2502,35 @@ def validate_plate_df(plate_df, metadata, sample_accession_df, blanks_dir,
 
     # This checks that all the tubes in our plate_df files are indeed
     # located in the SA file / controls list
-    blanks = _load_blanks_accession_df(blanks_dir, preserve_leading_zeroes)
-
-    # katharoseq chunk
-    if katharoseq_dir is not None:
-        katharoseq = _load_katharoseq_accession_df(
-            katharoseq_dir, preserve_leading_zeroes)
-
-        missing_samples_tubecode = plate_df[
-            ~(
-                (plate_df[TUBECODE_KEY].isin(
-                    sample_accession_df[TUBECODE_KEY]))
-                | (plate_df[TUBECODE_KEY].isin(blanks[TUBECODE_KEY]))
-                | (plate_df[TUBECODE_KEY].isin(katharoseq[TUBECODE_KEY]))
-            )
-        ][TUBECODE_KEY]
-
+    if blanks_dir is None:
+        missing_samples_tubecode = pd.DataFrame()
     else:
-        missing_samples_tubecode = plate_df[
-            ~(
-                (plate_df[TUBECODE_KEY].isin(
-                    sample_accession_df[TUBECODE_KEY]))
-                | (plate_df[TUBECODE_KEY].isin(blanks[TUBECODE_KEY]))
-            )
-        ][TUBECODE_KEY]
+        blanks = _load_blanks_accession_df(blanks_dir, preserve_leading_zeroes)
+
+        # katharoseq chunk
+        if katharoseq_dir is not None:
+            katharoseq = _load_katharoseq_accession_df(
+                katharoseq_dir, preserve_leading_zeroes)
+
+            missing_samples_tubecode = plate_df[
+                ~(
+                    (plate_df[TUBECODE_KEY].isin(
+                        sample_accession_df[TUBECODE_KEY]))
+                    | (plate_df[TUBECODE_KEY].isin(blanks[TUBECODE_KEY]))
+                    | (plate_df[TUBECODE_KEY].isin(katharoseq[TUBECODE_KEY]))
+                )
+            ][TUBECODE_KEY]
+
+        else:
+            missing_samples_tubecode = plate_df[
+                ~(
+                    (plate_df[TUBECODE_KEY].isin(
+                        sample_accession_df[TUBECODE_KEY]))
+                    | (plate_df[TUBECODE_KEY].isin(blanks[TUBECODE_KEY]))
+                )
+            ][TUBECODE_KEY]
+        # end if katharoseq_dir is not None
+    # end if blanks_dir is not None
 
     if missing_samples_tubecode.empty:
         warnings.warn("All TubeCodes have associated data :D")
