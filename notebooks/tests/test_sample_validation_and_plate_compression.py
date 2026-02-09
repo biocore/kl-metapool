@@ -2,11 +2,11 @@ import unittest
 from notebooks.tests.notebook_test_helpers import TestNotebook
 
 
-class TestPlateCompressionAndValidationNotebook(TestNotebook):
-    NOTEBOOK = "plate_compression_and_validation.ipynb"
+class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
+    NOTEBOOK = "sample_validation_and_plate_compression.ipynb"
 
     def _make_standard_params(self):
-        """Create standard test parameters for plate compression."""
+        """Create standard test parameters for validation and compression."""
         run_params = {
             'expt_name': 'RKL4982',
 
@@ -115,13 +115,13 @@ class TestPlateCompressionAndValidationNotebook(TestNotebook):
 
         return run_params, output_params
 
-    def test_plate_compression_standard(self):
+    def test_sample_validation_with_compression(self):
         """Verify notebook produces expected plate_df and expt_info files."""
         run_params, output_params = self._make_standard_params()
         self._run_notebook_test(run_params, output_params)
 
-    def test_plate_compression_no_compression_no_controls(self):
-        """Test notebook to validate just samples, not a compression plate.
+    def test_sample_validation_no_compression_no_controls(self):
+        """Test notebook to validate samples without plate compression.
 
         This tests the case where:
         - compression_layout is empty (no plate compression)
@@ -136,11 +136,11 @@ class TestPlateCompressionAndValidationNotebook(TestNotebook):
         run_params['katharoseq_dir'] = None
 
         output_params['plate_df_fp'] = {
-                self._OUT_PARAM_VARIABLE_KEY:
-                    '{path}/QC/ShotgunMetag_plate_df_nocompvalid.txt',
-                self._FILE_PATH_KEY: True,
-                self._AUTOCONSTRUCTED_KEY: True
-            }
+            self._OUT_PARAM_VARIABLE_KEY:
+                '{path}/QC/ShotgunMetag_plate_df_nocompvalid.txt',
+            self._FILE_PATH_KEY: True,
+            self._AUTOCONSTRUCTED_KEY: True
+        }
 
         expected_strings = [
             "No compression layout dict provided",

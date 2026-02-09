@@ -1,9 +1,10 @@
-import unittest
-import papermill as pm
-import tempfile
-from pathlib import Path
+import nbformat
 import os
+import papermill as pm
+from pathlib import Path
 import re
+import tempfile
+import unittest
 
 SAVE_DIR = "~/Desktop"
 
@@ -116,7 +117,6 @@ class TestNotebook(unittest.TestCase):
             If output files don't match expected, or if expected strings
             are not found, or if unexpected strings are found.
         """
-        import nbformat
 
         out_param_details = out_param_details or {}
         expected_strings = expected_strings or []
@@ -231,14 +231,12 @@ class TestNotebook(unittest.TestCase):
 
                 # Check for expected strings
                 for expected in expected_strings:
-                    self.assertIn(
-                        expected, combined_output,
-                        msg=f"Expected string '{expected}' not found in "
-                            f"notebook output. Full output:\n{combined_output}")
+                    msg = (f"Expected string '{expected}' not found in "
+                           f"notebook output. Full output:\n{combined_output}")
+                    self.assertIn(expected, combined_output, msg=msg)
 
                 # Check for unexpected strings
                 for unexpected in unexpected_strings:
-                    self.assertNotIn(
-                        unexpected, combined_output,
-                        msg=f"Unexpected string '{unexpected}' found in "
-                            f"notebook output. Full output:\n{combined_output}")
+                    msg = (f"Unexpected string '{unexpected}' found in "
+                           f"notebook output. Full output:\n{combined_output}")
+                    self.assertNotIn(unexpected, combined_output, msg=msg)
