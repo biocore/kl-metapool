@@ -9,12 +9,12 @@ notebook series (and potentially other notebook series) for:
 import warnings
 
 
-def get_studies_attr_list(studies_dict, desired_key):
+def get_studies_attr_list(studies_info, desired_key):
     """Extract a specific attribute from each study in a list.
 
     Parameters
     ----------
-    studies_dict : list of dict
+    studies_info : list of dict
         List of study dictionaries, each containing study metadata.
     desired_key : str
         The key to extract from each study dictionary.
@@ -24,7 +24,7 @@ def get_studies_attr_list(studies_dict, desired_key):
     list
         List of values for the specified key from each study.
     """
-    return [x[desired_key] for x in studies_dict]
+    return [x[desired_key] for x in studies_info]
 
 
 def pick_expected_separator(fps_list):

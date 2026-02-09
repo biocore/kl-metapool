@@ -2081,14 +2081,14 @@ def compress_plates(compression_layout, sample_accession_df,
             compressed_plate_name
     else:
         compressed_plate_df_merged = sample_accession_df.copy()
-        # warn if there is no compression layout dict, because that means we are
+        # warn if no compression layout dicts list, because that means we are
         # not doing any compression, and the output will just be the sample
         # accession df with some renamed columns, and that is probably not what
         # the user intended.
         warnings.warn(
-            "No compression layout dict provided. Returning sample "
+            "No compression layout info provided. Returning sample "
             "accession df with renamed columns, but no compression applied.")
-    # end if there is/is not a compression layout dict
+    # end if there is/is not a compression layout dicts list
 
         # Rename columns for legacy
     compressed_plate_df_merged.rename(
