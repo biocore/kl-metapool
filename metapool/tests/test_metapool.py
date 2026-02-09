@@ -429,7 +429,7 @@ class Tests(TestCase):
 
         with self.assertWarnsRegex(
                 UserWarning,
-                "No compression layout dict provided"):
+                "No compression layout info provided"):
             result = compress_plates([], sample_accession_df, well_col='Well')
 
         # Verify the sample_name column was renamed to Sample
@@ -454,7 +454,7 @@ class Tests(TestCase):
 
         with self.assertWarnsRegex(
                 UserWarning,
-                "No compression layout dict provided"):
+                "No compression layout info provided"):
             result = compress_plates(None, sample_accession_df,
                                      well_col='Well')
 

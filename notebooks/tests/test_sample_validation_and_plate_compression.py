@@ -143,7 +143,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
         }
 
         expected_strings = [
-            "No compression layout dict provided",
+            "No compression layout info provided",
             "No blanks_dir or katharoseq_dir provided",
             "There are 0 control samples",
             "All TubeCodes have associated data",
