@@ -120,6 +120,39 @@ class TestPlateCompressionAndValidationNotebook(TestNotebook):
         run_params, output_params = self._make_standard_params()
         self._run_notebook_test(run_params, output_params)
 
+    def test_plate_compression_no_compression_no_controls(self):
+        """Test notebook to validate just samples, not a compression plate.
+
+        This tests the case where:
+        - compression_layout is empty (no plate compression)
+        - blanks_dir is None (no blanks)
+        - katharoseq_dir is None (no katharoseq controls)
+        """
+        run_params, output_params = self._make_standard_params()
+
+        # Override with empty compression layout and no control directories
+        run_params['compression_layout'] = []
+        run_params['blanks_dir'] = None
+        run_params['katharoseq_dir'] = None
+
+        output_params['plate_df_fp'] = {
+                self._OUT_PARAM_VARIABLE_KEY:
+                    '{path}/QC/ShotgunMetag_plate_df_nocompvalid.txt',
+                self._FILE_PATH_KEY: True,
+                self._AUTOCONSTRUCTED_KEY: True
+            }
+
+        expected_strings = [
+            "No compression layout dict provided",
+            "No blanks_dir or katharoseq_dir provided",
+            "There are 0 control samples",
+            "All TubeCodes have associated data",
+            "There are 3941 samples with associated metadata"
+        ]
+
+        self._run_notebook_test(run_params, output_params,
+                                expected_strings=expected_strings)
+
 
 if __name__ == "__main__":
     unittest.main()

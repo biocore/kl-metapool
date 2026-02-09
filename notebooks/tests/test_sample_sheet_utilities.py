@@ -20,8 +20,8 @@ class TestSampleSheetUtilitiesNotebook(TestNotebook):
                 f'_matrix_samplesheet_novaseq_absquant.csv')
         }
 
-        self._run_notebook_content_test(
-            run_params,
+        self._run_notebook_test(
+            run_params, {},
             expected_strings=[SUCCESS_MSG],
             unexpected_strings=[ERROR_MSG]
         )
@@ -35,8 +35,7 @@ class TestSampleSheetUtilitiesNotebook(TestNotebook):
                 f'invalid_sample_sheet_missing_sheettype.csv')
         }
 
-        self._run_notebook_content_test(
-            run_params,
+        self._run_notebook_test(run_params, {},
             expected_strings=[ERROR_MSG, SHEETTYPE_MSG],
             unexpected_strings=[SUCCESS_MSG]
         )
