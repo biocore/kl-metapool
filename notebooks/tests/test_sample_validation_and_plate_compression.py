@@ -12,7 +12,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
 
             'studies_info': [
                 {
-                    'Project Name': 'Celeste_Adaptation_12986',
+                    'Project Name': 'Known_Adaptation_12986',
                     'Project Abbreviation': 'ADAPT',
                     'sample_accession_fp':
                         f'{self.test_data_dir}/Plate_Maps/sa_file_1.tsv',
@@ -20,7 +20,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
                                           f'12986_20230314-090655.txt'),
                     'experiment_design_description': 'isolate sequencing',
                     'HumanFiltering': 'False',
-                    'Email': 'r@gmail.com'
+                    'Email': 'r@example.com'
                 },
                 {
                     'Project Name': 'TestProjB_10001',
@@ -31,10 +31,10 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
                                           f'10001_20240503-090339.txt'),
                     'experiment_design_description': 'whole genome sequencing',
                     'HumanFiltering': 'True',
-                    'Email': 'l@ucsd.edu'
+                    'Email': 'l@example.com'
                 },
                 {
-                    'Project Name': 'Celeste_Marmoset_14577',
+                    'Project Name': 'Known_Adaptation_14577',
                     'Project Abbreviation': 'MARMO',
                     'sample_accession_fp':
                         f'{self.test_data_dir}/Plate_Maps/sa_file_3.tsv',
@@ -42,7 +42,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
                                           f'14577_20230711-082202.txt'),
                     'experiment_design_description': 'whole genome sequencing',
                     'HumanFiltering': 'False',
-                    'Email': 'c@ucsd.edu'
+                    'Email': 'c@example.com'
                 }
             ],
 
@@ -52,7 +52,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
                     'Plate map file':
                         (f'{self.test_data_dir}/Plate_Maps/2022_summer_'
                          'Celeste_Adaptation_16_plate_map.tsv'),
-                    'Project Name': 'Celeste_Adaptation_12986',
+                    'Project Name': 'Known_Adaptation_12986',
                     'Project Plate': 'Plate_16',
                     'Plate elution volume': 110
                 },
@@ -61,7 +61,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
                     'Plate map file':
                         (f'{self.test_data_dir}/Plate_Maps/2022_summer_'
                          'Celeste_Adaptation_17_plate_map.tsv'),
-                    'Project Name': 'Celeste_Adaptation_12986',
+                    'Project Name': 'Known_Adaptation_12986',
                     'Project Plate': 'Plate_17',
                     'Plate elution volume': 110
                 },
@@ -70,7 +70,7 @@ class TestSampleValidationAndPlateCompressionNotebook(TestNotebook):
                     'Plate map file':
                         (f'{self.test_data_dir}/Plate_Maps/'
                          '2022_summer_Celeste_Adaptation_18_plate_map.tsv'),
-                    'Project Name': 'Celeste_Adaptation_12986',
+                    'Project Name': 'Known_Adaptation_12986',
                     'Project Plate': 'Plate_18',
                     'Plate elution volume': 110
                 },
