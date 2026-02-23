@@ -1,0 +1,26 @@
+experiment_name: RKL4982
+studies:
+- Email: r@example.com
+  HumanFiltering: 'False'
+  Project Abbreviation: ADAPT
+  Project Name: Known_Adaptation_12986
+  experiment_design_description: isolate sequencing
+  qiita_id: '12986'
+  qiita_metadata_fp: ./test_data/Plate_Maps/12986_20230314-090655.txt
+  sample_accession_fp: ./test_data/Plate_Maps/sa_file_1.tsv
+- Email: l@example.com
+  HumanFiltering: 'True'
+  Project Abbreviation: TestProjB
+  Project Name: TestProjB_10001
+  experiment_design_description: whole genome sequencing
+  qiita_id: '10001'
+  qiita_metadata_fp: ./test_data/Plate_Maps/10001_20240503-090339.txt
+  sample_accession_fp: ./test_data/Plate_Maps/sa_file_2.tsv
+- Email: c@example.com
+  HumanFiltering: 'False'
+  Project Abbreviation: MARMO
+  Project Name: Known_Adaptation_14577
+  experiment_design_description: whole genome sequencing
+  qiita_id: '14577'
+  qiita_metadata_fp: ./test_data/Plate_Maps/14577_20230711-082202.txt
+  sample_accession_fp: ./test_data/Plate_Maps/sa_file_3.tsv

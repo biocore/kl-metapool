@@ -419,6 +419,52 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(plate_df_exp, plate_df_obs)
 
+    def test_compress_plates_empty_compression_layout(self):
+        # Test that compress_plates with empty compression layout returns
+        # sample accession df with renamed columns and issues a warning
+        sample_accession_df = pd.DataFrame({
+            'sample_name': ['sample1', 'sample2', 'sample3'],
+            TUBECODE_KEY: ['123456789', '234567890', '345678901'],
+        })
+
+        with self.assertWarnsRegex(
+                UserWarning,
+                "No compression layout info provided"):
+            result = compress_plates([], sample_accession_df, well_col='Well')
+
+        # Verify the sample_name column was renamed to Sample
+        self.assertIn('Sample', result.columns)
+        self.assertNotIn('sample_name', result.columns)
+
+        # Verify PM_COMPRESSED_PLATE_NAME_KEY is NOT present (since no
+        # compression was applied)
+        self.assertNotIn(PM_COMPRESSED_PLATE_NAME_KEY, result.columns)
+
+        # Verify the data is preserved
+        self.assertEqual(list(result['Sample']),
+                         ['sample1', 'sample2', 'sample3'])
+
+    def test_compress_plates_none_compression_layout(self):
+        # Test that compress_plates with None compression layout returns
+        # sample accession df with renamed columns and issues a warning
+        sample_accession_df = pd.DataFrame({
+            'sample_name': ['sample1', 'sample2'],
+            TUBECODE_KEY: ['123456789', '234567890'],
+        })
+
+        with self.assertWarnsRegex(
+                UserWarning,
+                "No compression layout info provided"):
+            result = compress_plates(None, sample_accession_df,
+                                     well_col='Well')
+
+        # Verify the sample_name column was renamed to Sample
+        self.assertIn('Sample', result.columns)
+        self.assertNotIn('sample_name', result.columns)
+
+        # Verify PM_COMPRESSED_PLATE_NAME_KEY is NOT present
+        self.assertNotIn(PM_COMPRESSED_PLATE_NAME_KEY, result.columns)
+
     def test_add_controls_for_katharoseq_preserve_leading_zeroes(self):
         plate_df = pd.read_csv(
             self.comp_plate_exp_fp_w_leading_zeroes_tubecode,
@@ -501,6 +547,20 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)
+
+    def test_add_controls_both_dirs_none(self):
+        # Test that add_controls returns unmodified input with a warning
+        # when both blanks_dir and katharoseq_dir are None
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={TUBECODE_KEY: str}, sep='\t')
+
+        with self.assertWarnsRegex(
+                UserWarning,
+                "No blanks_dir or katharoseq_dir provided"):
+            result = add_controls(plate_df, None, None)
+
+        # Verify the result is the same as the input
+        pd.testing.assert_frame_equal(result, plate_df)
 
     def test_read_plate_map_csv(self):
         plate_map_csv = \
@@ -2000,6 +2060,41 @@ class Tests(TestCase):
                 self.validation_plate_df.replace(240000.0, 1200000.0),
                 self.metadata, self.sa_df, self.blanks_dir,
                 self.katharoseq_dir, preserve_leading_zeroes=True)
+
+    def test_validate_plate_df_no_controls_description_column(self):
+        # Test that validate_plate_df works when CONTROLS_DESCRIPTION_KEY
+        # is not in the plate_df columns, reporting 0 control samples
+        plate_df = self.validation_plate_df.copy()
+
+        # Filter out control samples (blanks and katharoseq) since they
+        # aren't in metadata and would fail validation
+        plate_df = plate_df[
+            ~plate_df['Sample'].str.startswith('BLANK') &
+            ~plate_df['Sample'].str.startswith('katharo')
+        ].reset_index(drop=True)
+
+        # remove the keystone control and katharoseq columns
+        for col in ['control_description', 'number_of_cells']:
+            if col in plate_df.columns:
+                plate_df = plate_df.drop(columns=[col])
+
+        # Should not raise an error; the function should handle missing
+        # CONTROLS_DESCRIPTION_KEY gracefully and report 0 control samples.
+        with self.assertWarnsRegex(
+                UserWarning,
+                "There are 0 control samples"):
+            validate_plate_df(plate_df, self.metadata, self.sa_df,
+                              self.blanks_dir, self.katharoseq_dir)
+
+    def test_validate_plate_df_blanks_dir_none(self):
+        # Test that validate_plate_df works when blanks_dir is None.
+        # This skips the tubecode-in-sample-accession check and reports
+        # that all TubeCodes have associated data.
+        with self.assertWarnsRegex(
+                UserWarning,
+                "All TubeCodes have associated data"):
+            validate_plate_df(self.validation_plate_df, self.metadata,
+                              self.sa_df, None, self.katharoseq_dir)
 
 
 if __name__ == "__main__":
