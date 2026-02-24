@@ -18,9 +18,9 @@ Sample_ID,Sample_Name,Sample_Plate,Sample_Well,barcode_id,twist_adaptor_id,Sampl
 6_3,6.3,test_soil,A1,bc2065,Plate_A_33_A05_F--Plate_A_33_A05_R,test_soil_16130,test_soil.6.3.A1,0.26,0.336,50,2000,TRUE,1
 6_4,6.4,test_soil,A1,bc2065,Plate_A_34_B05_F--Plate_A_34_B05_R,test_soil_16130,test_soil.6.4.A1,0.16,0.264,50,2000,TRUE,1
 7_1,7.1,test_soil,A1,bc2065,Plate_A_35_C05_F--Plate_A_35_C05_R,test_soil_16130,test_soil.7.1.A1,2.63,8.84,50,2000,TRUE,1
-7_2,7.2,test_soil,A1,bc2065,Plate_A_36_D05_F--Plate_A_36_D05_R,test_soil_16130,test_soil.7.2.A1,2.63,9.68,50,2000,TRUE,1
-7_3,7.3,test_soil,A1,bc2065,Plate_A_37_E05_F--Plate_A_37_E05_R,test_soil_16130,test_soil.7.3.A1,2.63,8.88,50,2000,TRUE,1
-7_4,7.4,test_soil,A1,bc2065,Plate_A_38_F05_F--Plate_A_38_F05_R,test_soil_16130,test_soil.7.4.A1,2.63,8.44,50,2000,TRUE,1
+7_2,7.2,test_soil,A1,bc2066,Plate_A_36_D05_F--Plate_A_36_D05_R,test_soil_16130,test_soil.7.2.A1,2.63,9.68,50,2000,TRUE,1
+7_3,7.3,test_soil,A1,bc2067,Plate_A_37_E05_F--Plate_A_37_E05_R,test_soil_16130,test_soil.7.3.A1,2.63,8.88,50,2000,TRUE,1
+7_4,7.4,test_soil,A1,bc2067,Plate_A_38_F05_F--Plate_A_38_F05_R,test_soil_16130,test_soil.7.4.A1,2.63,8.44,50,2000,TRUE,1
 ,,,,,,,,,,,,,
 [Bioinformatics],,,,,,,,,,,,,
 Sample_Project,QiitaID,HumanFiltering,library_construction_protocol,experiment_design_description,contains_replicates,,,,,,,,
