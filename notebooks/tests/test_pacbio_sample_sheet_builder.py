@@ -30,7 +30,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/pacbio_v11_metag_sample_sheet_'
-                    'case1_without_amp_without_absquant.csv'),
+                     'case1_without_amp_without_absquant.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
             }
@@ -95,7 +95,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/pacbio_v11_metag_sample_sheet_'
-                    'case3_with_amp_without_absquant.csv'),
+                     'case3_with_amp_without_absquant.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
             }
@@ -136,7 +136,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
 
         self._run_notebook_test(run_params, output_params)
 
-    def test_pacbio_v11_absquant_case5_with_amp_with_absquant_syndna_after(self):
+    def test_pacbio_v11_absquant_case5_with_amp_with_absquant_syndna_after(self):  # noqa: E501
         run_params = {
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
@@ -168,6 +168,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
         }
 
         self._run_notebook_test(run_params, output_params)
+
 
 if __name__ == "__main__":
     unittest.main()
