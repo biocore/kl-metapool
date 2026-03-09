@@ -1556,7 +1556,8 @@ class AbsQuantMixinV1(object):
     })
 
     # Reminder: the method of adding carried prep columns and data columns used
-    # below ONLY works if the mixin is the last class in the inheritance list
+    # below ONLY works if the mixin is the leaf class in the inheritance
+    # (which, in python, is the *first* one listed in the class definition)
     # and if the class that inherits from it does not explicitly set these
     # attributes in its own __init__ method.  Safest not to set these
     # attributes in leaf classes at all (specific sheet versions) for leaf
@@ -1582,7 +1583,8 @@ class AbsQuantMixinV2(object):
     )
 
     # Reminder: the method of adding carried prep columns and data columns used
-    # below ONLY works if the mixin is the last class in the inheritance list
+    # below ONLY works if the mixin is the leaf class in the inheritance
+    # (which, in python, is the *first* one listed in the class definition)
     # and if the class that inherits from it does not explicitly set these
     # attributes in its own __init__ method.  Safest not to set these
     # attributes in leaf classes at all (specific sheet versions) for leaf
@@ -1922,7 +1924,8 @@ class TwistAbsquantMixinV1(AbsQuantMixinV1):
     })
 
     # Reminder: the method of adding carried prep columns and data columns used
-    # below ONLY works if the mixin is the last class in the inheritance list
+    # below ONLY works if the mixin is the leaf class in the inheritance
+    # (which, in python, is the *first* one listed in the class definition)
     # and if the class that inherits from it does not explicitly set these
     # attributes in its own __init__ method.  Safest not to set these
     # attributes in leaf classes at all (specific sheet versions) for leaf
@@ -1947,7 +1950,8 @@ class TwistAbsquantMixinV2(AbsQuantMixinV2):
     })
 
     # Reminder: the method of adding carried prep columns and data columns used
-    # below ONLY works if the mixin is the last class in the inheritance list
+    # below ONLY works if the mixin is the leaf class in the inheritance
+    # (which, in python, is the *first* one listed in the class definition)
     # and if the class that inherits from it does not explicitly set these
     # attributes in its own __init__ method.  Safest not to set these
     # attributes in leaf classes at all (specific sheet versions) for leaf
