@@ -23,7 +23,7 @@ test1_jumpcode_16005,16005,True,Knight Lab PacBio,fecal samples for metagenomic 
 ,,,,,,,,
 [Contact],,,,,,,,
 Sample_Project,Email,,,,,,,
-test1_jumpcode_16005,gail.ackermann50@gmail.com,,,,,,,
+test1_jumpcode_16005,g@example.com,,,,,,,
 ,,,,,,,,
 [SampleContext],,,,,,,,
 sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,

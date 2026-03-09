@@ -1,8 +1,10 @@
 import os
 import pandas
+from typing import Optional
 import yaml
 
-from typing import Optional
+from metapool.mp_strings import CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY
+
 
 # Relative path to default config file
 DEFAULT_CONFIG_FP = 'data/abs_quant_sample_info_calc.yml'
@@ -46,7 +48,6 @@ CALC_VOL_HOMOGENATE_IN_STORAGE_TUBE_ML_KEY = \
 CALC_DENSITY_HOMOGENATE_G_ML_KEY = 'calc_density_homogenate_g_ml'
 CALC_MASS_HOMOGENATE_ALIQUOT_INPUT_G_KEY = \
     'calc_mass_homogenate_aliquot_input_g'
-CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY = 'calc_mass_sample_aliquot_input_g'
 CALC_MASS_SAMPLE_ALIQUOT_INPUT_MG_KEY = 'calc_mass_sample_aliquot_input_mg'
 CALC_MASS_STORAGE_LIQUID_ALIQUOT_INPUT_G = \
     'calc_mass_storage_liquid_aliquot_input_g'

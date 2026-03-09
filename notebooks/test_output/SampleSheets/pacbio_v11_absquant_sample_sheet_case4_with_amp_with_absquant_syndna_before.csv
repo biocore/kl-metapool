@@ -28,7 +28,7 @@ test_soil_16130,16130,False,Knight Lab PacBio absquant,soil samples for metageno
 ,,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,,
 Sample_Project,Email,,,,,,,,,,,,
-test_soil_16130,gail.ackermann50@gmail.com,,,,,,,,,,,,
+test_soil_16130,g@example.com,,,,,,,,,,,,
 ,,,,,,,,,,,,,
 [SampleContext],,,,,,,,,,,,,
 sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,,,,

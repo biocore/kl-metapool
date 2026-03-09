@@ -16,7 +16,8 @@ from metapool.mp_strings import parse_project_name, \
     PROJECT_FULL_NAME_KEY, TUBECODE_KEY, SYNDNA_POOL_MASS_NG_KEY, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
-    BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, SYNDNA_IS_TWISTED_KEY
+    BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, SYNDNA_IS_TWISTED_KEY, \
+    CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -1542,7 +1543,7 @@ class KLSampleSheetWithSampleContext(KLSampleSheetWithReplicates):
         self._validate_on_load(path, defer_validate)
 
 
-class AbsQuantMixin(object):
+class AbsQuantMixinV1(object):
     _ABSQUANT_SPECIFIC_COLUMNS = (
         SYNDNA_POOL_MASS_NG_KEY, EXTRACTED_GDNA_CONC_KEY,
         ELUTION_VOL_KEY, SYNDNA_POOL_NUM_KEY)
@@ -1553,6 +1554,32 @@ class AbsQuantMixin(object):
         EXTRACTED_GDNA_CONC_KEY: EXTRACTED_GDNA_CONC_KEY,
         ELUTION_VOL_KEY: ELUTION_VOL_KEY
     })
+
+    # Reminder: the method of adding carried prep columns and data columns used
+    # below ONLY works if the mixin is the last class in the inheritance list
+    # and if the class that inherits from it does not explicitly set these
+    # attributes in its own __init__ method.  Safest not to set these
+    # attributes in leaf classes at all (specific sheet versions) for leaf
+    # class that uses a mixin like this.
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
+        self._remapper = self._extend_mapping_type(self._ABSQUANT_REMAPPER)
+        self._data_columns = \
+            self._data_columns + self._ABSQUANT_SPECIFIC_COLUMNS
+        if self._CARRIED_PREP_COLUMNS is not None:
+            self._CARRIED_PREP_COLUMNS = \
+                self._CARRIED_PREP_COLUMNS + self._ABSQUANT_SPECIFIC_COLUMNS
+        self._validate_on_load(path, defer_validate)
+
+
+class AbsQuantMixinV2(object):
+    _ABSQUANT_SPECIFIC_COLUMNS = AbsQuantMixinV1._ABSQUANT_SPECIFIC_COLUMNS + \
+        (CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY,)
+    _ABSQUANT_REMAPPER = MappingProxyType(
+        AbsQuantMixinV1._ABSQUANT_REMAPPER |
+        {CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY:
+         CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY}
+    )
 
     # Reminder: the method of adding carried prep columns and data columns used
     # below ONLY works if the mixin is the last class in the inheritance list
@@ -1680,7 +1707,8 @@ class TellseqMetagSampleSheetv10(KLTellSeqSampleSheet):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
-class TellseqAbsquantMetagSampleSheetv10(AbsQuantMixin, KLTellSeqSampleSheet):
+class TellseqAbsquantMetagSampleSheetv10(
+        AbsQuantMixinV1, KLTellSeqSampleSheet):
     _HEADER = KLSampleSheet._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = TELLSEQ_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
@@ -1828,7 +1856,7 @@ class PacBioMetagSampleSheetv10(PacBioSampleSheet):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
-class PacBioAbsquantSampleSheetv10(AbsQuantMixin, PacBioSampleSheet):
+class PacBioAbsquantSampleSheetv10(AbsQuantMixinV1, PacBioSampleSheet):
     _HEADER = PacBioSampleSheet._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '10'
@@ -1886,7 +1914,32 @@ class PacBioMetagSampleSheetv11(PacBioSampleSheetWithTwistAdapters):
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
-class TwistAbsquantMixin(AbsQuantMixin):
+class TwistAbsquantMixinV1(AbsQuantMixinV1):
+    _TWIST_ABSQUANT_SPECIFIC_COLUMNS = (SYNDNA_IS_TWISTED_KEY,)
+
+    _TWIST_ABSQUANT_REMAPPER = MappingProxyType({
+        SYNDNA_IS_TWISTED_KEY: SYNDNA_IS_TWISTED_KEY,
+    })
+
+    # Reminder: the method of adding carried prep columns and data columns used
+    # below ONLY works if the mixin is the last class in the inheritance list
+    # and if the class that inherits from it does not explicitly set these
+    # attributes in its own __init__ method.  Safest not to set these
+    # attributes in leaf classes at all (specific sheet versions) for leaf
+    # class that uses a mixin like this.
+    def __init__(self, path=None, defer_validate=False):
+        super().__init__(path=path, defer_validate=True)
+        self._remapper = self._extend_mapping_type(
+            self._TWIST_ABSQUANT_REMAPPER)
+        self._data_columns = self._data_columns + \
+            self._TWIST_ABSQUANT_SPECIFIC_COLUMNS
+        if self._CARRIED_PREP_COLUMNS is not None:
+            self._CARRIED_PREP_COLUMNS = self._CARRIED_PREP_COLUMNS + \
+                self._TWIST_ABSQUANT_SPECIFIC_COLUMNS
+        self._validate_on_load(path, defer_validate)
+
+
+class TwistAbsquantMixinV2(AbsQuantMixinV2):
     _TWIST_ABSQUANT_SPECIFIC_COLUMNS = (SYNDNA_IS_TWISTED_KEY,)
 
     _TWIST_ABSQUANT_REMAPPER = MappingProxyType({
@@ -1912,10 +1965,18 @@ class TwistAbsquantMixin(AbsQuantMixin):
 
 
 class PacBioAbsquantSampleSheetv11(
-        TwistAbsquantMixin, PacBioSampleSheetWithTwistAdapters):
+        TwistAbsquantMixinV1, PacBioSampleSheetWithTwistAdapters):
     _HEADER = PacBioSampleSheetWithTwistAdapters._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '11'
+    _HEADER[_ASSAY_KEY] = _METAGENOMIC
+
+
+class PacBioAbsquantSampleSheetv12(
+        TwistAbsquantMixinV2, PacBioSampleSheetWithTwistAdapters):
+    _HEADER = PacBioSampleSheetWithTwistAdapters._HEADER.copy()
+    _HEADER[_SHEET_TYPE_KEY] = PACBIO_ABSQUANT_SHEET_TYPE
+    _HEADER[_SHEET_VERSION_KEY] = '12'
     _HEADER[_ASSAY_KEY] = _METAGENOMIC
 
 
@@ -2008,7 +2069,7 @@ class MetagenomicSampleSheetv90(KLSampleSheet):
         self._validate_on_load(path, defer_validate)
 
 
-class AbsQuantSampleSheetv10(AbsQuantMixin, KLSampleSheetWithReplicates):
+class AbsQuantSampleSheetv10(AbsQuantMixinV1, KLSampleSheetWithReplicates):
     _HEADER = {
         'IEMFileVersion': '4',
         _SHEET_TYPE_KEY: ABSQUANT_SHEET_TYPE,
@@ -2024,7 +2085,7 @@ class AbsQuantSampleSheetv10(AbsQuantMixin, KLSampleSheetWithReplicates):
     }
 
 
-class AbsQuantSampleSheetv11(AbsQuantMixin, KLSampleSheetWithSampleContext):
+class AbsQuantSampleSheetv11(AbsQuantMixinV1, KLSampleSheetWithSampleContext):
     _HEADER = AbsQuantSampleSheetv10._HEADER.copy()
     _HEADER[_SHEET_TYPE_KEY] = ABSQUANT_SHEET_TYPE
     _HEADER[_SHEET_VERSION_KEY] = '11'
@@ -2243,6 +2304,7 @@ def _id_sample_sheet_class(sheet_type, sheet_version, assay_type):
             _METAGENOMIC: {
                 '10': PacBioAbsquantSampleSheetv10,
                 '11': PacBioAbsquantSampleSheetv11,
+                '12': PacBioAbsquantSampleSheetv12,
             },
         }
     }
