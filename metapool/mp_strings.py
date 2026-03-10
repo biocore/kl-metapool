@@ -70,6 +70,7 @@ EXTRACTED_GDNA_CONC_KEY = 'extracted_gdna_concentration_ng_ul'
 BARCODE_ID_KEY = 'barcode_id'
 TWIST_ADAPTOR_ID_KEY = 'twist_adaptor_id'
 SYNDNA_IS_TWISTED_KEY = 'syndna_is_twisted'
+CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY = 'calc_mass_sample_aliquot_input_g'
 
 
 def parse_project_name(project_name):

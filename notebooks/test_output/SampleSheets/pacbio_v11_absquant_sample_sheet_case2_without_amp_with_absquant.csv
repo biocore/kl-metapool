@@ -21,7 +21,7 @@ amplifi_validation_15196,15196,True,Knight Lab PacBio absquant,fecal samples for
 ,,,,,,,,,,,,,
 [Contact],,,,,,,,,,,,,
 Sample_Project,Email,,,,,,,,,,,,
-amplifi_validation_15196,gail.ackermann50@gmail.com,,,,,,,,,,,,
+amplifi_validation_15196,g@example.com,,,,,,,,,,,,
 ,,,,,,,,,,,,,
 [SampleContext],,,,,,,,,,,,,
 sample_name,sample_type,primary_qiita_study,secondary_qiita_studies,,,,,,,,,,

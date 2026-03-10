@@ -23,7 +23,8 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'run_id_key': "Sequencing Run",
             'run_title_key': "Sequencing_Run_Name",
             'experimental_design_desc':
-                "fecal samples for metagenomic sequencing"
+                "fecal samples for metagenomic sequencing",
+            'contact_email': "g@example.com",
         }
 
         output_params = {
@@ -38,11 +39,11 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
 
         self._run_notebook_test(run_params, output_params)
 
-    def test_pacbio_v11_absquant_sample_sheet_case2_wo_amp_w_absquant(self):
+    def test_pacbio_v12_absquant_sample_sheet_case2_wo_amp_w_absquant(self):
         run_params = {
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
-                'pacbio_v11_absquant_case2_without_amp_'
+                'pacbio_v12_absquant_case2_without_amp_'
                 'with_absquant_processing_doc.csv'),
             'qiita_id_key': "Qiita_ID",
             'sample_name_col_key': "sample_name",
@@ -55,14 +56,15 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'run_id_key': "Sequencing Run",
             'run_title_key': "Sequencing Run Name",
             'experimental_design_desc':
-                "fecal samples for metagenomic sequencing"
+                "fecal samples for metagenomic sequencing",
+            'contact_email': "g@example.com",
         }
 
         output_params = {
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/'
-                     'pacbio_v11_absquant_sample_sheet_case2_without_amp_'
+                     'pacbio_v12_absquant_sample_sheet_case2_without_amp_'
                      'with_absquant.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
@@ -88,7 +90,8 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'run_id_key': "Sequencing Run",
             'run_title_key': "Sequencing_Run_Name",
             'experimental_design_desc':
-                "fecal samples for metagenomic sequencing"
+                "fecal samples for metagenomic sequencing",
+            'contact_email': "g@example.com"
         }
 
         output_params = {
@@ -103,11 +106,11 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
 
         self._run_notebook_test(run_params, output_params)
 
-    def test_pacbio_v11_absquant_case4_w_amp_w_absquant_syndna_before(self):
+    def test_pacbio_v12_absquant_case4_w_amp_w_absquant_syndna_before(self):
         run_params = {
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
-                f'pacbio_v11_absquant_case4_with_amp_with_absquant_syndna_'
+                f'pacbio_v12_absquant_case4_with_amp_with_absquant_syndna_'
                 f'before_processing_doc.csv'),
             'qiita_id_key': "Qiita_ID",
             'sample_name_col_key': "Sample_ID",
@@ -120,14 +123,15 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'run_id_key': "Sequencing Run",
             'run_title_key': "Sequencing Run Name",
             'experimental_design_desc':
-                "soil samples for metagenomic sequencing"
+                "soil samples for metagenomic sequencing",
+            'contact_email': "g@example.com"
         }
 
         output_params = {
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/'
-                     'pacbio_v11_absquant_sample_sheet_case4_with_amp_'
+                     'pacbio_v12_absquant_sample_sheet_case4_with_amp_'
                      'with_absquant_syndna_before.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
@@ -136,11 +140,11 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
 
         self._run_notebook_test(run_params, output_params)
 
-    def test_pacbio_v11_absquant_case5_with_amp_with_absquant_syndna_after(self):  # noqa: E501
+    def test_pacbio_v12_absquant_case5_with_amp_with_absquant_syndna_after(self):  # noqa: E501
         run_params = {
             'processing_doc_fp': (
                 f'{self.test_data_dir}/processing_docs/'
-                f'pacbio_v11_absquant_case5_with_amp_with_absquant_syndna_'
+                f'pacbio_v12_absquant_case5_with_amp_with_absquant_syndna_'
                 f'after_processing_doc.csv'),
             'qiita_id_key': "Qiita_ID",
             'sample_name_col_key': "sample_name",
@@ -153,14 +157,15 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'run_id_key': "Sequencing Run",
             'run_title_key': "Sequencing Run Name",
             'experimental_design_desc':
-                "fecal samples for metagenomic sequencing"
+                "fecal samples for metagenomic sequencing",
+            'contact_email': "g@example.com",
         }
 
         output_params = {
             'out_fp': {
                 self._OUT_PARAM_VARIABLE_KEY:
                     ('{path}/SampleSheets/'
-                     'pacbio_v11_absquant_sample_sheet_case5_with_amp_'
+                     'pacbio_v12_absquant_sample_sheet_case5_with_amp_'
                      'with_absquant_syndna_after.csv'),
                 self._FILE_PATH_KEY: True,
                 self._ZERO_DATES_FUNC_KEY: self._replace_illumina_date
