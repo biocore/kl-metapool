@@ -3327,7 +3327,8 @@ class PacBioAbsquantSampleSheetv12CreationTests(
         PacBioMetagSampleSheetv11CreationTests._OUTPUT_COLS.copy() + [
             'mass_syndna_input_ng', 'extracted_gdna_concentration_ng_ul',
             'vol_extracted_elution_ul', 'syndna_pool_number',
-            'sequenced_sample_gdna_mass_ng', 'calc_mass_sample_aliquot_input_g',
+            'sequenced_sample_gdna_mass_ng',
+            'calc_mass_sample_aliquot_input_g',
             'sample_volume_ul', 'sample_surface_area_cm2', 'syndna_is_twisted']
 
     _BIOINFORMATICS = PacBioMetagSampleSheetv11CreationTests._BIOINFORMATICS
