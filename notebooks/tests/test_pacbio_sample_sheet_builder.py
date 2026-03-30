@@ -58,6 +58,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'experimental_design_desc':
                 "fecal samples for metagenomic sequencing",
             'contact_email': "g@example.com",
+            'sample_extract_metric': "calc_mass_sample_aliquot_input_g",
         }
 
         output_params = {
@@ -124,7 +125,8 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'run_title_key': "Sequencing Run Name",
             'experimental_design_desc':
                 "soil samples for metagenomic sequencing",
-            'contact_email': "g@example.com"
+            'contact_email': "g@example.com",
+            'sample_extract_metric': "sample_volume_ul",
         }
 
         output_params = {
@@ -159,6 +161,7 @@ class TestPacbioSampleSheetBuilderNotebook(TestNotebook):
             'experimental_design_desc':
                 "fecal samples for metagenomic sequencing",
             'contact_email': "g@example.com",
+            'sample_extract_metric': "sample_surface_area_cm2",
         }
 
         output_params = {

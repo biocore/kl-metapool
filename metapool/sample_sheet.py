@@ -17,7 +17,9 @@ from metapool.mp_strings import parse_project_name, \
     SYNDNA_POOL_NUM_KEY, ELUTION_VOL_KEY, EXTRACTED_GDNA_CONC_KEY, \
     LIB_CONSTRUCT_PROTOCOL_KEY, PM_WELL_ID_384_KEY, DESTINATION_WELL_384_KEY, \
     BARCODE_ID_KEY, TWIST_ADAPTOR_ID_KEY, SYNDNA_IS_TWISTED_KEY, \
-    CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY
+    CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY, \
+    SEQUENCED_SAMPLE_GDNA_MASS_NG_KEY, VOL_SAMPLE_ALIQUOT_INPUT_UL_KEY, \
+    SURFACE_AREA_SAMPLE_ALIQUOT_INPUT_CM2_KEY
 from metapool.util import convert_to_bool
 from metapool.metapool import (bcl_scrub_name, sequencer_i5_index)
 from metapool.sequencers import is_i5_revcomp_sequencer, get_sequencer_type, \
@@ -1575,11 +1577,20 @@ class AbsQuantMixinV1(object):
 
 class AbsQuantMixinV2(object):
     _ABSQUANT_SPECIFIC_COLUMNS = AbsQuantMixinV1._ABSQUANT_SPECIFIC_COLUMNS + \
-        (CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY,)
+        (SEQUENCED_SAMPLE_GDNA_MASS_NG_KEY,
+         CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY,
+         VOL_SAMPLE_ALIQUOT_INPUT_UL_KEY,
+         SURFACE_AREA_SAMPLE_ALIQUOT_INPUT_CM2_KEY)
     _ABSQUANT_REMAPPER = MappingProxyType(
         AbsQuantMixinV1._ABSQUANT_REMAPPER |
-        {CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY:
-         CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY}
+        {SEQUENCED_SAMPLE_GDNA_MASS_NG_KEY:
+         SEQUENCED_SAMPLE_GDNA_MASS_NG_KEY,
+         CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY:
+         CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY,
+         VOL_SAMPLE_ALIQUOT_INPUT_UL_KEY:
+         VOL_SAMPLE_ALIQUOT_INPUT_UL_KEY,
+         SURFACE_AREA_SAMPLE_ALIQUOT_INPUT_CM2_KEY:
+         SURFACE_AREA_SAMPLE_ALIQUOT_INPUT_CM2_KEY}
     )
 
     # Reminder: the method of adding carried prep columns and data columns used

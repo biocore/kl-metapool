@@ -71,6 +71,9 @@ BARCODE_ID_KEY = 'barcode_id'
 TWIST_ADAPTOR_ID_KEY = 'twist_adaptor_id'
 SYNDNA_IS_TWISTED_KEY = 'syndna_is_twisted'
 CALC_MASS_SAMPLE_ALIQUOT_INPUT_G_KEY = 'calc_mass_sample_aliquot_input_g'
+VOL_SAMPLE_ALIQUOT_INPUT_UL_KEY = 'sample_volume_ul'
+SURFACE_AREA_SAMPLE_ALIQUOT_INPUT_CM2_KEY = 'sample_surface_area_cm2'
+SEQUENCED_SAMPLE_GDNA_MASS_NG_KEY = 'sequenced_sample_gdna_mass_ng'
 
 
 def parse_project_name(project_name):
