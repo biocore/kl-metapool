@@ -1,5 +1,4 @@
 from unittest import TestCase, main
-import io
 import pandas as pd
 import numpy as np
 import numpy.testing as npt
@@ -1641,7 +1640,7 @@ class Tests(TestCase):
         counts_df.loc[1, 'Category'] = None
         with self.assertRaisesRegex(
                 LookupError,
-                r'missing sample name in Category at row\(s\): 1'):
+                r'missing sample name in Category at index label\(s\): 1'):
             merge_read_counts(self.plate_df, counts_df)
 
     def test_split_trimmed_read_counts(self):
@@ -1657,15 +1656,39 @@ class Tests(TestCase):
 
     def test_split_trimmed_read_counts_err_missing_sample_name(self):
         # read from text, as the notebooks do, so the blank is a real NaN
-        counts_df = pd.read_csv(io.StringIO(
+        counts_df = pd.read_csv(StringIO(
             'Category,Unique Reads\n'
             'a_S1_L001_R1_001.trimmed.fastq.gz,1\n'
             ',2\n'
             'b_S2_L001_R1_001.fastq.gz,3\n'))
         with self.assertRaisesRegex(
                 LookupError,
-                r'missing sample name in Category at row\(s\): 1'):
+                r'missing sample name in Category at index label\(s\): 1'):
             split_trimmed_read_counts(counts_df, 'Category')
+
+    def test_split_trimmed_read_counts_err_whitespace_sample_name(self):
+        # a whitespace-only name survives read_csv(dtype=str) as '  ', not NaN,
+        # and must still count as missing.
+        counts_df = pd.read_csv(StringIO(
+            'Category,Unique Reads\n'
+            'a_S1_L001_R1_001.trimmed.fastq.gz,1\n'
+            '   ,2\n'
+            'b_S2_L001_R1_001.fastq.gz,3\n'), dtype=str)
+        with self.assertRaisesRegex(
+                LookupError,
+                r'missing sample name in Category at index label\(s\): 1'):
+            split_trimmed_read_counts(counts_df, 'Category')
+
+    def test_split_trimmed_read_counts_non_string_name(self):
+        # a non-string entry in an object sample column must not make
+        # str.contains return NaN (which ~trimmed_mask would choke on); it is
+        # coerced to str and read as a raw (non-trimmed) count.
+        counts_df = pd.DataFrame({
+            'Category': ['a_S1_L001_R1_001.trimmed.fastq.gz', 123],
+            'Unique Reads': [1, 2]})
+        obs_raw, obs_trimmed = split_trimmed_read_counts(counts_df, 'Category')
+        self.assertEqual(list(obs_raw['Unique Reads']), [2])
+        self.assertEqual(list(obs_trimmed['Unique Reads']), [1])
 
     def test_merge_read_counts_w_explicit_fastqc_sample_col(self):
         exp_fp = os.path.join(self.fp, 'data/test_output_merge.tsv')

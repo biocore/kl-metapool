@@ -1503,9 +1503,12 @@ def _raise_on_missing_sample_names(counts_df, sample_column):
     names = counts_df[sample_column]
     missing = names.isna() | (names.astype(object).map(str).str.strip() == '')
     if missing.any():
-        rows = ', '.join(str(i) for i in counts_df.index[missing])
+        # index labels, not positions: on a filtered or concatenated frame a
+        # label need not match any row position.
+        labels = ', '.join(str(i) for i in counts_df.index[missing])
         raise LookupError(
-            f'missing sample name in {sample_column} at row(s): {rows}')
+            f'missing sample name in {sample_column} at index label(s): '
+            f'{labels}')
 
 
 def split_trimmed_read_counts(read_counts_df, sample_column):
@@ -1517,7 +1520,11 @@ def split_trimmed_read_counts(read_counts_df, sample_column):
     :return: A (raw, trimmed) tuple of DataFrame copies.
     """
     _raise_on_missing_sample_names(read_counts_df, sample_column)
-    trimmed_mask = read_counts_df[sample_column].str.contains('trimmed')
+    # astype(str) so a non-string entry in an object column does not make
+    # str.contains return NaN, which ~trimmed_mask would then choke on. Safe
+    # because missing names were just rejected above.
+    trimmed_mask = read_counts_df[sample_column].astype(str).str.contains(
+        'trimmed')
     return (read_counts_df.loc[~trimmed_mask].copy(),
             read_counts_df.loc[trimmed_mask].copy())
 

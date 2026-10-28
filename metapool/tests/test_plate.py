@@ -17,7 +17,7 @@ from metapool.plate import (_well_to_row_and_col, _decompress_well,
 from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                calculate_norm_vol, assign_index,
                                compute_pico_concentration)
-from metapool.mp_strings import CONTAINS_REPLICATES_KEY
+from metapool.mp_strings import CONTAINS_REPLICATES_KEY, PM_SAMPLE_KEY
 
 
 class DilutionTests(TestCase):
@@ -933,8 +933,9 @@ class PlateReplicationTests(TestCase):
         self._help_test_make_replicates("file1.tsv", obs)
 
     def test_make_replicates_empty_text_columns(self):
-        # an input column replication writes text into, but which is entirely
-        # empty, reads as float64; replicating must still fill it with text.
+        # an input column replication writes text into, but which is any
+        # non-text dtype (here all-empty, which reads as float64); replicating
+        # must still fill it with text.
         for col in ('orig_name', 'Library Well', 'replicate'):
             with self.subTest(col=col):
                 input_df = self.input_df.copy()
@@ -943,6 +944,20 @@ class PlateReplicationTests(TestCase):
                 obs = pr.make_replicates(input_df, {1: [2, 3, 4]},
                                          overwrite=True)
                 self._help_test_make_replicates("file1.tsv", obs)
+
+    def test_make_replicates_integer_sample_names(self):
+        # PM_SAMPLE_KEY holding integer names reads as int64; replication
+        # writes '<sample>.<well>' into it, which pandas 3 refuses in an int
+        # column, so it must be held as str first. Covers the non-empty
+        # non-text case the all-empty test above does not.
+        input_df = self.input_df.copy()
+        input_df[PM_SAMPLE_KEY] = range(1, len(input_df) + 1)
+        pr = PlateReplication('Library Well')
+        obs = pr.make_replicates(input_df, {1: [2, 3, 4]}, overwrite=True)
+        replicated = obs[obs[CONTAINS_REPLICATES_KEY].astype(bool)]
+        # the replicated names became text like '1.<well>'
+        self.assertTrue((replicated[PM_SAMPLE_KEY].map(type) == str).all())
+        self.assertTrue(replicated[PM_SAMPLE_KEY].str.contains(r'\.').all())
 
     def test_make_replicates_no_overwrite_source_quad(self):
         # replicate a valid source to empty sources 2 and 4 plus overwriting
