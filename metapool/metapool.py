@@ -2164,13 +2164,27 @@ def _merge_accession_to_compressed_plate_df(
     if PM_PROJECT_NAME_KEY in sample_accession_df.columns:
         sample_merge_cols.append(PM_PROJECT_NAME_KEY)
 
+    # Drop blank-TubeCode rows before the merge: a blank TubeCode cannot
+    # identify a well, and a left merge pairs a blank plate cell with every
+    # blank lookup row, duplicating that well (see _drop_blank_tubecodes).
+    lookup_df = _drop_blank_tubecodes(sample_accession_df[sample_merge_cols])
+
+    # A TubeCode on the plate that matches more than one accession row would
+    # add rows to the merge below, and the index-aligned update() would then
+    # shift every later sample name onto the wrong well, silently. The source
+    # is named "data", not "file": cross-study extension (extend_sample_
+    # accession_df) can duplicate a TubeCode the file itself holds only once.
+    _raise_on_ambiguous_tubecodes(
+        compressed_plate_df_merged, lookup_df,
+        "the sample accession data")
+
     # Make a temporary df out of the tubecode column (only) from compressed_df
     # and the selected merge columns from sample accession df. In this temp df,
     # the only non-nan values in columns other than TubeCode are for
     # the TubeCodes that *do* have values in the sample_accession_df.
     # Note that this df has the same index as that of the full compressed df.
     temp_merged_df = compressed_plate_df_merged[[TUBECODE_KEY]].merge(
-        sample_accession_df[sample_merge_cols], on=TUBECODE_KEY, how="left")
+        lookup_df, on=TUBECODE_KEY, how="left")
 
     # Now update the *full* compressed df with the sample_names, etc., from the
     # temp df (which can be done because both dfs have the same index). This
@@ -2189,6 +2203,62 @@ def _merge_accession_to_compressed_plate_df(
         dtype=placeholder_dtype)
     compressed_plate_df_merged.update(temp_merged_df)
     return compressed_plate_df_merged
+
+
+def _drop_blank_tubecodes(lookup_df):
+    """Drop rows whose TubeCode is missing or blank.
+
+    A blank TubeCode cannot identify a plate well, so such a row has no
+    legitimate way to join on TubeCode. Unmerged they are harmless; left in, a
+    pandas left merge pairs a blank plate cell with every blank lookup row,
+    duplicating that well and shifting later sample names via the index-aligned
+    update(). Callers drop them before both the duplicate guard and the merge.
+
+    Dropping is silent only in the sense that it does not fail; it warns,
+    because blank rows can be a symptom of a larger problem in the file (a
+    truncated export, a stray row) that the user should check.
+    """
+    tubecodes = lookup_df[TUBECODE_KEY]
+    is_blank = tubecodes.isna() | (tubecodes.astype(str).str.strip() == "")
+    n_blank = int(is_blank.sum())
+    if n_blank:
+        warnings.warn(
+            f"Dropped {n_blank} row(s) with a blank TubeCode before merging; "
+            f"a blank TubeCode cannot identify a plate well. Check whether "
+            f"blank rows are expected in this file.")
+    return lookup_df[~is_blank]
+
+
+def _raise_on_ambiguous_tubecodes(plate_df, lookup_df, source):
+    """Raise if any TubeCode in plate_df appears in more than one row of
+    lookup_df, naming each such TubeCode with the values it maps to.
+
+    A duplicate that is not on the plate is ignored: it cannot affect a merge
+    against this plate. Callers pass lookup data with blank TubeCodes already
+    dropped (_drop_blank_tubecodes), so this guards normalized, non-blank
+    codes: its job is the collision that only appears *after* leading zeroes
+    are stripped (0363132553 vs 363132553) or after cross-study extension,
+    which an exact-duplicate check at file load does not see.
+    """
+    on_plate = lookup_df[TUBECODE_KEY].isin(plate_df[TUBECODE_KEY])
+    dup_mask = lookup_df[TUBECODE_KEY].duplicated(keep=False)
+    dups = lookup_df[on_plate & dup_mask & lookup_df[TUBECODE_KEY].notna()]
+    if dups.empty:
+        return
+
+    value_cols = [c for c in dups.columns if c != TUBECODE_KEY]
+    details = []
+    # sort=True keeps the message deterministic (ordered by TubeCode).
+    for tubecode, rows in dups.groupby(TUBECODE_KEY, sort=True):
+        # Skip missing values so a frame that concatenates blanks and
+        # katharoseq (each blank row missing the katharoseq columns) doesn't
+        # read as "nan / nan" for every entry.
+        values = rows[value_cols].apply(
+            lambda row: " / ".join(str(v) for v in row if pd.notna(v)), axis=1)
+        details.append(f"{tubecode} ({', '.join(values)})")
+    raise ValueError(
+        f"The following TubeCodes appear more than once in {source}: "
+        f"{'; '.join(details)}")
 
 
 def _generate_compressed_plate_name(compressed_plate_df):
@@ -2277,9 +2347,17 @@ def add_controls(plate_df, blanks_dir, katharoseq_dir=None,
              "RackID", "Time", "Date"], axis=1
         )
 
-        # Merge plate_df with controls table
+        # Merge plate_df with controls table. Strip first so the guard below
+        # sees the same normalized TubeCodes the merge will, then drop blank
+        # TubeCodes, which would otherwise pair a blank plate cell with every
+        # blank control row in the left merge (see _drop_blank_tubecodes).
         if not preserve_leading_zeroes:
             plate_df = strip_tubecode_leading_zeroes(plate_df)
+        controls_df = _drop_blank_tubecodes(controls_df)
+        # a TubeCode listed twice in the controls files would duplicate its
+        # well in the left merge below
+        _raise_on_ambiguous_tubecodes(
+            plate_df, controls_df, "the blanks/katharoseq files")
         plate_df = pd.merge(plate_df, controls_df, on=TUBECODE_KEY, how="left")
         return plate_df
 

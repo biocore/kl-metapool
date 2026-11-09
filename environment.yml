@@ -12,7 +12,9 @@ dependencies:
   - matplotlib
   - numpy
   - openpyxl
-  - pandas>=3
+  # <3.1 until the notebook golden-output tests are revalidated on 3.1: its
+  # to_csv formats some values differently, breaking the exact-match checks.
+  - pandas>=3,<3.1
   - pip
   - python=3.11
   - seaborn[version='>=0.13.2']
