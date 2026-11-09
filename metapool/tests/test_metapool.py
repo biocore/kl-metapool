@@ -6,6 +6,7 @@ import numpy.testing as npt
 import os
 import shutil
 import tempfile
+import warnings
 from io import StringIO
 from pandas.testing import assert_frame_equal
 from metapool.plate import PlateRemapper
@@ -280,10 +281,22 @@ class Tests(TestCase):
             'sample_name': ['a', 'b', 'c', 'd', 'e'],
             TUBECODE_KEY: ['0363132553', np.nan, '', '   ', '0363132560'],
         })
-        kept = _drop_blank_tubecodes(df)
+        # the drop warns, since blank rows can signal a larger file problem
+        with self.assertWarnsRegex(UserWarning, r"Dropped 3 row\(s\)"):
+            kept = _drop_blank_tubecodes(df)
         self.assertEqual(list(kept['sample_name']), ['a', 'e'])
         self.assertEqual(list(kept[TUBECODE_KEY]),
                          ['0363132553', '0363132560'])
+
+    def test_drop_blank_tubecodes_no_warning_when_none_blank(self):
+        df = pd.DataFrame({
+            'sample_name': ['a', 'b'],
+            TUBECODE_KEY: ['0363132553', '0363132560'],
+        })
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kept = _drop_blank_tubecodes(df)
+        self.assertEqual(list(kept['sample_name']), ['a', 'b'])
 
     def test_merge_accession_blank_tubecode_well_not_duplicated(self):
         # A plate well with a missing TubeCode (an empty well) and an accession

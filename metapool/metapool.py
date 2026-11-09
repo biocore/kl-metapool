@@ -2213,9 +2213,19 @@ def _drop_blank_tubecodes(lookup_df):
     pandas left merge pairs a blank plate cell with every blank lookup row,
     duplicating that well and shifting later sample names via the index-aligned
     update(). Callers drop them before both the duplicate guard and the merge.
+
+    Dropping is silent only in the sense that it does not fail; it warns,
+    because blank rows can be a symptom of a larger problem in the file (a
+    truncated export, a stray row) that the user should check.
     """
     tubecodes = lookup_df[TUBECODE_KEY]
     is_blank = tubecodes.isna() | (tubecodes.astype(str).str.strip() == "")
+    n_blank = int(is_blank.sum())
+    if n_blank:
+        warnings.warn(
+            f"Dropped {n_blank} row(s) with a blank TubeCode before merging; "
+            f"a blank TubeCode cannot identify a plate well. Check whether "
+            f"blank rows are expected in this file.")
     return lookup_df[~is_blank]
 
 
