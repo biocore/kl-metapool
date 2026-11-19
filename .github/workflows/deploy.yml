@@ -20,11 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: tester
           python-version: ${{ matrix.python-version }}
-          channels: anaconda, conda-forge, bioconda, defaults
+          # Install Miniforge rather than rely on a base conda preinstalled on
+          # the runner (recent runner images ship none) — and it defaults to
+          # conda-forge, avoiding the anaconda `defaults` channel's ToS gate.
+          miniforge-version: latest
           auto-update-conda: true
 
       - name: Run deploy script
@@ -43,11 +46,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: conda-incubator/setup-miniconda@v2
+      - uses: conda-incubator/setup-miniconda@v3
         with:
           activate-environment: tester
           python-version: ${{ matrix.python-version }}
-          channels: anaconda, conda-forge, bioconda, defaults
+          # Install Miniforge rather than rely on a base conda preinstalled on
+          # the runner (recent runner images ship none) — and it defaults to
+          # conda-forge, avoiding the anaconda `defaults` channel's ToS gate.
+          miniforge-version: latest
           auto-update-conda: true
 
       - name: Run deploy script
