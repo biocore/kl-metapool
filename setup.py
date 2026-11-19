@@ -18,7 +18,9 @@ base = [
     'matplotlib >= 3.9.2',
     'numpy >= 2.0.2',
     'openpyxl >= 3.1.5',
-    'pandas >= 3.0',
+    # <3.1 until the notebook golden outputs are revalidated on 3.1 (its
+    # to_csv formats some values differently); keep in sync w/ environment.yml.
+    'pandas >= 3.0, < 3.1',
     # seems seqtk cannot be installed through the setup mechanism?
     # 'seqtk >= 1.4',
     'seaborn >= 0.13.2',

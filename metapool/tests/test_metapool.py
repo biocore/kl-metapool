@@ -4,6 +4,9 @@ import pandas as pd
 import numpy as np
 import numpy.testing as npt
 import os
+import shutil
+import tempfile
+import warnings
 from io import StringIO
 from pandas.testing import assert_frame_equal
 from metapool.plate import PlateRemapper
@@ -37,7 +40,9 @@ from metapool.metapool import (read_plate_map_csv, read_pico_csv,
                                _read_and_label_pico_csv, load_concentrations,
                                select_sample_dilutions,
                                add_pool_input_dna_mass_ng_to_plate_df,
-                               _assign_compressed_wells_for_96_well_plate)
+                               _assign_compressed_wells_for_96_well_plate,
+                               _merge_accession_to_compressed_plate_df,
+                               _drop_blank_tubecodes)
 from metapool.mp_strings import SYNDNA_POOL_NUM_KEY, EXTRACTED_GDNA_CONC_KEY, \
     PM_PROJECT_PLATE_KEY, PM_COMPRESSED_PLATE_NAME_KEY, SAMPLE_DNA_CONC_KEY, \
     NORMALIZED_DNA_VOL_KEY, NORMALIZED_WATER_VOL_KEY, SS_SAMPLE_ID_KEY
@@ -219,6 +224,131 @@ class Tests(TestCase):
         plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
                                    dtype={TUBECODE_KEY: str}, sep='\t')
         pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def _compression_layout_16_17_18_21(self):
+        return [
+            {'Plate Position': i + 1,
+             'Plate map file': plate,
+             'Project Plate': f'Plate_{n}',
+             'Project Name': 'Celeste_Adaptation_12986',
+             'Project Abbreviation': 'ADAPT',
+             'Plate elution volume': 70}
+            for i, (plate, n) in enumerate(zip(self.plates, (16, 17, 18, 21)))]
+
+    def test_compress_plates_err_tubecode_with_two_sample_names(self):
+        # The plate's first tube (0363132553, 41B.Month6.1) listed again in
+        # the sample accession file under another name. Before the check,
+        # the merge shifted every later name onto the wrong well.
+        sa_df = pd.concat(
+            [self.sa_df,
+             pd.DataFrame({'sample_name': ['41B.Month6.2'],
+                           TUBECODE_KEY: ['0363132553']})],
+            ignore_index=True)
+        err_msg = (
+            r"The following TubeCodes appear more than once in the sample "
+            r"accession data: 363132553 \(41B\.Month6\.1, 41B\.Month6\.2\)")
+        with self.assertRaisesRegex(ValueError, err_msg):
+            compress_plates(self._compression_layout_16_17_18_21(), sa_df,
+                            well_col='Well')
+
+    def test_compress_plates_err_tubecode_listed_twice_with_same_name(self):
+        # an exact duplicate row shifts the wells just the same
+        first = self.sa_df[self.sa_df[TUBECODE_KEY] == '0363132553']
+        sa_df = pd.concat([self.sa_df, first], ignore_index=True)
+        with self.assertRaisesRegex(
+                ValueError, r"appear more than once in the sample accession "
+                            r"data: 363132553 \(41B\.Month6\.1, "
+                            r"41B\.Month6\.1\)"):
+            compress_plates(self._compression_layout_16_17_18_21(), sa_df,
+                            well_col='Well')
+
+    def test_compress_plates_duplicate_tubecode_not_on_plate(self):
+        # a duplicate that no plate holds cannot shift any well
+        sa_df = pd.concat(
+            [self.sa_df,
+             pd.DataFrame({'sample_name': ['elsewhere.1', 'elsewhere.2'],
+                           TUBECODE_KEY: ['0999999999', '0999999999']})],
+            ignore_index=True)
+        plate_df_obs = compress_plates(
+            self._compression_layout_16_17_18_21(), sa_df, well_col='Well')
+        plate_df_exp = pd.read_csv(self.comp_plate_exp_fp,
+                                   dtype={TUBECODE_KEY: str}, sep='\t')
+        pd.testing.assert_frame_equal(plate_df_obs, plate_df_exp)
+
+    def test_drop_blank_tubecodes(self):
+        # missing, empty, and whitespace-only TubeCodes dropped; real ones kept
+        df = pd.DataFrame({
+            'sample_name': ['a', 'b', 'c', 'd', 'e'],
+            TUBECODE_KEY: ['0363132553', np.nan, '', '   ', '0363132560'],
+        })
+        # the drop warns, since blank rows can signal a larger file problem
+        with self.assertWarnsRegex(UserWarning, r"Dropped 3 row\(s\)"):
+            kept = _drop_blank_tubecodes(df)
+        self.assertEqual(list(kept['sample_name']), ['a', 'e'])
+        self.assertEqual(list(kept[TUBECODE_KEY]),
+                         ['0363132553', '0363132560'])
+
+    def test_drop_blank_tubecodes_no_warning_when_none_blank(self):
+        df = pd.DataFrame({
+            'sample_name': ['a', 'b'],
+            TUBECODE_KEY: ['0363132553', '0363132560'],
+        })
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            kept = _drop_blank_tubecodes(df)
+        self.assertEqual(list(kept['sample_name']), ['a', 'b'])
+
+    def test_merge_accession_blank_tubecode_well_not_duplicated(self):
+        # A plate well with a missing TubeCode (an empty well) and an accession
+        # frame with two missing-TubeCode rows: a left merge matches NaN to
+        # NaN, so that well would get two rows and the index-aligned update()
+        # would shift later names. Blanks are dropped, so the well merges to
+        # nothing and the row count is unchanged.
+        compressed = pd.DataFrame({
+            TUBECODE_KEY: ['0363132553', np.nan, '0363132560'],
+            'Well': ['A1', 'A2', 'A3'],
+        })
+        accession = pd.DataFrame({
+            'sample_name': ['s.real', 's.blank1', 's.blank2', 's.real2'],
+            TUBECODE_KEY: ['0363132553', np.nan, np.nan, '0363132560'],
+        })
+        merged = _merge_accession_to_compressed_plate_df(compressed, accession)
+        self.assertEqual(len(merged), len(compressed))
+        got = dict(zip(merged[TUBECODE_KEY], merged['sample_name']))
+        self.assertEqual(got['0363132553'], 's.real')
+        self.assertEqual(got['0363132560'], 's.real2')
+        # the empty well got no sample name
+        blank_names = merged.loc[merged[TUBECODE_KEY].isna(), 'sample_name']
+        self.assertTrue(blank_names.isna().all())
+
+    def test_compress_plates_err_tubecode_collides_after_strip(self):
+        # The plate's first tube is 0363132553; stripping makes it 363132553.
+        # An accession row added as 363132553 (already stripped) collides only
+        # after normalization, which join_dfs_from_files' exact-duplicate check
+        # at file load does not see.
+        sa_df = pd.concat(
+            [self.sa_df,
+             pd.DataFrame({'sample_name': ['other.1'],
+                           TUBECODE_KEY: ['363132553']})],
+            ignore_index=True)
+        with self.assertRaisesRegex(
+                ValueError,
+                r"appear more than once in the sample accession data: "
+                r"363132553 \(41B\.Month6\.1, other\.1\)"):
+            compress_plates(self._compression_layout_16_17_18_21(), sa_df,
+                            well_col='Well')
+
+    def test_compress_plates_leading_zero_collision_kept_when_preserved(self):
+        # With leading zeroes preserved, 0363132553 and 363132553 stay
+        # distinct, so the added row is not on the 0-prefixed plate: no raise.
+        sa_df = pd.concat(
+            [self.sa_df,
+             pd.DataFrame({'sample_name': ['other.1'],
+                           TUBECODE_KEY: ['363132553']})],
+            ignore_index=True)
+        # does not raise
+        compress_plates(self._compression_layout_16_17_18_21(), sa_df,
+                        well_col='Well', preserve_leading_zeroes=True)
 
     def test_compress_plates_legacy_plate_defines_proj_and_keep_zeroes(self):
         compression = [
@@ -495,6 +625,38 @@ class Tests(TestCase):
 
         pd.testing.assert_frame_equal(add_controls_obs,
                                       add_controls_exp)
+
+    def test_add_controls_err_blank_listed_twice(self):
+        # the same blanks scan saved twice in the blanks directory
+        plate_df = pd.read_csv(self.comp_plate_exp_fp,
+                               dtype={TUBECODE_KEY: str}, sep='\t')
+        with tempfile.TemporaryDirectory() as blanks_dir:
+            for name in ('blanks.tsv', 'blanks_copy.tsv'):
+                shutil.copy(os.path.join(self.blanks_dir, 'blanks.tsv'),
+                            os.path.join(blanks_dir, name))
+            with self.assertRaisesRegex(
+                    ValueError, "The following TubeCodes appear more than "
+                                "once in the blanks/katharoseq files: "):
+                add_controls(plate_df, blanks_dir, self.katharoseq_dir)
+
+    def test_add_controls_err_blank_listed_twice_after_stripping_zeroes(self):
+        # The guard must run AFTER leading zeroes are stripped: on a plate that
+        # still has leading zeroes, with preserve_leading_zeroes=False, a
+        # control listed twice only collides once both sides are stripped. If
+        # the guard ran before the strip, the leading-zeroes plate would match
+        # nothing and the duplicates would pass silently.
+        plate_df = pd.read_csv(
+            self.comp_plate_exp_fp_w_leading_zeroes_tubecode,
+            dtype={TUBECODE_KEY: str}, sep='\t')
+        with tempfile.TemporaryDirectory() as blanks_dir:
+            for name in ('blanks.tsv', 'blanks_copy.tsv'):
+                shutil.copy(os.path.join(self.blanks_dir, 'blanks.tsv'),
+                            os.path.join(blanks_dir, name))
+            with self.assertRaisesRegex(
+                    ValueError, "appear more than once in the "
+                                "blanks/katharoseq files: "):
+                add_controls(plate_df, blanks_dir, self.katharoseq_dir,
+                             preserve_leading_zeroes=False)
 
     def test_add_controls_for_katharoseq(self):
         plate_df = pd.read_csv(self.comp_plate_exp_fp,
